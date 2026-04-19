@@ -1,0 +1,14 @@
+﻿{
+    "parameters":  {
+                       "mode":  "runOnceForEachItem",
+                       "jsCode":  "const { json: _dropJsonKey, ...safe } = $json;\n\nfunction isValidPublicMp4(url) {\n  const value = String(url || \"\").trim();\n  if (!value || !/^https:\\/\\//i.test(value)) return false;\n  let parsed;\n  try { parsed = new URL(value); } catch (e) { return false; }\n  const host = String(parsed.hostname || \"\").toLowerCase();\n  if (!host || host === \"example.com\" || host.endsWith(\".example.com\")) return false;\n  if (/^(localhost|127\\.|10\\.|192\\.168\\.|172\\.(1[6-9]|2\\d|3[0-1])\\.)/.test(host)) return false;\n  return /\\.mp4($|\\?)/i.test(parsed.pathname + parsed.search);\n}\n\nconst videoUrl = String(safe.video_url || \"\").trim();\nif (!isValidPublicMp4(videoUrl)) {\n  return [];\n}\n\nreturn {\n  json: {\n    ...safe,\n    video_url: videoUrl,\n    caption:\n      `[${safe.title}]\\n\\n` +\n      `${safe.body}\\n\\n` +\n      `?? ??:\\n${safe.subtitles}\\n\\n` +\n      `?? ??:\\n${safe.source_url}\\n\\n` +\n      `${safe.hashtags}`,\n    reply_markup: JSON.stringify({\n      inline_keyboard: [\n        [\n          { text: \u0027? Approve\u0027, callback_data: `approve|${safe.content_key}` },\n          { text: \u0027?? Regen Text\u0027, callback_data: `regen_contents|${safe.content_key}` }\n        ],\n        [\n          { text: \u0027?? Regen Video\u0027, callback_data: `regen_reel|${safe.content_key}` },\n          { text: \u0027? Delete\u0027, callback_data: `delete|${safe.content_key}` }\n        ]\n      ]\n    })\n  }\n};"
+                   },
+    "type":  "n8n-nodes-base.code",
+    "position":  [
+                     1024,
+                     0
+                 ],
+    "id":  "387bffbc-3df4-4803-9401-b9999c4cfee2",
+    "name":  "Prepare Reel Telegram Payload",
+    "typeVersion":  2
+}

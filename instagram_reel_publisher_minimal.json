@@ -1,0 +1,436 @@
+{
+  "name": "instagram_reel_publisher_minimal",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c2a5b42d-28c8-4c35-9d9d-b3e8f2e3a001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json || {};\n\nconst accessToken = String(input.access_token || 'PASTE_USER_ACCESS_TOKEN_HERE').trim();\nconst igUserId = String(input.ig_user_id || '17841436538210981').trim();\nconst videoUrl = String(input.video_url || 'https://YOUR_PUBLIC_MP4_URL_HERE.mp4').trim();\nconst caption = String(input.caption || 'test reel').trim();\nconst publishDelaySeconds = Number(input.publish_delay_seconds || 8);\nconst retryDelaySeconds = Number(input.retry_delay_seconds || 10);\n\nif (!accessToken || accessToken === 'PASTE_USER_ACCESS_TOKEN_HERE') throw new Error('Missing Instagram user access token');\nif (!igUserId) throw new Error('Missing Instagram user ID');\nif (!videoUrl || videoUrl === 'https://YOUR_PUBLIC_MP4_URL_HERE.mp4') throw new Error('Missing video URL');\n\nreturn [{\n  json: {\n    ...input,\n    ig_user_id: igUserId,\n    access_token: accessToken,\n    video_url: videoUrl,\n    caption,\n    publish_delay_seconds: publishDelaySeconds,\n    retry_delay_seconds: retryDelaySeconds,\n    create_attempt: 1\n  }\n}];"
+      },
+      "id": "5d3f7b6c-4c9e-4ad0-8f7a-5b6a3c7bb002",
+      "name": "Prepare Publish Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v23.0/' + $json.ig_user_id + '/media' }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "video_url",
+              "value": "={{$json.video_url}}"
+            },
+            {
+              "name": "caption",
+              "value": "={{$json.caption}}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{$json.access_token}}"
+            }
+          ]
+        },
+        "options": {},
+        "continueOnFail": true
+      },
+      "id": "8cc88b5c-74eb-4f0c-9ce8-1d2dba3cc003",
+      "name": "Create Media Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [760, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $items('Prepare Publish Payload', 0, 0)[0]?.json || {};\nconst response = items[0]?.json || {};\nconst creationId = String(response.id || response.creation_id || '').trim();\nconst errorMessage = response.error?.message || response.error?.error_user_msg || response.message || response.error || '';\n\nreturn [{\n  json: {\n    ...original,\n    create_attempt: 1,\n    creation_id: creationId,\n    create_status: creationId ? 'success' : 'retry',\n    create_error: creationId ? '' : String(errorMessage || 'Create media container failed').slice(0, 300),\n    raw_create_response: response\n  }\n}];"
+      },
+      "id": "7c3bd1f8-1f02-4c83-a71f-2d5ed52ab004",
+      "name": "Parse Create Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 320]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.create_status}}",
+                    "rightValue": "success",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "success"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.create_status}}",
+                    "rightValue": "retry",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "retry"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "de2f7d93-f8f1-4542-9b0c-8a28f9e0f005",
+      "name": "Switch Create Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [1280, 320]
+    },
+    {
+      "parameters": {
+        "amount": "={{$json.retry_delay_seconds || 10}}"
+      },
+      "id": "d99ea7f4-1fd7-42d8-99a7-4df0f7f7f006",
+      "name": "Wait Before Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1520, 520]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v23.0/' + $json.ig_user_id + '/media' }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "video_url",
+              "value": "={{$json.video_url}}"
+            },
+            {
+              "name": "caption",
+              "value": "={{$json.caption}}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{$json.access_token}}"
+            }
+          ]
+        },
+        "options": {},
+        "continueOnFail": true
+      },
+      "id": "1b9b7a5a-09f0-4b80-bff3-97b1f8c9c007",
+      "name": "Create Media Container Retry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1760, 520]
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $items('Prepare Publish Payload', 0, 0)[0]?.json || {};\nconst response = items[0]?.json || {};\nconst creationId = String(response.id || response.creation_id || '').trim();\nconst errorMessage = response.error?.message || response.error?.error_user_msg || response.message || response.error || '';\n\nreturn [{\n  json: {\n    ...original,\n    create_attempt: 2,\n    creation_id: creationId,\n    create_status: creationId ? 'success' : 'fail',\n    create_error: creationId ? '' : String(errorMessage || 'Retry create media container failed').slice(0, 300),\n    raw_create_response: response\n  }\n}];"
+      },
+      "id": "8c1d0a3f-b5f7-4f93-9ac4-2c3f8cb0d008",
+      "name": "Parse Retry Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 520]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.create_status}}",
+                    "rightValue": "success",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "success"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.create_status}}",
+                    "rightValue": "fail",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "fail"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9e0b70dc-2d13-4b07-9f79-3be4d2ea0009",
+      "name": "Switch Retry Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [2240, 520]
+    },
+    {
+      "parameters": {
+        "amount": "={{$json.publish_delay_seconds || 8}}"
+      },
+      "id": "2a7f3f4c-0f8e-4d7f-a17e-32986f7f0010",
+      "name": "Wait Before Publish",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1520, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v23.0/' + $json.ig_user_id + '/media_publish' }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{$json.creation_id}}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{$json.access_token}}"
+            }
+          ]
+        },
+        "options": {},
+        "continueOnFail": true
+      },
+      "id": "0f6c05f3-2c7a-4fb7-a362-4ecf2df50011",
+      "name": "Publish Reel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1760, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $items('Wait Before Publish', 0, 0)[0]?.json || {};\nconst response = items[0]?.json || {};\nconst publishId = String(response.id || response.media_id || '').trim();\nconst errorMessage = response.error?.message || response.error?.error_user_msg || response.message || response.error || '';\n\nreturn [{\n  json: {\n    ok: !!publishId,\n    stage: 'publish_media',\n    ig_user_id: original.ig_user_id,\n    creation_id: original.creation_id,\n    publish_id: publishId,\n    publish_error: publishId ? '' : String(errorMessage || 'Publish failed').slice(0, 300),\n    raw_publish_response: response,\n    published_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "6e0f8b3f-9f70-4c22-8a56-9f28d2d20012",
+      "name": "Parse Publish Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $items('Prepare Publish Payload', 0, 0)[0]?.json || {};\nconst retryResult = $items('Parse Retry Response', 0, 0)[0]?.json || {};\n\nreturn [{\n  json: {\n    ok: false,\n    stage: 'create_media',\n    ig_user_id: original.ig_user_id,\n    video_url: original.video_url,\n    caption: original.caption,\n    attempts: 2,\n    error_message: String(retryResult.create_error || 'Create media container failed after retry').slice(0, 500),\n    raw_response: retryResult.raw_create_response || null,\n    failed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "ac3d4e9a-1ea4-4359-9bdb-5f3f5f990013",
+      "name": "Build Failure Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2480, 520]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Publish Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Publish Payload": {
+      "main": [
+        [
+          {
+            "node": "Create Media Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Media Container": {
+      "main": [
+        [
+          {
+            "node": "Parse Create Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Create Response": {
+      "main": [
+        [
+          {
+            "node": "Switch Create Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Create Status": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Publish",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Before Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Retry": {
+      "main": [
+        [
+          {
+            "node": "Create Media Container Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Media Container Retry": {
+      "main": [
+        [
+          {
+            "node": "Parse Retry Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Retry Response": {
+      "main": [
+        [
+          {
+            "node": "Switch Retry Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Retry Status": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Publish",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Failure Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Publish": {
+      "main": [
+        [
+          {
+            "node": "Publish Reel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Reel": {
+      "main": [
+        [
+          {
+            "node": "Parse Publish Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "active": false,
+  "isArchived": false
+}

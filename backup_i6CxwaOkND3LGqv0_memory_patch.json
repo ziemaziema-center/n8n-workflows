@@ -1,0 +1,337 @@
+﻿{
+    "updatedAt":  "2026-04-16T04:27:45.556Z",
+    "createdAt":  "2026-04-08T02:08:35.963Z",
+    "id":  "i6CxwaOkND3LGqv0",
+    "name":  "05_Performance_Analyzer",
+    "description":  null,
+    "active":  false,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "rule":  {
+                                                      "interval":  [
+                                                                       {
+                                                                           "field":  "hours",
+                                                                           "hoursInterval":  6
+                                                                       }
+                                                                   ]
+                                                  }
+                                     },
+                      "type":  "n8n-nodes-base.scheduleTrigger",
+                      "typeVersion":  1.3,
+                      "position":  [
+                                       -1504,
+                                       80
+                                   ],
+                      "id":  "8db173c2-963e-400b-927e-4516976fc3d3",
+                      "name":  "Schedule Trigger"
+                  },
+                  {
+                      "parameters":  {
+                                         "authentication":  "serviceAccount",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "mode":  "list",
+                                                            "value":  ""
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "mode":  "list",
+                                                           "value":  ""
+                                                       }
+                                     },
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4,
+                      "position":  [
+                                       -1248,
+                                       80
+                                   ],
+                      "id":  "0f54e9c6-0f6c-43b4-a425-faba56667916",
+                      "name":  "Read progress sheet"
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "return items.slice(-20).map(i =\u003e ({json:i.json}));"
+                                     },
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -1008,
+                                       80
+                                   ],
+                      "id":  "add7c7d3-6814-44e8-b8a9-67f22b5603af",
+                      "name":  "Pick Recent Progress Rows"
+                  },
+                  {
+                      "parameters":  {
+                                         "url":  "= \u0027https://graph.facebook.com/v19.0/\u0027 + ($json.post_id || $json.ig_post_id || $json.id) + \u0027?fields=id,like_count,comments_count,media_type,permalink,timestamp\u0026access_token=IGAAVCHIcb2PtBZAGFXZAWhIUUlNc05KVzUyQjJ0T3gyQjJ0Yi15MWIwT21Jb1hkd1F5Y2FuRmxaUE1wR0R0MmlIVVhvMHJBVmxfU1dETE9oRVR2U081VEtla1RONVV1VjRuR3N3U0tmMnlDQnlieGlzWno3VFJiSnhXeTB5eDVhRQZDZD\u0027",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.4,
+                      "position":  [
+                                       -752,
+                                       80
+                                   ],
+                      "id":  "9b929708-07ee-42a6-af50-ef35b05117a0",
+                      "name":  "Get Media Insights"
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "https://api.openai.com/v1/chat/completions",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "Bearer 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"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "{\"model\":\"gpt-4o-mini\",\"response_format\":{\"type\":\"json_object\"},\"messages\":[{\"role\":\"system\",\"content\":\"Return only valid JSON.\"},{\"role\":\"user\",\"content\":\"??? ???????????????? memory_log??JSON????????.\\n\\n??? ?????\\n{{$json}}\\n\\n??? ???:\\n- performance_score?� ??? ????� ?????result??good\\n- ????� ?????result??bad\\n- hook?� ?????? ??? ????? ??? ???????? ??? ???\\n- reason?� ??? ????????\\n- ???: strong curiosity, weak clarity, weak stop-scroll, good save trigger\\n\\n?????JSON??\\n{\\n  \\\"hook\\\": \\\"\\\",\\n  \\\"performance_score\\\": 0,\\n  \\\"result\\\": \\\"good|bad\\\",\\n  \\\"reason\\\": \\\"\\\"\\n}\"}],\"temperature\":0.3}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.4,
+                      "position":  [
+                                       -496,
+                                       80
+                                   ],
+                      "id":  "b8e0fb60-eb23-4874-bf14-e31cedeb5bf7",
+                      "name":  "OpenAI Analyze Performance"
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "const raw = $json.choices?.[0]?.message?.content || \u0027{}\u0027;\n\nfunction extractJson(text) {\n  const cleaned = String(text || \u0027\u0027).trim();\n  const f1 = cleaned.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n  if (f1) return f1[1].trim();\n  const f2 = cleaned.match(/```([\\s\\S]*?)```/);\n  if (f2) return f2[1].trim();\n  const first = cleaned.indexOf(\u0027{\u0027);\n  const last = cleaned.lastIndexOf(\u0027}\u0027);\n  if (first !== -1 \u0026\u0026 last !== -1) return cleaned.slice(first, last + 1);\n  return \u0027{}\u0027;\n}\n\nfunction normalizeResult(r) {\n  const val = String(r || \u0027\u0027).toLowerCase();\n  if (val.includes(\u0027good\u0027)) return \u0027good\u0027;\n  if (val.includes(\u0027bad\u0027)) return \u0027bad\u0027;\n  return \u0027bad\u0027;\n}\n\nlet parsed = {};\nlet fail = false;\n\ntry {\n  parsed = JSON.parse(extractJson(raw));\n} catch {\n  fail = true;\n}\n\nconst fallback =\n  String($json.thumbnail_hook || $json.final_title || \u0027\u0027).trim();\n\nreturn [{\n  json: {\n    hook: String(parsed.hook || fallback).slice(0, 120),\n    performance_score: Number(parsed.performance_score || 0),\n    result: fail ? \u0027bad\u0027 : normalizeResult(parsed.result),\n    reason: fail ? \u0027parse failed\u0027 : String(parsed.reason || \u0027\u0027).slice(0, 60),\n    logged_at: new Date().toISOString()\n  }\n}];"
+                                     },
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       -256,
+                                       80
+                                   ],
+                      "id":  "efdf7115-7044-4490-9066-50e1109e3018",
+                      "name":  "Parse Performance JSON"
+                  },
+                  {
+                      "parameters":  {
+                                         "authentication":  "serviceAccount",
+                                         "operation":  "append",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "mode":  "list",
+                                                            "value":  ""
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "mode":  "list",
+                                                           "value":  ""
+                                                       }
+                                     },
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4,
+                      "position":  [
+                                       0,
+                                       0
+                                   ],
+                      "id":  "48b64b06-6917-4a29-b7ea-cf5eb2977ab1",
+                      "name":  "Append Progress Update"
+                  },
+                  {
+                      "parameters":  {
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "mode":  "name",
+                                                           "value":  "memory_log"
+                                                       },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "displayName":  "hook",
+                                                                            "id":  "hook",
+                                                                            "type":  "string"
+                                                                        },
+                                                                        {
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "displayName":  "performance_score",
+                                                                            "id":  "performance_score",
+                                                                            "type":  "number"
+                                                                        },
+                                                                        {
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "displayName":  "result",
+                                                                            "id":  "result",
+                                                                            "type":  "string"
+                                                                        },
+                                                                        {
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "displayName":  "reason",
+                                                                            "id":  "reason",
+                                                                            "type":  "string"
+                                                                        },
+                                                                        {
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "displayName":  "logged_at",
+                                                                            "id":  "logged_at",
+                                                                            "type":  "string"
+                                                                        }
+                                                                    ],
+                                                         "value":  {
+                                                                       "performance_score":  "={{$json.performance_score}}",
+                                                                       "hook":  "={{$json.hook}}",
+                                                                       "result":  "={{$json.result}}",
+                                                                       "reason":  "={{$json.reason}}",
+                                                                       "logged_at":  "={{$json.logged_at}}"
+                                                                   }
+                                                     },
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "mode":  "id",
+                                                            "value":  "17pM1TO62U8wklrpmC5ZDPHNeNMNUT18hsOP9GJQ-d4Q"
+                                                        },
+                                         "authentication":  "serviceAccount",
+                                         "options":  {
+
+                                                     },
+                                         "operation":  "append"
+                                     },
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4,
+                      "position":  [
+                                       0,
+                                       160
+                                   ],
+                      "id":  "f8045889-6135-4c29-9a26-8f05a0ed84b0",
+                      "name":  "Append Self Improving"
+                  }
+              ],
+    "connections":  {
+                        "Schedule Trigger":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Read progress sheet",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Read progress sheet":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Pick Recent Progress Rows",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Pick Recent Progress Rows":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Get Media Insights",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      },
+                        "Get Media Insights":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "OpenAI Analyze Performance",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "OpenAI Analyze Performance":  {
+                                                           "main":  [
+                                                                        [
+                                                                            {
+                                                                                "node":  "Parse Performance JSON",
+                                                                                "type":  "main",
+                                                                                "index":  0
+                                                                            }
+                                                                        ]
+                                                                    ]
+                                                       },
+                        "Parse Performance JSON":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Append Progress Update",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        },
+                                                                        {
+                                                                            "node":  "Append Self Improving",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "availableInMCP":  false
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  {
+
+                },
+    "versionId":  "762c7bee-cb8e-4db5-be15-d72c1450c1cb",
+    "activeVersionId":  null,
+    "versionCounter":  3,
+    "triggerCount":  0,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-04-08T02:08:35.967Z",
+                       "createdAt":  "2026-04-08T02:08:35.967Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "i6CxwaOkND3LGqv0",
+                       "projectId":  "M3e6xHUu7VezXSBg",
+                       "project":  {
+                                       "updatedAt":  "2026-04-07T04:41:49.347Z",
+                                       "createdAt":  "2026-04-05T09:30:33.360Z",
+                                       "id":  "M3e6xHUu7VezXSBg",
+                                       "name":  "민호 김 \u003cziemaziema@gmail.com\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  null
+}

@@ -1,0 +1,39 @@
+﻿{
+    "parameters":  {
+                       "method":  "POST",
+                       "url":  "https://api.telegram.org/bot8687178234:AAFPSB_Hh6KSgEqNqaxnC1qfUjqX9cvHOMk/sendVideo",
+                       "sendBody":  true,
+                       "contentType":  "form-urlencoded",
+                       "bodyParameters":  {
+                                              "parameters":  [
+                                                                 {
+                                                                     "name":  "chat_id",
+                                                                     "value":  "={{$json.chat_id || \"7592247598\"}}"
+                                                                 },
+                                                                 {
+                                                                     "name":  "video",
+                                                                     "value":  "={{$json.video_url}}"
+                                                                 },
+                                                                 {
+                                                                     "name":  "caption",
+                                                                     "value":  "={{$json.caption}}"
+                                                                 },
+                                                                 {
+                                                                     "name":  "reply_markup",
+                                                                     "value":  "={{$json.reply_markup}}"
+                                                                 }
+                                                             ]
+                                          },
+                       "options":  {
+
+                                   }
+                   },
+    "type":  "n8n-nodes-base.httpRequest",
+    "typeVersion":  4.4,
+    "position":  [
+                     1216,
+                     0
+                 ],
+    "id":  "c4e6a865-cf0f-4852-9e92-b61d6b9df56f",
+    "name":  "Send a video"
+}

@@ -1,0 +1,18 @@
+﻿{
+    "main":  [
+                 [
+                     {
+                         "node":  "Prepare Reel Telegram Payload",
+                         "type":  "main",
+                         "index":  0
+                     }
+                 ],
+                 [
+                     {
+                         "node":  "Prepare Feed Telegram Payload",
+                         "type":  "main",
+                         "index":  0
+                     }
+                 ]
+             ]
+}

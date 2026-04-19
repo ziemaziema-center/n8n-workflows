@@ -1,0 +1,11 @@
+﻿{
+    "main":  [
+                 [
+                     {
+                         "node":  "Send a video",
+                         "type":  "main",
+                         "index":  0
+                     }
+                 ]
+             ]
+}

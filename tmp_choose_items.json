@@ -1,0 +1,356 @@
+[
+    {
+        "json":  {
+                     "row_number":  17,
+                     "content_key":  "3674fbdd3a42cbab",
+                     "source_title":  "한국도 이제 담배 한 갑 1만원? 술값도 오를 수도 - 조선비즈",
+                     "source_link":  "https://news.google.com/rss/articles/CBMiigFBVV95cUxQYmRQU1VMb1dJZ2VrRmVsWThmeHhGRTVwNVBHWGNVNndRcERSaUxRc3FTVXRPbmhGTzZYTERLSldnQTFyOVRrbnNObTZTSUhXcE5yNVhxQm1VS1dfaVY5Wkl6eEFjVW5UU0hUeXRtUmM3cXNqTW13cThRX0o4TjFXR1pyQUlkSWlIeGfSAZ4BQVVfeXFMT0liZ1drQkMxQTBpcndyTE1BSDFaX3EybTFmZDhDYVN0MVcyalFWdlJsbGp2M2hWUjlnRURKVG9Cd2xMdnNVQ0F0R0VlWVFzQlItX0dzTk1vU0doRXBvVmh5YV9xLWJmd3VtamVWUEpic1lRS2hkMVdSaThiQ05kQUdNZWs1YzhTUnVjMTRjSkZibHJLLS1IWERwUXZSenc?oc=5",
+                     "source_excerpt":  "한국도 이제 담배 한 갑 1만원? 술값도 오를 수도 - 조선비즈  Chosunbiz",
+                     "published_at":  "2026-03-27T07:00:00.000Z",
+                     "source":  "google_news",
+                     "source_type":  "news",
+                     "today":  "2026-04-08T11:11:20.086Z",
+                     "is_recent":  true,
+                     "content_type":  "reel",
+                     "topic_cluster":  "policy",
+                     "final_title":  "한국 담배 가격이 1만원에 도달할까?",
+                     "body":  "한국에서 담배 한 갑이 1만원에 가까워질 전망입니다. 여러분은 이에 대해 어떻게 생각하시나요?",
+                     "hashtags":  "#담배가격 #한국경제 #술값인상 #정책변화",
+                     "controversy_angle":  "이 가격 인상이 건강에 미치는 영향과 세수 증대의 필요성에 대한 논란이 있습니다.",
+                     "save_cta":  "이 포스트를 저장하고 의견을 나누세요!",
+                     "comment_cta":  "여러분의 생각을 댓글로 남겨주세요!",
+                     "music_tag":  "urgent_news",
+                     "image_style":  "dark symbolic editorial",
+                     "thumbnail_hook":  "한국 담배 가격 상승, 당신의 의견은?",
+                     "cover_prompt":  "담배와 술에 대한 통계 데이터 배경과 큰 숫자",
+                     "reel_script":  "담배 가격 1만원? (1초) 이런 변화가 올 수 있다니! (4초) 우리 생활에 미치는 영향이 크겠죠? (3초) 의견을 댓글로 남기세요! (1초) 잊지 말고 저장하세요!",
+                     "hook_options":  [
+                                          "담배가 1만원 시대? 당신의 생각은?",
+                                          "술값도 오른다고? 충격적인 소식!",
+                                          "한국의 담배, 너무 비싼가?",
+                                          "이제 담배 한 갑 1만원? 진짜?",
+                                          "입장 바꿔야 할 시점인가?"
+                                      ],
+                     "score":  70,
+                     "scene_json":  [
+                                        {
+                                            "scene":  1,
+                                            "duration":  1,
+                                            "caption":  "담배가 1만원 시대?",
+                                            "image_prompt":  "담배값과 관련된 이미지, 우울한 표정의 사람"
+                                        },
+                                        {
+                                            "scene":  2,
+                                            "duration":  1.5,
+                                            "caption":  "이제 가격이 급등하는가?",
+                                            "image_prompt":  "담배 가격 상승 그래픽"
+                                        },
+                                        {
+                                            "scene":  3,
+                                            "duration":  1.5,
+                                            "caption":  "한국의 사회적 논란은?",
+                                            "image_prompt":  "사람들이 담배를 피우고 있는 거리, 대화 중"
+                                        },
+                                        {
+                                            "scene":  4,
+                                            "duration":  1.5,
+                                            "caption":  "이 가격이 미치는 영향은?",
+                                            "image_prompt":  "경제 그래프와 담배제품 이미지"
+                                        },
+                                        {
+                                            "scene":  5,
+                                            "duration":  1,
+                                            "caption":  "당신의 생각은?",
+                                            "image_prompt":  "사람들이 의견을 나누고 있는 모습"
+                                        }
+                                    ],
+                     "image_urls_json":  "[\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-kPqNcXnpBfVHYiJXoEnpF9fK.png?st=2026-04-08T10%3A11%3A57Z\u0026se=2026-04-08T12%3A11%3A57Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=35890473-cca8-4a54-8305-05a39e0bc9c3\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T06%3A38%3A54Z\u0026ske=2026-04-09T06%3A38%3A54Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=aWBSwiGli845B%2Bi0hAZwmrCgPc/oQPiNLnbvL12mBHg%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-vs0Dx6PEVlSZKCrnEX31xPqO.png?st=2026-04-08T10%3A11%3A58Z\u0026se=2026-04-08T12%3A11%3A58Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=ed3ea2f9-5e38-44be-9a1b-7c1e65e4d54f\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-07T13%3A47%3A22Z\u0026ske=2026-04-08T13%3A47%3A22Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=ruKuydzStJKrVxXBFDGEIulNDfogdf%2BQm5d5%2BOakkTQ%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-ClR9KcnIp9OMcCLpwjUBQYR7.png?st=2026-04-08T10%3A11%3A59Z\u0026se=2026-04-08T12%3A11%3A59Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=7daae675-7b42-4e2e-ab4c-8d8419a28d99\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-07T11%3A42%3A22Z\u0026ske=2026-04-08T11%3A42%3A22Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=%2B6oUNrVDz1QAH0NREPgTFHXgUSzxNzNHsqRfIJAx8bE%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-I2Dhoal3QbOE1lgSbjjdTBfK.png?st=2026-04-08T10%3A11%3A59Z\u0026se=2026-04-08T12%3A11%3A59Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=7daae675-7b42-4e2e-ab4c-8d8419a28d99\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-07T19%3A30%3A46Z\u0026ske=2026-04-08T19%3A30%3A46Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=QfoDQLNi68o%2BppDYLrGoz7p2O3xnwY7r3EKkFWmqPdw%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-6kpgXY8PJJtCKwV85KDu61tG.png?st=2026-04-08T10%3A11%3A57Z\u0026se=2026-04-08T12%3A11%3A57Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=ed3ea2f9-5e38-44be-9a1b-7c1e65e4d54f\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T02%3A35%3A08Z\u0026ske=2026-04-09T02%3A35%3A08Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=f8n69j7136Ewtb3RSw0uqiQd4/PkGFiRk54SBqoHqSM%3D\"]",
+                     "captions_json":  "[\"전자담배 세금이 바뀌고 있습니다!\",\"정책 변경의 배경과 소비자에 미치는 영향은?\",\"전자담배와 전통 담배의 세금 비교!\",\"소비자 보호를 위한 조치인가, 세금 수입을 위한 조치인가?\",\"여러분의 의견은? 댓글로 남겨주세요!\"]",
+                     "durations_json":  "[1,1.5,1.5,1.5,1]",
+                     "approval_status":  "pending",
+                     "created_at":  "2026-04-08T11:12:01.447Z",
+                     "preview_mode":  "slide_reel_ready",
+                     "chat_id":  "7592247598",
+                     "photo":  "https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-kPqNcXnpBfVHYiJXoEnpF9fK.png?st=2026-04-08T10%3A11%3A57Z\u0026se=2026-04-08T12%3A11%3A57Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=35890473-cca8-4a54-8305-05a39e0bc9c3\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T06%3A38%3A54Z\u0026ske=2026-04-09T06%3A38%3A54Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=aWBSwiGli845B%2Bi0hAZwmrCgPc/oQPiNLnbvL12mBHg%3D",
+                     "caption":  "[REEL 초안] 점수 70\n전자담배 세금, 과연 정당한가?\n\n최근 전자담배에 대한 세금 정책이 변화하고 있습니다. 그 배경과 실제 영향은 무엇일까요?\n\n#전자담배 #세금정책 #정책논란 #전자담배규제 #대한민국\n\n장면 수: 5\n자막:\n1. 전자담배 세금이 바뀌고 있습니다!\n2. 정책 변경의 배경과 소비자에 미치는 영향은?\n3. 전자담배와 전통 담배의 세금 비교!\n4. 소비자 보호를 위한 조치인가, 세금 수입을 위한 조치인가?\n5. 여러분의 의견은? 댓글로 남겨주세요!\n\n논쟁 포인트: 전자담배 세금 인상은 소비자 보호인가, 아니면 세수 확보를 위한 편법인가?\n원문: https://news.google.com/rss/articles/CBMiigFBVV95cUxQYmRQU1VMb1dJZ2VrRmVsWThmeHhGRTVwNVBHWGNVNndRcERSaUxRc3FTVXRPbmhGTzZYTERLSldnQTFyOVRrbnNObTZTSUhXcE5yNVhxQm1VS1dfaVY5Wkl6eEFjVW5UU0hUeXRtUmM3cXNqTW13cThRX0o4TjFXR1pyQUlkSWlIeGfSAZ4BQVVfeXFMT0liZ1drQkMxQTBpcndyTE1BSDFaX3EybTFmZDhDYVN0MVcyalFWdlJsbGp2M2hWUjlnRURKVG9Cd2xMdnNVQ0F0R0VlWVFzQlItX0dzTk1vU0doRXBvVmh5YV9xLWJmd3VtamVWUEpic1lRS2hkMVdSaThiQ05kQUdNZWs1YzhTUnVjMTRjSkZibHJLLS1IWERwUXZSenc?oc=5\n음악: urgent_news",
+                     "reply_markup":  "{\"inline_keyboard\":[[{\"text\":\"✅ Approve\",\"callback_data\":\"approve|3674fbdd3a42cbab\"}],[{\"text\":\"🔄 Regen Contents\",\"callback_data\":\"regen_contents|3674fbdd3a42cbab\"},{\"text\":\"🖼 Regen Picture\",\"callback_data\":\"regen_image|3674fbdd3a42cbab\"}],[{\"text\":\"🎬 Regen Reel\",\"callback_data\":\"regen_reel|3674fbdd3a42cbab\"},{\"text\":\"✏️ Edit Caption\",\"callback_data\":\"edit_caption|3674fbdd3a42cbab\"}],[{\"text\":\"🗑 Delete\",\"callback_data\":\"delete|3674fbdd3a42cbab\"}]]}",
+                     "action":  "",
+                     "callback_id":  "",
+                     "callback_message_id":  "",
+                     "callback_caption":  "",
+                     "raw":  "",
+                     "scheduled_slot":  "",
+                     "scheduled_for":  "",
+                     "approved_at":  "",
+                     "score_hint":  {
+                                        "click":  0,
+                                        "save":  0,
+                                        "debate":  0,
+                                        "info":  0,
+                                        "instagram_fit":  0
+                                    },
+                     "last_action":  "",
+                     "updated_at":  "",
+                     "cover_url":  "",
+                     "deleted_at":  "",
+                     "feed_slides":  [
+                                         "담배 한 갑 1만원 시대가 온다!",
+                                         "이제 술값도 오를 수 있다?",
+                                         "여러분은 어떻게 생각하시나요?",
+                                         "정책 변경의 배경은?",
+                                         "의견을 댓글로 남겨주세요!"
+                                     ],
+                     "created":  "",
+                     "data":  "",
+                     "current_slot":  "",
+                     "video_url":  "https://n8n.mykindredai.com/images/reel_f9e519856a8648aebedcb559ca411e11.mp4",
+                     "reel_publish_mode":  "",
+                     "captionText":  "",
+                     "publish_status":  "",
+                     "last_publish_error":  "",
+                     "selected_at":  "",
+                     "test_mode":  "",
+                     "ok":  "",
+                     "result":  ""
+                 },
+        "pairedItem":  {
+                           "item":  1
+                       }
+    },
+    {
+        "json":  {
+                     "row_number":  2,
+                     "content_key":  "344d14694df291f2",
+                     "source_title":  "궐련형 전자담배 시장 \u0027쑥쑥\u0027…담뱃세 인상 \u0027정조준\u0027?",
+                     "source_link":  "https://news.google.com/rss/articles/CBMiU0FVX3lxTE5LSjhOcWRhRUpkelkzNFBLbGU1dVBYZW1CYjR4dmk3cTRlTmZyTjlrOGxhdWlWRHdSbWZCeFFEbHdqSlRkaDZDdTNDU0dSMTBCcVE4?oc=5",
+                     "source_excerpt":  "궐련형 전자담배 시장 \u0027쑥쑥\u0027…담뱃세 인상 \u0027정조준\u0027?  네이트",
+                     "published_at":  "2026-04-01T21:33:00.000Z",
+                     "source":  "google_news",
+                     "source_type":  "news",
+                     "today":  "2026-04-08T04:13:19.178Z",
+                     "is_recent":  true,
+                     "content_type":  "reel",
+                     "topic_cluster":  "health|tax|policy",
+                     "final_title":  "Heated Tobacco Products: A Rising Trend Amid Tax Changes?",
+                     "body":  "The heated tobacco market is experiencing rapid growth, raising questions about the future of smoking and potential tax increases on cigarettes. What will this mean for public health?",
+                     "hashtags":  "#HeatedTobacco #PublicHealth #TobaccoTax #Vaping #SmokingTrends",
+                     "controversy_angle":  "What impact will a tax increase have on smoking habits and public health?",
+                     "save_cta":  "Save this post to stay informed on tobacco industry trends!",
+                     "comment_cta":  "What are your thoughts on heated tobacco products? Let us know!",
+                     "music_tag":  "urgent_news",
+                     "image_style":  "dark symbolic editorial",
+                     "thumbnail_hook":  "Heated Tobacco: The New Frontier?",
+                     "cover_prompt":  "A dark editorial image showcasing heated tobacco products against a backdrop of traditional cigarettes.",
+                     "reel_script":  "Is the rise of heated tobacco a public health risk? (1 second) The market is booming, but could tax changes shift the landscape? (4 seconds) Understanding the implications for smokers and health is crucial. (Key Point) Save this post to keep updated! (Save CTA)",
+                     "hook_options":  [
+                                          "Is the rise of heated tobacco products a threat to public health?",
+                                          "Could a tax hike on traditional cigarettes push more smokers to heated tobacco?",
+                                          "The heated tobacco market is booming - what does it mean for taxes?",
+                                          "Are heated tobacco products the future of smoking?",
+                                          "Tax changes could reshape the tobacco landscape forever!"
+                                      ],
+                     "score":  29,
+                     "scene_json":  [
+                                        {
+                                            "scene":  1,
+                                            "duration":  1,
+                                            "caption":  "Is the rise of heated tobacco a public health risk?",
+                                            "image_prompt":  "Close-up of heated tobacco products against a blurred background of traditional cigarettes."
+                                        },
+                                        {
+                                            "scene":  2,
+                                            "duration":  1.5,
+                                            "caption":  "The market is booming, but could tax changes shift the landscape?",
+                                            "image_prompt":  "Graph showing rising sales of heated tobacco products."
+                                        },
+                                        {
+                                            "scene":  3,
+                                            "duration":  1.5,
+                                            "caption":  "Understanding the implications for smokers and health is crucial.",
+                                            "image_prompt":  "Silhouette of a person looking contemplative with smoke in the background."
+                                        },
+                                        {
+                                            "scene":  4,
+                                            "duration":  1.5,
+                                            "caption":  "What impact will a tax increase have on smoking habits?",
+                                            "image_prompt":  "Image of a tax symbol overlaid on various tobacco products."
+                                        },
+                                        {
+                                            "scene":  5,
+                                            "duration":  1,
+                                            "caption":  "Save this post to keep updated!",
+                                            "image_prompt":  "Text overlay \u0027Save This!\u0027 with a bright call-to-action design."
+                                        }
+                                    ],
+                     "image_urls_json":  "[\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-RDx9xdp8bWxSSHf7PSYvHxsm.png?st=2026-04-08T03%3A20%3A24Z\u0026se=2026-04-08T05%3A20%3A24Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=b1a0ae1f-618f-4548-84fd-8b16cacd5485\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T04%3A05%3A55Z\u0026ske=2026-04-09T04%3A05%3A55Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=Y0ngaiowoiPolJInXXJ1DNxjrniO1KfS5njSCRh/pG0%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-MEa3CM7yiAEnZkOAbwIUADjL.png?st=2026-04-08T03%3A20%3A24Z\u0026se=2026-04-08T05%3A20%3A24Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=9346e9b9-5d29-4d37-a0a9-c6f95f09f79d\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-07T18%3A01%3A04Z\u0026ske=2026-04-08T18%3A01%3A04Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=U%2BvfC5Ll7XUEAqBk6KsfX4QtnuRZBKFjs0NjwfvEZNg%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-qB2D3IaG0qRiCSlhK3R1CUHc.png?st=2026-04-08T03%3A20%3A26Z\u0026se=2026-04-08T05%3A20%3A26Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=77e5a8ec-6bd1-4477-8afc-16703a64f029\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-07T19%3A45%3A47Z\u0026ske=2026-04-08T19%3A45%3A47Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=jT3bdIgTbMG1y9V2AWA6gxLG95H81rYDOePt3lNtpz8%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-fQnlfTyXDTcibQPYVuZ1VqS9.png?st=2026-04-08T03%3A20%3A25Z\u0026se=2026-04-08T05%3A20%3A25Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=ed3ea2f9-5e38-44be-9a1b-7c1e65e4d54f\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T03%3A40%3A27Z\u0026ske=2026-04-09T03%3A40%3A27Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=mdGgA4QCG0xtkw2kVwghjgNmg2/9t6f77rPvCPtaFIM%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-1ygKJqFcauGgPr99vB4RGxle.png?st=2026-04-08T03%3A20%3A26Z\u0026se=2026-04-08T05%3A20%3A26Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=b1a0ae1f-618f-4548-84fd-8b16cacd5485\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T02%3A19%3A59Z\u0026ske=2026-04-09T02%3A19%3A59Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=AbCrUEGncOTEUTCFKcWL%2BvdTIax5HMSmm5zl6Avpdc8%3D\"]",
+                     "captions_json":  "[\"전자담배 규제, 당신은 찬성인가요?\",\"최근 정부의 세금 변화\",\"소비자 보호 vs 건강 위험\",\"여론 조사 결과는?\",\"당신의 생각은 무엇인가요?\"]",
+                     "durations_json":  "[1,1.5,1.5,1.5,1]",
+                     "approval_status":  "pending",
+                     "created_at":  "2026-04-08T04:34:16.648Z",
+                     "preview_mode":  "slide_reel_ready",
+                     "chat_id":  "7592247598",
+                     "photo":  "https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-RDx9xdp8bWxSSHf7PSYvHxsm.png?st=2026-04-08T03%3A20%3A24Z\u0026se=2026-04-08T05%3A20%3A24Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=b1a0ae1f-618f-4548-84fd-8b16cacd5485\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T04%3A05%3A55Z\u0026ske=2026-04-09T04%3A05%3A55Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=Y0ngaiowoiPolJInXXJ1DNxjrniO1KfS5njSCRh/pG0%3D",
+                     "caption":  "[REEL 초안] 점수 4\n전자담배 규제, 당신은 찬성인가 반대인가?\n\n전자담배에 대한 규제와 세금 정책이 변하고 있습니다. 당신은 이런 변화가 실질적인 효과를 낼 것이라 생각하나요?\n\n#전자담배 #정책 #규제 #건강 #세금\n\n장면 수: 5\n자막:\n1. 전자담배 규제, 당신은 찬성인가요?\n2. 최근 정부의 세금 변화\n3. 소비자 보호 vs 건강 위험\n4. 여론 조사 결과는?\n5. 당신의 생각은 무엇인가요?\n\n논쟁 포인트: 전자담배 규제가 소비자 보호에 도움이 될까?\n원문: https://news.google.com/rss/articles/CBMiU0FVX3lxTE5LSjhOcWRhRUpkelkzNFBLbGU1dVBYZW1CYjR4dmk3cTRlTmZyTjlrOGxhdWlWRHdSbWZCeFFEbHdqSlRkaDZDdTNDU0dSMTBCcVE4?oc=5\n음악: urgent_news",
+                     "reply_markup":  "{\"inline_keyboard\":[[{\"text\":\"✅ Approve\",\"callback_data\":\"approve|344d14694df291f2\"}],[{\"text\":\"🔄 Regen Contents\",\"callback_data\":\"regen_contents|344d14694df291f2\"},{\"text\":\"🖼 Regen Picture\",\"callback_data\":\"regen_image|344d14694df291f2\"}],[{\"text\":\"🎬 Regen Reel\",\"callback_data\":\"regen_reel|344d14694df291f2\"},{\"text\":\"✏️ Edit Caption\",\"callback_data\":\"edit_caption|344d14694df291f2\"}],[{\"text\":\"🗑 Delete\",\"callback_data\":\"delete|344d14694df291f2\"}]]}",
+                     "action":  "",
+                     "callback_id":  "",
+                     "callback_message_id":  "",
+                     "callback_caption":  "",
+                     "raw":  "",
+                     "scheduled_slot":  "",
+                     "scheduled_for":  "",
+                     "approved_at":  "",
+                     "score_hint":  {
+                                        "click":  0,
+                                        "save":  1,
+                                        "debate":  1,
+                                        "info":  0,
+                                        "instagram_fit":  1
+                                    },
+                     "last_action":  "",
+                     "updated_at":  "",
+                     "cover_url":  "",
+                     "deleted_at":  "",
+                     "feed_slides":  [
+                                         "Slide 1: Heated tobacco market booming!",
+                                         "Slide 2: Are traditional cigarettes at risk?",
+                                         "Slide 3: Tax changes could reshape the landscape.",
+                                         "Slide 4: Health implications we can\u0027t ignore.",
+                                         "Slide 5: Stay informed, save this post!"
+                                     ],
+                     "created":  "",
+                     "data":  "",
+                     "current_slot":  "",
+                     "video_url":  "https://n8n.mykindredai.com/images/reel_f9e519856a8648aebedcb559ca411e11.mp4",
+                     "reel_publish_mode":  "",
+                     "captionText":  "",
+                     "publish_status":  "",
+                     "last_publish_error":  "",
+                     "selected_at":  "",
+                     "test_mode":  "",
+                     "ok":  "",
+                     "result":  ""
+                 },
+        "pairedItem":  {
+                           "item":  0
+                       }
+    },
+    {
+        "json":  {
+                     "row_number":  18,
+                     "content_key":  "3b4779f769693b3f",
+                     "source_title":  "미국 및 전 세계의 베이핑 세금",
+                     "source_link":  "https://news.google.com/rss/articles/CBMibEFVX3lxTE1vaC1ub0dhMGd5M2cyT1NESDljS2VsNDVvU0liRGJTRzlxQTNnS3FObXNLNWtwM1hQeVYyOTVUbDhnVzhBV3ltUEZLMnFQUGJzSUZMXzdIbzhucnotMEtnWTg1bS1DNVA5YjlVbA?oc=5",
+                     "source_excerpt":  "미국 및 전 세계의 베이핑 세금  Vaping360",
+                     "published_at":  "2026-03-31T07:00:00.000Z",
+                     "source":  "google_news",
+                     "source_type":  "news",
+                     "today":  "2026-04-08T11:11:20.086Z",
+                     "is_recent":  true,
+                     "content_type":  "reel",
+                     "topic_cluster":  "policy",
+                     "final_title":  "The Impact of New Vaping Taxes",
+                     "body":  "Vaping taxes are on the rise in the US and globally. What does this mean for you? Stay informed to avoid overspending on your vaping habits!",
+                     "hashtags":  "#VapingTax #StayInformed #VapingPolicy #HealthNews",
+                     "controversy_angle":  "How do these new taxes impact vaping culture and consumer choices?",
+                     "save_cta":  "Save this post to keep updated on vaping taxes!",
+                     "comment_cta":  "What do you think about the new vaping taxes? Let us know in the comments!",
+                     "music_tag":  "urgent_news",
+                     "image_style":  "dark symbolic editorial",
+                     "thumbnail_hook":  "Vaping taxes are changing the game!",
+                     "cover_prompt":  "What do you think of these new vaping taxes?",
+                     "reel_script":  "Stop scrolling! 🚨 Vaping taxes are rising! In **3 seconds**: Know what this means for your wallet! 💰 Stay informed and save this post! 📲",
+                     "hook_options":  [
+                                          "Are you ready for the vaping tax changes that could affect your wallet?",
+                                          "Vaping just got more expensive—here\u0027s what you need to know!",
+                                          "Think vaping is safe? Think again—taxes are changing!",
+                                          "New vaping taxes are coming! Are you prepared?",
+                                          "Don\u0027t miss out on this crucial update about vaping taxes!"
+                                      ],
+                     "score":  8,
+                     "scene_json":  [
+                                        {
+                                            "scene":  1,
+                                            "duration":  1,
+                                            "caption":  "Vaping taxes are changing!",
+                                            "image_prompt":  "a graphic of increasing tax rates on vaping products"
+                                        },
+                                        {
+                                            "scene":  2,
+                                            "duration":  1.5,
+                                            "caption":  "What does this mean for you?",
+                                            "image_prompt":  "a worried person looking at vape products"
+                                        },
+                                        {
+                                            "scene":  3,
+                                            "duration":  1.5,
+                                            "caption":  "Stay informed to avoid overspending!",
+                                            "image_prompt":  "a close-up of a calculator with vape products in the background"
+                                        },
+                                        {
+                                            "scene":  4,
+                                            "duration":  1.5,
+                                            "caption":  "Save this post for updates!",
+                                            "image_prompt":  "a hand saving a post on Instagram"
+                                        },
+                                        {
+                                            "scene":  5,
+                                            "duration":  1,
+                                            "caption":  "Comment your thoughts below!",
+                                            "image_prompt":  "a comment section filled with discussions"
+                                        }
+                                    ],
+                     "image_urls_json":  "[\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-2MW2yaDSHcuhgmxBttvITjpp.png?st=2026-04-08T10%3A11%3A56Z\u0026se=2026-04-08T12%3A11%3A56Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=7daae675-7b42-4e2e-ab4c-8d8419a28d99\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T05%3A39%3A41Z\u0026ske=2026-04-09T05%3A39%3A41Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=O6JbmmnucIS%2BVqXmu3w9FAsh3QXwE7JbwZjQQ78fFrg%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-pBgN2MPFKT2VaEnc9gYyf4QZ.png?st=2026-04-08T10%3A11%3A59Z\u0026se=2026-04-08T12%3A11%3A59Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=ed3ea2f9-5e38-44be-9a1b-7c1e65e4d54f\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T07%3A08%3A22Z\u0026ske=2026-04-09T07%3A08%3A22Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=YbulRq8g2aSzGnaF4YC0%2BpzkKCW%2BTpHANQvpGqg5u4Y%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-NzlIyATVbyQHZO8KzkPn1NEX.png?st=2026-04-08T10%3A12%3A00Z\u0026se=2026-04-08T12%3A12%3A00Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=b1a0ae1f-618f-4548-84fd-8b16cacd5485\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-07T20%3A37%3A21Z\u0026ske=2026-04-08T20%3A37%3A21Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=InuS0DfRNNK1fhTA4JG7YpCEakp3%2BU1C60uAIgSmu54%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-s7PC3k1ISaxMu8CelvPY3Fet.png?st=2026-04-08T10%3A12%3A00Z\u0026se=2026-04-08T12%3A12%3A00Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=9346e9b9-5d29-4d37-a0a9-c6f95f09f79d\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T07%3A00%3A17Z\u0026ske=2026-04-09T07%3A00%3A17Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=Hd001BBi4RO35HWcM3kbMsG3nCRvRAFgIXSL3nWtfKU%3D\",\"https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-sQHutoZol30yAH0H9aSXK7QS.png?st=2026-04-08T10%3A12%3A01Z\u0026se=2026-04-08T12%3A12%3A01Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=b1a0ae1f-618f-4548-84fd-8b16cacd5485\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-07T21%3A21%3A11Z\u0026ske=2026-04-08T21%3A21%3A11Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=bPhb74twJTvOomebqlo5ZEU6w97N9SpvysJmoji848g%3D\"]",
+                     "captions_json":  "[\"전자담배의 미래는?\",\"새로운 정책이 곧 시행됩니다!\",\"세금 인상, 소비자에게 미치는 영향은?\",\"논란이 많은 이 규제, 과연 필수일까?\",\"여러분의 의견을 기다립니다!\"]",
+                     "durations_json":  "[1,1.5,1.5,1.5,1]",
+                     "approval_status":  "pending",
+                     "created_at":  "2026-04-08T11:12:01.450Z",
+                     "preview_mode":  "slide_reel_ready",
+                     "chat_id":  "7592247598",
+                     "photo":  "https://oaidalleapiprodscus.blob.core.windows.net/private/org-t5d22aqKBKZvMjzgeZqYvyt5/user-RrFSkm1osoXrtnayB9iqqQR3/img-2MW2yaDSHcuhgmxBttvITjpp.png?st=2026-04-08T10%3A11%3A56Z\u0026se=2026-04-08T12%3A11%3A56Z\u0026sp=r\u0026sv=2026-02-06\u0026sr=b\u0026rscd=inline\u0026rsct=image/png\u0026skoid=7daae675-7b42-4e2e-ab4c-8d8419a28d99\u0026sktid=a48cca56-e6da-484e-a814-9c849652bcb3\u0026skt=2026-04-08T05%3A39%3A41Z\u0026ske=2026-04-09T05%3A39%3A41Z\u0026sks=b\u0026skv=2026-02-06\u0026sig=O6JbmmnucIS%2BVqXmu3w9FAsh3QXwE7JbwZjQQ78fFrg%3D",
+                     "caption":  "[REEL 초안] 점수 9\n전자담배 정책 변화가 미치는 영향\n\n전자담배에 대한 새로운 정책과 세금 변화가 곧 시행됩니다. 이에 따른 영향은 무엇일까요?\n\n#전자담배 #정책변화 #세금 #규제 #사회적논란\n\n장면 수: 5\n자막:\n1. 전자담배의 미래는?\n2. 새로운 정책이 곧 시행됩니다!\n3. 세금 인상, 소비자에게 미치는 영향은?\n4. 논란이 많은 이 규제, 과연 필수일까?\n5. 여러분의 의견을 기다립니다!\n\n논쟁 포인트: 전자담배에 대한 규제가 과연 건강에 긍정적일까?\n원문: https://news.google.com/rss/articles/CBMibEFVX3lxTE1vaC1ub0dhMGd5M2cyT1NESDljS2VsNDVvU0liRGJTRzlxQTNnS3FObXNLNWtwM1hQeVYyOTVUbDhnVzhBV3ltUEZLMnFQUGJzSUZMXzdIbzhucnotMEtnWTg1bS1DNVA5YjlVbA?oc=5\n음악: urgent_news",
+                     "reply_markup":  "{\"inline_keyboard\":[[{\"text\":\"✅ Approve\",\"callback_data\":\"approve|3b4779f769693b3f\"}],[{\"text\":\"🔄 Regen Contents\",\"callback_data\":\"regen_contents|3b4779f769693b3f\"},{\"text\":\"🖼 Regen Picture\",\"callback_data\":\"regen_image|3b4779f769693b3f\"}],[{\"text\":\"🎬 Regen Reel\",\"callback_data\":\"regen_reel|3b4779f769693b3f\"},{\"text\":\"✏️ Edit Caption\",\"callback_data\":\"edit_caption|3b4779f769693b3f\"}],[{\"text\":\"🗑 Delete\",\"callback_data\":\"delete|3b4779f769693b3f\"}]]}",
+                     "action":  "",
+                     "callback_id":  "",
+                     "callback_message_id":  "",
+                     "callback_caption":  "",
+                     "raw":  "",
+                     "scheduled_slot":  "22:00",
+                     "scheduled_for":  "",
+                     "approved_at":  "",
+                     "score_hint":  {
+                                        "click":  5,
+                                        "save":  10,
+                                        "debate":  7,
+                                        "info":  8,
+                                        "instagram_fit":  9
+                                    },
+                     "last_action":  "",
+                     "updated_at":  "",
+                     "cover_url":  "",
+                     "deleted_at":  "",
+                     "feed_slides":  [
+                                         "Slide 1: Vaping Tax Changes Alert!",
+                                         "Slide 2: How will it affect your budget?",
+                                         "Slide 3: Key points to know about new regulations.",
+                                         "Slide 4: Share your thoughts with us!",
+                                         "Slide 5: Save this post to stay informed!"
+                                     ],
+                     "created":  "",
+                     "data":  "",
+                     "current_slot":  "",
+                     "video_url":  "https://n8n.mykindredai.com/images/reel_f9e519856a8648aebedcb559ca411e11.mp4",
+                     "reel_publish_mode":  "",
+                     "captionText":  "",
+                     "publish_status":  "",
+                     "last_publish_error":  "",
+                     "selected_at":  "",
+                     "test_mode":  "",
+                     "ok":  "",
+                     "result":  ""
+                 },
+        "pairedItem":  {
+                           "item":  2
+                       }
+    }
+]

@@ -1,0 +1,451 @@
+﻿{
+    "updatedAt":  "2026-04-16T04:27:45.643Z",
+    "createdAt":  "2026-04-07T07:50:03.245Z",
+    "id":  "ER3V1JqA9BjbnJkI",
+    "name":  "05_Auto_Improvement",
+    "description":  null,
+    "active":  false,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "rule":  {
+                                                      "interval":  [
+                                                                       {
+                                                                           "field":  "cronExpression",
+                                                                           "expression":  "0 0 * * *"
+                                                                       }
+                                                                   ]
+                                                  }
+                                     },
+                      "id":  "3f2fac4e-3e85-442e-9260-658b8cb93ab4",
+                      "name":  "Daily 00:00 KST",
+                      "type":  "n8n-nodes-base.scheduleTrigger",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       0,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "getRows",
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "mode":  "name",
+                                                           "value":  "memory_log"
+                                                       },
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "mode":  "id",
+                                                            "value":  "17pM1TO62U8wklrpmC5ZDPHNeNMNUT18hsOP9GJQ-d4Q"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "49d341af-8362-4446-86f2-b569d0d2d3e4",
+                      "name":  "Read 7 Day Metrics",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       272,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const rows = items\n  .map(i =\u003e i.json)\n  .filter(r =\u003e r.logged_at)\n  .sort((a, b) =\u003e new Date(a.logged_at) - new Date(b.logged_at))\n  .slice(-30)\n  .map(r =\u003e ({\n    hook: String(r.hook || \u0027\u0027).slice(0, 80),\n    performance_score: Number(r.performance_score || 0),\n    result: r.result === \u0027good\u0027 ? \u0027good\u0027 : \u0027bad\u0027,\n    reason: String(r.reason || \u0027\u0027).slice(0, 40),\n    logged_at: r.logged_at\n  }));\n\nreturn [{\n  json: {\n    memory_log: rows\n  }\n}];"
+                                     },
+                      "id":  "6e10c273-f2ab-4ea2-8524-b622aa2a74a2",
+                      "name":  "Prepare Recent Memory Log",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       528,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "value":  "Bearer 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",
+                                                                                         "name":  "Authorization"
+                                                                                     },
+                                                                                     {
+                                                                                         "value":  "application/json",
+                                                                                         "name":  "Content-Type"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "method":  "POST",
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "{\"model\":\"gpt-4o-mini\",\"response_format\":{\"type\":\"json_object\"},\"messages\":[{\"role\":\"system\",\"content\":\"Return only valid JSON.\"},{\"role\":\"user\",\"content\":\"??? recent memory_log??current_rules????????.\\n\\n???:\\n- 5~10????????????n- good ?????? ?????? ????� ??????\\n- bad ?????? ?????? ????� ??? ?????? ?????n- ????� ??? ???????????\\n\\nmemory_log:\\n{{$json.memory_log}}\\n\\n?????JSON??\\n{\\n  \\\"current_rules\\\": [\\n    {\\\"rule_priority\\\": 1, \\\"rule_text\\\": \\\"\\\"},\\n    {\\\"rule_priority\\\": 2, \\\"rule_text\\\": \\\"\\\"},\\n    {\\\"rule_priority\\\": 3, \\\"rule_text\\\": \\\"\\\"}\\n  ]\\n}\"}],\"temperature\":0.3}",
+                                         "url":  "https://api.openai.com/v1/chat/completions",
+                                         "sendHeaders":  true,
+                                         "options":  {
+
+                                                     },
+                                         "sendBody":  true
+                                     },
+                      "id":  "e344deb4-d873-4c37-9624-c3f109e18a39",
+                      "name":  "OpenAI Compress Current Rules",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.4,
+                      "position":  [
+                                       768,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const raw = $json.choices?.[0]?.message?.content || \u0027{}\u0027;\n\nfunction extractJson(text) {\n  const cleaned = String(text || \u0027\u0027).trim();\n  const f1 = cleaned.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n  if (f1) return f1[1].trim();\n  const f2 = cleaned.match(/```([\\s\\S]*?)```/);\n  if (f2) return f2[1].trim();\n  const first = cleaned.indexOf(\u0027{\u0027);\n  const last = cleaned.lastIndexOf(\u0027}\u0027);\n  if (first !== -1 \u0026\u0026 last !== -1) return cleaned.slice(first, last + 1);\n  return \u0027{}\u0027;\n}\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(extractJson(raw));\n} catch (e) {\n  parsed = {};\n}\n\nconst now = new Date().toISOString();\n\nconst rules = Array.isArray(parsed.current_rules) ? parsed.current_rules : [];\n\nreturn rules\n  .map((rule, idx) =\u003e ({\n    json: {\n      rule_priority: Number(rule.rule_priority || idx + 1),\n      rule_text: String(rule.rule_text || \u0027\u0027).trim(),\n      updated_at: now\n    }\n  }))\n  .filter(item =\u003e item.json.rule_text);"
+                                     },
+                      "id":  "37843d30-c701-45f2-8ffb-f2f2e0e24895",
+                      "name":  "Parse Hook Templates",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1008,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "append",
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "displayName":  "rule_priority",
+                                                                            "id":  "rule_priority",
+                                                                            "type":  "number"
+                                                                        },
+                                                                        {
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "displayName":  "rule_text",
+                                                                            "id":  "rule_text",
+                                                                            "type":  "string"
+                                                                        },
+                                                                        {
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "displayName":  "updated_at",
+                                                                            "id":  "updated_at",
+                                                                            "type":  "string"
+                                                                        }
+                                                                    ],
+                                                         "value":  {
+                                                                       "rule_text":  "={{$json.rule_text}}",
+                                                                       "rule_priority":  "={{$json.rule_priority}}",
+                                                                       "updated_at":  "={{$json.updated_at}}"
+                                                                   }
+                                                     },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "mode":  "name",
+                                                           "value":  "memory_current_rules"
+                                                       },
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "mode":  "id",
+                                                            "value":  "17pM1TO62U8wklrpmC5ZDPHNeNMNUT18hsOP9GJQ-d4Q"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "d8052381-7bd8-44dd-b63c-1f45854a7e96",
+                      "name":  "Update Templates Sheet",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       2400,
+                                       -64
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "chatId":  "7592247598",
+                                         "text":  "=?? *?? ?? ??*\n\n?? {{ $now.minus({days:1}).toFormat(\u0027yyyy-MM-dd\u0027) }} ?? 7?\n?? ?? ???: {{ $(\u0027Rank Top Performers\u0027).first().json.total_analyzed }}?\n\n?? *TOP ?? ???*\n{{ $(\u0027Rank Top Performers\u0027).first().json.top_posts.slice(0,3).map(p =\u003e `${p.rank}. Post ${p.post_id} | ?????? ${p.total_engagement} | ER ${p.engagement_rate_pct}%`).join(\u0027\\n\u0027) }}\n\n?? *?? ? ??? 3?*\n{{ $input.all().map(t =\u003e `${t.json.rank}. ${t.json.template}`).join(\u0027\\n\u0027) }}",
+                                         "additionalFields":  {
+                                                                  "parse_mode":  "Markdown"
+                                                              }
+                                     },
+                      "id":  "942606c6-38af-4e62-9144-0d58d0ee55b8",
+                      "name":  "Send Weekly Report",
+                      "type":  "n8n-nodes-base.telegram",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       1248,
+                                       192
+                                   ],
+                      "webhookId":  "fa1083d1-248c-44b4-bed6-504e4bd05a74",
+                      "credentials":  {
+                                          "telegramApi":  {
+                                                              "id":  "X3jUp9xdGAhVMGyx",
+                                                              "name":  "Telegram account"
+                                                          }
+                                      }
+                  },
+                  {
+                      "id":  "39752593-c265-4be2-a620-5eaba87167c7",
+                      "name":  "Normalize Rules",
+                      "parameters":  {
+                                         "jsCode":  "const now = new Date().toISOString();\n\nreturn items\n  .map(i =\u003e i.json)\n  .filter(r =\u003e r.rule_text)\n  .sort((a, b) =\u003e Number(a.rule_priority || 999) - Number(b.rule_priority || 999))\n  .slice(0, 10)\n  .map((r, idx) =\u003e ({\n    json: {\n      rule_priority: idx + 1,\n      rule_text: String(r.rule_text).trim(),\n      updated_at: now\n    }\n  }));"
+                                     },
+                      "type":  "n8n-nodes-base.code",
+                      "position":  [
+                                       1200,
+                                       0
+                                   ],
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "fc1757f7-b14e-42f0-b117-4681ec26b5fa",
+                      "name":  "Validate Rules",
+                      "parameters":  {
+                                         "jsCode":  "const valid = items.filter(i =\u003e String(i.json.rule_text || \u0027\u0027).trim());\n\nreturn [{\n  json: {\n    valid_rules_count: valid.length,\n    rules: valid.map(i =\u003e i.json)\n  }\n}];"
+                                     },
+                      "type":  "n8n-nodes-base.code",
+                      "position":  [
+                                       1440,
+                                       0
+                                   ],
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "45fe2f44-8028-4d25-a0b1-f19d021e1338",
+                      "name":  "If Valid Rules",
+                      "parameters":  {
+                                         "options":  {
+
+                                                     },
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  2,
+                                                                            "leftValue":  "",
+                                                                            "caseSensitive":  true
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "operator":  {
+                                                                                                    "operation":  "gte",
+                                                                                                    "type":  "number"
+                                                                                                },
+                                                                                   "rightValue":  3,
+                                                                                   "id":  "valid-rules-threshold",
+                                                                                   "leftValue":  "={{ .valid_rules_count }}"
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        }
+                                     },
+                      "type":  "n8n-nodes-base.if",
+                      "position":  [
+                                       1680,
+                                       0
+                                   ],
+                      "typeVersion":  2.2
+                  },
+                  {
+                      "id":  "3fe90502-758d-48b0-9063-772b497a9013",
+                      "name":  "Clear Current Rules Sheet",
+                      "parameters":  {
+                                         "operation":  "clear",
+                                         "range":  "A2:C100",
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "mode":  "name",
+                                                           "value":  "memory_current_rules"
+                                                       },
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "mode":  "id",
+                                                            "value":  "17pM1TO62U8wklrpmC5ZDPHNeNMNUT18hsOP9GJQ-d4Q"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "position":  [
+                                       1920,
+                                       -64
+                                   ],
+                      "typeVersion":  4.5
+                  },
+                  {
+                      "id":  "57bedbd8-92fc-4218-9795-f2e081825553",
+                      "name":  "Expand Rules",
+                      "parameters":  {
+                                         "jsCode":  "const rules = $items(\"Validate Rules\", 0, 0)[0]?.json?.rules || [];\nreturn rules.map(r =\u003e ({ json: r }));"
+                                     },
+                      "type":  "n8n-nodes-base.code",
+                      "position":  [
+                                       2160,
+                                       -64
+                                   ],
+                      "typeVersion":  2
+                  }
+              ],
+    "connections":  {
+                        "Daily 00:00 KST":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Read 7 Day Metrics",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Read 7 Day Metrics":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Prepare Recent Memory Log",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Parse Hook Templates":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Normalize Rules",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Prepare Recent Memory Log":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "OpenAI Compress Current Rules",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      },
+                        "OpenAI Compress Current Rules":  {
+                                                              "main":  [
+                                                                           [
+                                                                               {
+                                                                                   "node":  "Parse Hook Templates",
+                                                                                   "type":  "main",
+                                                                                   "index":  0
+                                                                               }
+                                                                           ]
+                                                                       ]
+                                                          },
+                        "Normalize Rules":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Validate Rules",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Validate Rules":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "If Valid Rules",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                                        ]
+                                           },
+                        "If Valid Rules":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "Clear Current Rules Sheet",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ],
+                                                            [
+
+                                                            ]
+                                                        ]
+                                           },
+                        "Clear Current Rules Sheet":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Expand Rules",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      },
+                        "Expand Rules":  {
+                                             "main":  [
+                                                          [
+                                                              {
+                                                                  "node":  "Update Templates Sheet",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ]
+                                                      ]
+                                         }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "availableInMCP":  false
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  {
+
+                },
+    "versionId":  "43336aba-c6cc-4da2-93b5-525548eb14cd",
+    "activeVersionId":  null,
+    "versionCounter":  4,
+    "triggerCount":  0,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-04-07T07:50:03.248Z",
+                       "createdAt":  "2026-04-07T07:50:03.248Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "ER3V1JqA9BjbnJkI",
+                       "projectId":  "M3e6xHUu7VezXSBg",
+                       "project":  {
+                                       "updatedAt":  "2026-04-07T04:41:49.347Z",
+                                       "createdAt":  "2026-04-05T09:30:33.360Z",
+                                       "id":  "M3e6xHUu7VezXSBg",
+                                       "name":  "민호 김 \u003cziemaziema@gmail.com\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  null
+}

@@ -1,0 +1,41 @@
+﻿{
+    "data":  [
+                 {
+                     "id":  "438",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-18T21:18:30.870Z",
+                     "stoppedAt":  "2026-04-18T21:19:40.668Z",
+                     "workflowId":  "DGMQEgFXqzeS3sJ5",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "437",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-18T21:16:02.383Z",
+                     "stoppedAt":  "2026-04-18T21:17:16.522Z",
+                     "workflowId":  "DGMQEgFXqzeS3sJ5",
+                     "waitTill":  null
+                 },
+                 {
+                     "id":  "436",
+                     "finished":  true,
+                     "mode":  "webhook",
+                     "retryOf":  null,
+                     "retrySuccessId":  null,
+                     "status":  "success",
+                     "startedAt":  "2026-04-18T21:13:49.399Z",
+                     "stoppedAt":  "2026-04-18T21:14:48.006Z",
+                     "workflowId":  "DGMQEgFXqzeS3sJ5",
+                     "waitTill":  null
+                 }
+             ],
+    "nextCursor":  "eyJsYXN0SWQiOiI0MzYiLCJsaW1pdCI6M30="
+}
