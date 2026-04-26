@@ -1,0 +1,21 @@
+{
+  "captured_at": "2026-04-26T08:13:43.304Z",
+  "source": "n8n",
+  "workflow_name": "validation_error_solo",
+  "workflow_id": "validation",
+  "execution_id": "validation-error-solo-20260426T171343",
+  "status": "error",
+  "is_error": true,
+  "data": {
+    "workflow_name": "validation_error_solo",
+    "workflow_id": "validation",
+    "execution_id": "validation-error-solo-20260426T171343",
+    "status": "error",
+    "timestamp": "20260426T171343",
+    "test_id": "github-logger-error-solo-20260426T171343",
+    "error": {
+      "message": "sanitized solo validation error",
+      "node": "validation node"
+    }
+  }
+}
