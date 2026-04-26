@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-04-26T12:26:54.777Z",
+  "log_type": "debug_report",
+  "source": "n8n",
+  "workflow_name": "clean_04_carousel_publisher",
+  "workflow_id": "w9e3wiyca6qZUS4r",
+  "execution_id": "val_test_20260426",
+  "status": "logged_low",
+  "is_error": true,
+  "error_hash": "233f1520",
+  "data": {
+    "log_type": "debug_report",
+    "workflow_name": "clean_04_carousel_publisher",
+    "workflow_id": "w9e3wiyca6qZUS4r",
+    "execution_id": "val_test_20260426",
+    "failed_node": "IG Publish Carousel",
+    "error_message": "validation test - not a real error",
+    "error_hash": "233f1520",
+    "severity": "low",
+    "timestamp": "2026-04-26T12:26:54.692Z",
+    "suggested_fix": "Log only. Do not retry publish/API call.",
+    "root_cause": "Low-severity or external temporary failure. GPT skipped by policy.",
+    "status": "logged_low",
+    "is_error": true,
+    "dry_run": true,
+    "diagnostic": true
+  }
+}
