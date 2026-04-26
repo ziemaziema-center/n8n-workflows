@@ -1,0 +1,19 @@
+{
+  "captured_at": "2026-04-26T08:07:30.186Z",
+  "source": "codex_validation",
+  "workflow_name": "validation_workflow",
+  "workflow_id": "validation",
+  "execution_id": "github-log-ok-001",
+  "status": "success",
+  "is_error": false,
+  "data": {
+    "source": "codex_validation",
+    "workflow_name": "validation_workflow",
+    "workflow_id": "validation",
+    "execution_id": "github-log-ok-001",
+    "status": "success",
+    "payload": {
+      "check": "execution log"
+    }
+  }
+}
