@@ -1,0 +1,17 @@
+{
+  "captured_at": "2026-04-26T15:29:11.012Z",
+  "log_type": "error",
+  "source": "manual_test",
+  "workflow_name": "test",
+  "workflow_id": "",
+  "execution_id": "exec",
+  "status": "error",
+  "is_error": true,
+  "error_hash": "",
+  "data": {
+    "log_type": "error",
+    "workflow_name": "test",
+    "is_error": true,
+    "source": "manual_test"
+  }
+}
