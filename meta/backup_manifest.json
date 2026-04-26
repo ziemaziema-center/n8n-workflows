@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-04-26T17:06:25.714090",
+  "n8n_base": "http://43.201.227.194:5678",
+  "github_repo": "ziemaziema-center/n8n-workflows",
+  "active_workflows": {
+    "clean_01_generator": "KPa5tncCc87z2ZsE",
+    "clean_02_approval": "i6T6ke3ltKNQzaCl",
+    "clean_03_publisher": "TiD7fxWCuAX9mpt6",
+    "clean_04_carousel_publisher": "w9e3wiyca6qZUS4r"
+  },
+  "security": "workflow exports/backups are sanitized; credentials and token-like values are redacted"
+}

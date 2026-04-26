@@ -1,0 +1,607 @@
+{
+  "updatedAt": "2026-04-26T06:51:19.797Z",
+  "createdAt": "2026-04-23T14:51:08.469Z",
+  "id": "w9e3wiyca6qZUS4r",
+  "name": "clean_04_carousel_publisher",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "clean04-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "path": "clean_04_carousel_publisher",
+        "httpMethod": "POST",
+        "options": {}
+      },
+      "webhookId": "13127cd2-718b-4ffc-970c-98e9a447e2a8"
+    },
+    {
+      "id": "clean04-normalize",
+      "name": "Normalize Carousel Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const first = $input.first();\nconst input = first && first.json ? first.json : {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\nconst testId = String(body.test_id || '').trim();\nconst caption = String(body.caption || body.carousel?.caption || '').trim();\nconst mediaRaw = Array.isArray(body.carousel?.media) ? body.carousel.media : [];\nconst media = mediaRaw.map((m, idx) => ({ position: Number(m?.position || (idx + 1)), image_url: String(m?.image_url || '').trim() })).filter((m) => m.position > 0 && m.image_url);\nmedia.sort((a, b) => a.position - b.position);\nif (!testId) throw new Error('Missing test_id');\nif (!caption) throw new Error('Missing carousel caption');\nif (media.length < 2 || media.length > 10) throw new Error(`Invalid carousel media count: ${media.length}`);\nconst dryRun = body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true';\nconst testMode = body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true';\nconst diagnostic = body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true';\nreturn [{ json: { ...body, test_id: testId, caption, carousel: { ...(body.carousel || {}), media }, dry_run: dryRun, test_mode: testMode, diagnostic } }];"
+      }
+    },
+    {
+      "id": "clean04-validate",
+      "name": "Validate Carousel Inputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const first = $input.first();\nconst j = first && first.json ? first.json : {};\nconst media = Array.isArray(j.carousel?.media) ? j.carousel.media : [];\nif (media.length < 2 || media.length > 10) throw new Error(`Carousel media count must be 2..10, got ${media.length}`);\nfor (const m of media) {\n  const u = String(m.image_url || '').trim();\n  if (!/^https?:\\/\\//i.test(u)) throw new Error(`Invalid image_url: ${u}`);\n}\nreturn [{ json: { ...j, image_count: media.length, child_expected_count: media.length } }];"
+      }
+    },
+    {
+      "id": "clean04-fanout",
+      "name": "Fan Out Carousel Images",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const first = $input.first();\nconst j = first && first.json ? first.json : {};\nconst media = Array.isArray(j.carousel?.media) ? j.carousel.media : [];\nreturn media.map((m, idx) => ({\n  json: {\n    ...j,\n    child_order: idx + 1,\n    child_expected_count: media.length,\n    image_url: String(m.image_url || '').trim(),\n  }\n}));"
+      }
+    },
+    {
+      "id": "clean04-child",
+      "name": "IG Create Carousel Child",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { image_url: $json.image_url, is_carousel_item: true, access_token: \"REDACTED\" } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "clean04-collect",
+      "name": "Collect Child IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const raw = $input.all();\nconst all = raw.map((i, idx) => ({ idx, json: i.json || {} }));\nif (!all.length) throw new Error('No child container responses');\n\nconst first = all[0].json || {};\nconst expectedFromField = Number(first.child_expected_count || 0);\nconst expectedFromInputCount = all.length;\nconst expected = expectedFromField > 0 ? expectedFromField : expectedFromInputCount;\n\nconst ordered = all\n  .slice()\n  .sort((a, b) => Number(a.json.child_order || (a.idx + 1)) - Number(b.json.child_order || (b.idx + 1)));\n\nconst childIds = ordered\n  .map((r) => String((r.json || {}).id || '').trim())\n  .filter(Boolean);\n\nif (!expected || childIds.length !== expected || expectedFromInputCount !== expected) {\n  throw new Error(`CHILD_COUNT_MISMATCH expected=${expected} actual=${childIds.length}`);\n}\n\nreturn [{ json: { ...first, child_expected_count: expected, carousel_child_ids: childIds } }];"
+      }
+    },
+    {
+      "id": "clean04-parent",
+      "name": "IG Create Carousel Parent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { media_type: \"CAROUSEL\", children: ($json.carousel_child_ids || []).join(','), caption: $json.caption, access_token: \"REDACTED\" } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "clean04-publish",
+      "name": "IG Publish Carousel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1920,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/17841436538210981/media_publish",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{$json.id}}"
+            },
+            {
+              "name": "access_token",
+              "value": "REDACTED"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "clean04-finalize",
+      "name": "Finalize Carousel Publish",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json || {};\nconst mediaId = String(j.id || '').trim();\nif (!mediaId) throw new Error('Carousel publish did not return media id');\nreturn { json: { ...j, publish_success: true, publish_status: 'success', media_id: mediaId, route_action: 'approve_carousel' } };"
+      }
+    },
+    {
+      "id": "clean04-dryrun-gate",
+      "name": "Dry Run Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        500
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const first = $input.first();\nconst j = first && first.json ? first.json : {};\nconst isDryRun = j.test_mode === true || j.dry_run === true || j.diagnostic === true;\nif (isDryRun) {\n  // Halt: no IG API calls will be made\n  return [];\n}\nreturn [{ json: j }];"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Carousel Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Carousel Payload": {
+      "main": [
+        [
+          {
+            "node": "Validate Carousel Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fan Out Carousel Images": {
+      "main": [
+        [
+          {
+            "node": "IG Create Carousel Child",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG Create Carousel Child": {
+      "main": [
+        [
+          {
+            "node": "Collect Child IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Child IDs": {
+      "main": [
+        [
+          {
+            "node": "IG Create Carousel Parent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG Create Carousel Parent": {
+      "main": [
+        [
+          {
+            "node": "IG Publish Carousel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG Publish Carousel": {
+      "main": [
+        [
+          {
+            "node": "Finalize Carousel Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Carousel Inputs": {
+      "main": [
+        [
+          {
+            "node": "Dry Run Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dry Run Gate": {
+      "main": [
+        [
+          {
+            "node": "Fan Out Carousel Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "potLIY8EREC9hXYl"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "7651a111-4683-4451-ba57-d073fa3f25f8",
+  "activeVersionId": "7651a111-4683-4451-ba57-d073fa3f25f8",
+  "versionCounter": 57,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-23T14:51:08.474Z",
+      "createdAt": "2026-04-23T14:51:08.474Z",
+      "role": "workflow:owner",
+      "workflowId": "w9e3wiyca6qZUS4r",
+      "projectId": "M3e6xHUu7VezXSBg",
+      "project": {
+        "updatedAt": "2026-04-07T04:41:49.347Z",
+        "createdAt": "2026-04-05T09:30:33.360Z",
+        "id": "M3e6xHUu7VezXSBg",
+        "name": "민호 김 <ziemaziema@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-26T06:51:19.798Z",
+    "createdAt": "2026-04-26T06:51:19.798Z",
+    "versionId": "7651a111-4683-4451-ba57-d073fa3f25f8",
+    "workflowId": "w9e3wiyca6qZUS4r",
+    "nodes": [
+      {
+        "id": "clean04-webhook",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "path": "clean_04_carousel_publisher",
+          "httpMethod": "POST",
+          "options": {}
+        },
+        "webhookId": "13127cd2-718b-4ffc-970c-98e9a447e2a8"
+      },
+      {
+        "id": "clean04-normalize",
+        "name": "Normalize Carousel Payload",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          480,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const first = $input.first();\nconst input = first && first.json ? first.json : {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\nconst testId = String(body.test_id || '').trim();\nconst caption = String(body.caption || body.carousel?.caption || '').trim();\nconst mediaRaw = Array.isArray(body.carousel?.media) ? body.carousel.media : [];\nconst media = mediaRaw.map((m, idx) => ({ position: Number(m?.position || (idx + 1)), image_url: String(m?.image_url || '').trim() })).filter((m) => m.position > 0 && m.image_url);\nmedia.sort((a, b) => a.position - b.position);\nif (!testId) throw new Error('Missing test_id');\nif (!caption) throw new Error('Missing carousel caption');\nif (media.length < 2 || media.length > 10) throw new Error(`Invalid carousel media count: ${media.length}`);\nconst dryRun = body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true';\nconst testMode = body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true';\nconst diagnostic = body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true';\nreturn [{ json: { ...body, test_id: testId, caption, carousel: { ...(body.carousel || {}), media }, dry_run: dryRun, test_mode: testMode, diagnostic } }];"
+        }
+      },
+      {
+        "id": "clean04-validate",
+        "name": "Validate Carousel Inputs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          720,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const first = $input.first();\nconst j = first && first.json ? first.json : {};\nconst media = Array.isArray(j.carousel?.media) ? j.carousel.media : [];\nif (media.length < 2 || media.length > 10) throw new Error(`Carousel media count must be 2..10, got ${media.length}`);\nfor (const m of media) {\n  const u = String(m.image_url || '').trim();\n  if (!/^https?:\\/\\//i.test(u)) throw new Error(`Invalid image_url: ${u}`);\n}\nreturn [{ json: { ...j, image_count: media.length, child_expected_count: media.length } }];"
+        }
+      },
+      {
+        "id": "clean04-fanout",
+        "name": "Fan Out Carousel Images",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          960,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const first = $input.first();\nconst j = first && first.json ? first.json : {};\nconst media = Array.isArray(j.carousel?.media) ? j.carousel.media : [];\nreturn media.map((m, idx) => ({\n  json: {\n    ...j,\n    child_order: idx + 1,\n    child_expected_count: media.length,\n    image_url: String(m.image_url || '').trim(),\n  }\n}));"
+        }
+      },
+      {
+        "id": "clean04-child",
+        "name": "IG Create Carousel Child",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1200,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ { image_url: $json.image_url, is_carousel_item: true, access_token: \"REDACTED\" } }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "clean04-collect",
+        "name": "Collect Child IDs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1440,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const raw = $input.all();\nconst all = raw.map((i, idx) => ({ idx, json: i.json || {} }));\nif (!all.length) throw new Error('No child container responses');\n\nconst first = all[0].json || {};\nconst expectedFromField = Number(first.child_expected_count || 0);\nconst expectedFromInputCount = all.length;\nconst expected = expectedFromField > 0 ? expectedFromField : expectedFromInputCount;\n\nconst ordered = all\n  .slice()\n  .sort((a, b) => Number(a.json.child_order || (a.idx + 1)) - Number(b.json.child_order || (b.idx + 1)));\n\nconst childIds = ordered\n  .map((r) => String((r.json || {}).id || '').trim())\n  .filter(Boolean);\n\nif (!expected || childIds.length !== expected || expectedFromInputCount !== expected) {\n  throw new Error(`CHILD_COUNT_MISMATCH expected=${expected} actual=${childIds.length}`);\n}\n\nreturn [{ json: { ...first, child_expected_count: expected, carousel_child_ids: childIds } }];"
+        }
+      },
+      {
+        "id": "clean04-parent",
+        "name": "IG Create Carousel Parent",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1680,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ { media_type: \"CAROUSEL\", children: ($json.carousel_child_ids || []).join(','), caption: $json.caption, access_token: \"REDACTED\" } }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "clean04-publish",
+        "name": "IG Publish Carousel",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1920,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://graph.facebook.com/v23.0/17841436538210981/media_publish",
+          "sendBody": true,
+          "contentType": "form-urlencoded",
+          "specifyBody": "keypair",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "creation_id",
+                "value": "={{$json.id}}"
+              },
+              {
+                "name": "access_token",
+                "value": "REDACTED"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "clean04-finalize",
+        "name": "Finalize Carousel Publish",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2160,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const j = $json || {};\nconst mediaId = String(j.id || '').trim();\nif (!mediaId) throw new Error('Carousel publish did not return media id');\nreturn { json: { ...j, publish_success: true, publish_status: 'success', media_id: mediaId, route_action: 'approve_carousel' } };"
+        }
+      },
+      {
+        "id": "clean04-dryrun-gate",
+        "name": "Dry Run Gate",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          840,
+          500
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const first = $input.first();\nconst j = first && first.json ? first.json : {};\nconst isDryRun = j.test_mode === true || j.dry_run === true || j.diagnostic === true;\nif (isDryRun) {\n  // Halt: no IG API calls will be made\n  return [];\n}\nreturn [{ json: j }];"
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Normalize Carousel Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Carousel Payload": {
+        "main": [
+          [
+            {
+              "node": "Validate Carousel Inputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fan Out Carousel Images": {
+        "main": [
+          [
+            {
+              "node": "IG Create Carousel Child",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IG Create Carousel Child": {
+        "main": [
+          [
+            {
+              "node": "Collect Child IDs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect Child IDs": {
+        "main": [
+          [
+            {
+              "node": "IG Create Carousel Parent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IG Create Carousel Parent": {
+        "main": [
+          [
+            {
+              "node": "IG Publish Carousel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IG Publish Carousel": {
+        "main": [
+          [
+            {
+              "node": "Finalize Carousel Publish",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Carousel Inputs": {
+        "main": [
+          [
+            {
+              "node": "Dry Run Gate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dry Run Gate": {
+        "main": [
+          [
+            {
+              "node": "Fan Out Carousel Images",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "민호 김",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-26T06:51:19.861Z",
+        "id": 874,
+        "workflowId": "w9e3wiyca6qZUS4r",
+        "versionId": "7651a111-4683-4451-ba57-d073fa3f25f8",
+        "event": "activated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T06:51:19.838Z",
+        "id": 873,
+        "workflowId": "w9e3wiyca6qZUS4r",
+        "versionId": "7651a111-4683-4451-ba57-d073fa3f25f8",
+        "event": "deactivated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      }
+    ]
+  }
+}

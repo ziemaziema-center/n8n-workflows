@@ -1,0 +1,1836 @@
+{
+  "updatedAt": "2026-04-26T06:51:31.228Z",
+  "createdAt": "2026-04-20T12:50:30.726Z",
+  "id": "TiD7fxWCuAX9mpt6",
+  "name": "clean_03_publisher",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "clean-pub-trigger",
+      "name": "Webhook",
+      "parameters": {
+        "path": "clean_03_publisher",
+        "options": {},
+        "httpMethod": "POST"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        240,
+        300
+      ],
+      "typeVersion": 2,
+      "webhookId": "2297d2bb-187f-4202-ad8e-a02acfdccf5d"
+    },
+    {
+      "id": "clean-pub-normalize",
+      "name": "Normalize Publish Payload",
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nreturn {\n  json: {\n    caption: String(body.caption || ''),\n    video_url: String(body.video_url || ''),\n    test_id: String(body.test_id || ''),\n    approved_via: String(body.approved_via || $json.approved_via || ''),\n    arm_live_publish: body.arm_live_publish === true || String(body.arm_live_publish || '').toLowerCase() === 'true',\n    dry_run: body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true',\n    test_mode: body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true',\n    diagnostic: body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true',\n  }\n};",
+        "mode": "runOnceForEachItem",
+        "notice": ""
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        500,
+        300
+      ],
+      "typeVersion": 2
+    },
+    {
+      "id": "clean-pub-gate",
+      "name": "Publish Safety Gate",
+      "parameters": {
+        "jsCode": "const store = $getWorkflowStaticData('global');\n\nstore.publish_enabled = store.publish_enabled ?? false;\nstore.allow_one_live_publish = store.allow_one_live_publish ?? false;\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3); // set 2 or 3 as needed\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\n\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\n\n// Keep a compact rolling window to avoid unbounded growth.\nstore.daily_publish_success_log = store.daily_publish_success_log.slice(-200);\n\nconst todaySuccessCount = store.daily_publish_success_log.filter((r) => String(r.dateKey || '') === todayKey).length;\nconst dailyLimit = Number($json.daily_publish_limit || store.daily_publish_limit || 3);\nconst dailyLimitReached = todaySuccessCount >= dailyLimit;\n\nconst requestedByApproval =\n  $json.arm_live_publish === true ||\n  String($json.arm_live_publish || '').toLowerCase() === 'true' ||\n  String($json.approved_via || '') === 'telegram_callback';\n\nif (requestedByApproval) {\n  store.publish_enabled = true;\n  store.allow_one_live_publish = true;\n}\n\nconst publishEnabled = store.publish_enabled === true || String(store.publish_enabled).toLowerCase() === 'true';\nconst armEnabled = store.allow_one_live_publish === true || String(store.allow_one_live_publish).toLowerCase() === 'true';\nlet livePublishAllowed = publishEnabled && armEnabled && !dailyLimitReached;\nconst inlineDryRun = $json.dry_run === true || $json.test_mode === true || $json.diagnostic === true;\nif (inlineDryRun) { livePublishAllowed = false; }\n\nif (livePublishAllowed) {\n  // one-shot safety: consume gate immediately for this approved request\n  store.publish_enabled = false;\n  store.allow_one_live_publish = false;\n} else if (publishEnabled && armEnabled && dailyLimitReached) {\n  // consume armed gate when blocked by daily cap to prevent accidental carry-over\n  store.publish_enabled = false;\n  store.allow_one_live_publish = false;\n}\n\nlet dryRunReason = '';\nif (!livePublishAllowed) {\n  if (dailyLimitReached) dryRunReason = 'DAILY_LIMIT_REACHED';\n  else if (inlineDryRun) dryRunReason = 'inline_test_mode_flag';\n  else dryRunReason = publishEnabled ? 'allow_one_live_publish=false' : 'publish_enabled=false';\n}\n\nreturn {\n  json: {\n    ...$json,\n    publish_enabled: publishEnabled,\n    allow_one_live_publish: armEnabled,\n    live_publish_allowed: livePublishAllowed ? 'true' : 'false',\n    daily_publish_limit: dailyLimit,\n    daily_publish_count_today: todaySuccessCount,\n    daily_publish_date_key: todayKey,\n    daily_limit_reached: dailyLimitReached,\n    dry_run_reason: livePublishAllowed ? '' : dryRunReason,\n    ready_for_live_publish: !livePublishAllowed\n  }\n};",
+        "mode": "runOnceForEachItem",
+        "notice": ""
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        740,
+        300
+      ],
+      "typeVersion": 2
+    },
+    {
+      "id": "clean-pub-if",
+      "name": "IF Live Publish Allowed",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "typeValidation": "strict",
+            "leftValue": "",
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "true",
+              "leftValue": "={{$json.live_publish_allowed}}"
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "position": [
+        980,
+        300
+      ],
+      "typeVersion": 2
+    },
+    {
+      "id": "clean-pub-dry-run",
+      "name": "Dry Run Publish Ready",
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    ...$json,\n    dry_run: true,\n    publish_attempted: false,\n    publish_status: ($json.dry_run_reason === 'DAILY_LIMIT_REACHED') ? 'blocked_daily_limit' : 'blocked_dry_run',\n    dry_run_reason: $json.dry_run_reason || 'publish_enabled=false',\n    daily_publish_limit: $json.daily_publish_limit ?? null,\n    daily_publish_count_today: $json.daily_publish_count_today ?? null,\n    next_action: ($json.dry_run_reason === 'DAILY_LIMIT_REACHED')\n      ? 'wait until next day or increase daily_publish_limit (2/3)'\n      : 'set publish_enabled=true and allow_one_live_publish=true for one live attempt'\n  }\n};",
+        "mode": "runOnceForEachItem",
+        "notice": ""
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1220,
+        140
+      ],
+      "typeVersion": 2
+    },
+    {
+      "position": [
+        1220,
+        460
+      ],
+      "name": "Wait",
+      "id": "clean-pub-wait",
+      "webhookId": "ce500be4-9dbe-40de-bfa3-5ce07cf77d79",
+      "type": "n8n-nodes-base.wait",
+      "parameters": {
+        "amount": 120
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "clean-pub-create",
+      "name": "IG Create Reel Container",
+      "parameters": {
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "value": "REELS",
+              "name": "media_type"
+            },
+            {
+              "value": "={{$json.video_url}}",
+              "name": "video_url"
+            },
+            {
+              "value": "={{$json.caption}}",
+              "name": "caption"
+            },
+            {
+              "value": "REDACTED",
+              "name": "access_token"
+            }
+          ]
+        },
+        "method": "POST",
+        "options": {
+          "ignoreResponseCode": true,
+          "fullResponse": true
+        },
+        "contentType": "json",
+        "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
+        "specifyBody": "json",
+        "jsonBody": "={{ { media_type: \"REELS\", video_url: $json.video_url, caption: $json.caption, access_token: \"REDACTED\" } }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1460,
+        460
+      ],
+      "typeVersion": 4.4
+    },
+    {
+      "id": "clean-pub-publish",
+      "name": "IG Publish Reel",
+      "parameters": {
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{$json.ig_publish_creation_id}}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{$json.ig_publish_request_payload.access_token}}"
+            }
+          ]
+        },
+        "method": "POST",
+        "options": {},
+        "contentType": "form-urlencoded",
+        "url": "https://graph.facebook.com/v23.0/17841436538210981/media_publish",
+        "specifyBody": "keypair"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1700,
+        460
+      ],
+      "typeVersion": 4.4
+    },
+    {
+      "id": "clean-pub-init-readiness",
+      "name": "Init Readiness State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        460
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const store = $getWorkflowStaticData('global');\nstore.publisher_input_by_exec = store.publisher_input_by_exec || {};\nstore.publisher_create_by_exec = store.publisher_create_by_exec || {};\nconst execKey = String($execution.id);\nconst traced = store.publisher_input_by_exec[execKey] || {};\n\nconst stripSensitive = (obj) => {\n  if (obj === null || obj === undefined) return obj;\n  if (Array.isArray(obj)) return obj.map(stripSensitive);\n  if (typeof obj !== 'object') return obj;\n\n  // Before logging any API response:\n  const safeResponse = Object.fromEntries(\n    Object.entries(obj).filter(([k]) =>\n      !/(token|secret|key|credential)/i.test(k)\n    )\n  );\n\n  return Object.fromEntries(\n    Object.entries(safeResponse).map(([k, v]) => [k, stripSensitive(v)])\n  );\n};\n\nconst rawCreateResponse = ($json && typeof $json === 'object') ? $json : {};\nconst safeCreateResponse = stripSensitive(rawCreateResponse);\nconst createStatusCode = Number(safeCreateResponse.statusCode || safeCreateResponse.status || 0) || null;\nconst createBodyRaw = (safeCreateResponse.body && typeof safeCreateResponse.body === 'object')\n  ? safeCreateResponse.body\n  : safeCreateResponse;\nconst createBody = stripSensitive(createBodyRaw);\n\nconst creationId = String(createBody.id || createBody.creation_id || safeCreateResponse.id || '').trim();\nconst createErrorObj = (createBody.error && typeof createBody.error === 'object') ? createBody.error : null;\nconst createErrorMessage = String(\n  (createErrorObj && (createErrorObj.message || createErrorObj.error_user_msg || createErrorObj.error_subcode || '')) ||\n  createBody.error_message ||\n  createBody.message ||\n  ''\n).trim();\nconst createErrorCode = String(\n  (createErrorObj && (createErrorObj.code || createErrorObj.error_subcode || '')) ||\n  createBody.error_code ||\n  ''\n).trim();\n\nconst requestPayload = {\n  media_type: 'REELS',\n  video_url: String(traced.video_url || ''),\n  caption: String(traced.caption || ''),\n  endpoint: 'https://graph.facebook.com/v23.0/17841436538210981/media'\n};\n\nconst responsePayload = {\n  statusCode: createStatusCode,\n  body: createBody\n};\n\nif (!creationId) {\n  throw new Error(\n    `IG create container failed before readiness: ${createErrorMessage || 'missing creation id'}; statusCode=${createStatusCode || 'NONE'}; video_url=${requestPayload.video_url}; response=${JSON.stringify(responsePayload)}`\n  );\n}\n\nstore.publisher_create_by_exec[execKey] = {\n  creation_id: creationId,\n  video_url: String(traced.video_url || ''),\n  request: requestPayload,\n  response: responsePayload,\n  response_status_code: createStatusCode,\n  response_error_code: createErrorCode,\n  response_error_message: createErrorMessage\n};\n\nreturn {\n  json: {\n    ...$json,\n    publisher_input_video_url: String(traced.video_url || ''),\n    publisher_input_caption: String(traced.caption || ''),\n    publisher_input_source_node: String(traced.source_node || ''),\n    publisher_input_is_public_url: traced.is_public_url === true,\n    publisher_input_url_host: String(traced.url_host || ''),\n    publisher_video_head_status_code: traced.head_status_code ?? null,\n    publisher_video_head_content_type: String(traced.head_content_type || ''),\n    publisher_video_head_content_length: String(traced.head_content_length || ''),\n    publisher_video_head_response: traced.head_response || null,\n    publisher_video_head_error: String(traced.head_error || ''),\n    creation_id: creationId,\n    readiness_check_count: 0,\n    readiness_max_checks: 6,\n    readiness_interval_seconds: 30,\n    ig_create_container_request: requestPayload,\n    ig_create_container_response: responsePayload,\n    ig_create_container_creation_id: creationId,\n    ig_create_container_status_code: createStatusCode,\n    ig_create_container_error_code: createErrorCode,\n    ig_create_container_error_message: createErrorMessage\n  }\n};",
+        "notice": ""
+      }
+    },
+    {
+      "id": "clean-pub-status-http",
+      "name": "IG Check Container Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1860,
+        460
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ (() => { const id = String($json.creation_id || \"\").trim(); if (!id) { throw new Error(\"creation_id is missing for IG status check\"); } return \"https://graph.facebook.com/v23.0/\" + id + \"?fields=id,status_code,status\"; })() }}",
+        "options": {
+          "ignoreResponseCode": true,
+          "fullResponse": true
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "REDACTED"
+            }
+          ]
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "clean-pub-eval-readiness",
+      "name": "Evaluate Readiness",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        460
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const store = $getWorkflowStaticData('global');\nstore.readiness_attempts = store.readiness_attempts || {};\nstore.readiness_details = store.readiness_details || {};\nstore.publisher_create_by_exec = store.publisher_create_by_exec || {};\n\nconst stripSensitive = (obj) => {\n  if (obj === null || obj === undefined) return obj;\n  if (Array.isArray(obj)) return obj.map(stripSensitive);\n  if (typeof obj !== 'object') return obj;\n\n  // Before logging any API response:\n  const safeResponse = Object.fromEntries(\n    Object.entries(obj).filter(([k]) =>\n      !/(token|secret|key|credential)/i.test(k)\n    )\n  );\n\n  return Object.fromEntries(\n    Object.entries(safeResponse).map(([k, v]) => [k, stripSensitive(v)])\n  );\n};\n\nconst execKey = String($execution.id);\nconst createCtx = store.publisher_create_by_exec[execKey] || {};\n\nconst rawStatusResponse = ($json && typeof $json === 'object') ? $json : {};\nconst safeStatusResponse = stripSensitive(rawStatusResponse);\nconst pollHttpStatus = Number(safeStatusResponse.statusCode || safeStatusResponse.status || 0) || null;\nconst statusBodyRaw = (safeStatusResponse.body && typeof safeStatusResponse.body === 'object')\n  ? safeStatusResponse.body\n  : safeStatusResponse;\nconst statusBody = stripSensitive(statusBodyRaw);\n\nconst creationId = String(\n  statusBody.id ||\n  $json.creation_id ||\n  safeStatusResponse.id ||\n  createCtx.creation_id ||\n  ''\n).trim();\nif (!creationId) {\n  throw new Error('Missing creation_id during readiness evaluation');\n}\n\nconst maxChecks = Number($json.readiness_max_checks || 6);\nconst prevCount = Number(store.readiness_attempts[creationId] || 0);\nconst nextCount = prevCount + 1;\nstore.readiness_attempts[creationId] = nextCount;\n\nconst igStatusResponse = {\n  statusCode: pollHttpStatus,\n  body: statusBody\n};\nconst igStatusCode = String(statusBody.status_code || '').trim().toUpperCase();\nconst igStatusValue = String(statusBody.status || '').trim();\n\nconst igStatusErrorObject = (statusBody.error && typeof statusBody.error === 'object') ? statusBody.error : null;\nlet igStatusErrorMessageDerived = '';\nif (igStatusErrorObject && igStatusErrorObject.message) {\n  igStatusErrorMessageDerived = String(igStatusErrorObject.message);\n} else if (typeof statusBody.error_message === 'string' && statusBody.error_message.trim()) {\n  igStatusErrorMessageDerived = String(statusBody.error_message).trim();\n} else if (typeof statusBody.message === 'string' && statusBody.message.trim()) {\n  igStatusErrorMessageDerived = String(statusBody.message).trim();\n}\n\nconst igStatusErrorCode = String(\n  (igStatusErrorObject && (igStatusErrorObject.code || igStatusErrorObject.error_subcode || '')) ||\n  statusBody.error_code ||\n  ''\n).trim();\n\nconst detail = store.readiness_details[creationId] || {\n  checks: [],\n  video_url: String($json.publisher_input_video_url || createCtx.video_url || $json.video_url || ''),\n  create_response: $json.ig_create_container_response || createCtx.response || null\n};\n\ndetail.checks.push({\n  check_count: nextCount,\n  creation_id: creationId,\n  poll_http_status: pollHttpStatus,\n  ig_status_code: igStatusCode || 'UNKNOWN',\n  ig_status_value: igStatusValue || '',\n  ig_status_response: igStatusResponse,\n  ig_status_error_object: igStatusErrorObject,\n  ig_status_error_code: igStatusErrorCode || '',\n  ig_status_error_message_derived: igStatusErrorMessageDerived || ''\n});\n\nstore.readiness_details[creationId] = detail;\n\nconst ready = igStatusCode === 'FINISHED';\nconst hasRealApiError = Boolean(igStatusErrorObject || igStatusErrorMessageDerived);\nconst canRetry = !ready && !hasRealApiError && nextCount < maxChecks;\n\nconst finalStatus = igStatusCode || (hasRealApiError ? 'ERROR' : 'UNKNOWN');\nconst checks = detail.checks;\n\nif (ready || !canRetry) {\n  delete store.readiness_attempts[creationId];\n}\nif (ready) {\n  delete store.readiness_details[creationId];\n  delete store.publisher_create_by_exec[execKey];\n}\n\nreturn {\n  json: {\n    ...$json,\n    creation_id: creationId,\n    readiness_check_count: nextCount,\n    readiness_max_checks: maxChecks,\n    readiness_ready: ready,\n    readiness_can_retry: canRetry,\n    readiness_status_code: finalStatus,\n    readiness_status_text: igStatusValue,\n    ig_status_response: igStatusResponse,\n    ig_status_code: igStatusCode,\n    ig_status_value: igStatusValue,\n    ig_status_error_object: igStatusErrorObject,\n    ig_status_error_code: igStatusErrorCode,\n    ig_status_error_message_derived: igStatusErrorMessageDerived,\n    ig_status_checks: checks,\n    ig_final_status: finalStatus,\n    ig_final_error_message: igStatusErrorMessageDerived || '',\n    ig_final_creation_id: creationId,\n    ig_final_video_url: detail.video_url || '',\n    ig_final_status_payload: igStatusResponse\n  }\n};",
+        "notice": ""
+      }
+    },
+    {
+      "id": "clean-pub-if-ready",
+      "name": "IF Container Ready",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "typeValidation": "strict",
+            "leftValue": "",
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.readiness_ready}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "clean-pub-if-retry",
+      "name": "IF Can Retry Readiness",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2580,
+        620
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "typeValidation": "strict",
+            "leftValue": "",
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.readiness_can_retry}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "clean-pub-wait-recheck",
+      "name": "Wait Before Recheck",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2820,
+        540
+      ],
+      "parameters": {
+        "amount": 30
+      },
+      "webhookId": "b4fd05a0-76be-4321-974e-7e8d41d77f01"
+    },
+    {
+      "id": "clean-pub-readiness-timeout",
+      "name": "Readiness Timeout Fail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        700
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const creationId = String($json.ig_final_creation_id || $json.creation_id || 'UNKNOWN');\nconst status = String($json.ig_final_status || $json.readiness_status_code || 'UNKNOWN');\nconst checks = Number($json.readiness_check_count || 0);\nconst videoUrl = String($json.ig_final_video_url || $json.publisher_input_video_url || $json.video_url || '');\nconst derivedError = String($json.ig_final_error_message || $json.ig_status_error_message_derived || '');\n\nconst finalPayload = $json.ig_final_status_payload || $json.ig_status_response || null;\nconst statusChecks = Array.isArray($json.ig_status_checks) ? $json.ig_status_checks : [];\nconst lastCheck = statusChecks.length ? statusChecks[statusChecks.length - 1] : null;\n\nlet safeFinalPayload = finalPayload;\nlet safeLastCheck = lastCheck;\n\ntry {\n  if (finalPayload !== null && finalPayload !== undefined) {\n    JSON.stringify(finalPayload);\n  }\n} catch (e) {\n  safeFinalPayload = 'UNSERIALIZABLE_FINAL_PAYLOAD';\n}\n\ntry {\n  if (lastCheck !== null && lastCheck !== undefined) {\n    JSON.stringify(lastCheck);\n  }\n} catch (e) {\n  safeLastCheck = 'UNSERIALIZABLE_LAST_CHECK';\n}\n\nconst readinessDebug = {\n  creation_id: creationId,\n  status,\n  checks,\n  video_url: videoUrl,\n  derived_error: derivedError,\n  final_payload: safeFinalPayload,\n  last_check: safeLastCheck\n};\n\nconst debugStore = $getWorkflowStaticData('global');\ndebugStore.readiness_timeout_debug = debugStore.readiness_timeout_debug || {};\ndebugStore.readiness_timeout_debug[String($execution.id)] = readinessDebug;\n\nthrow new Error(`Readiness timeout: creation_id=${creationId} status=${status} checks=${checks} error=${derivedError || 'NONE'}`);",
+        "notice": ""
+      }
+    },
+    {
+      "id": "clean-pub-disarm-gate",
+      "name": "Disarm Publish Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const store = $getWorkflowStaticData(\"global\");\n\nstore.publish_enabled = false;\nstore.allow_one_live_publish = false;\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3);\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\n\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst dateKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\n\nconst first = ($input.first() && $input.first().json) ? $input.first().json : {};\nstore.daily_publish_success_log.push({\n  dateKey,\n  timestamp: new Date().toISOString(),\n  executionId: String($execution.id),\n  test_id: String(first.test_id || ''),\n  media_id: String(first.id || first.media_id || '')\n});\nstore.daily_publish_success_log = store.daily_publish_success_log.slice(-200);\n\nreturn items;",
+        "notice": ""
+      }
+    },
+    {
+      "id": "476c2e08-8a4f-412c-8921-f32ff4713fc7",
+      "name": "Validate Caption Encoding",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        460
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const caption = String($json.caption ?? $json.captionText ?? '');\n\nif (/\\?{2,}/.test(caption) || caption.includes('?')) {\n  throw new Error('Caption encoding corrupted - publishing blocked');\n}\n\nreturn { json: { ...$json } };\n",
+        "notice": ""
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const inputVideoUrl = String($json.video_url || '').trim();\nconst inputCaption = String($json.caption || '');\nconst sourceNode = 'Publish Safety Gate';\n\nconst stripSensitive = (obj) => {\n  if (obj === null || obj === undefined) return obj;\n  if (Array.isArray(obj)) return obj.map(stripSensitive);\n  if (typeof obj !== 'object') return obj;\n\n  // Before logging any API response:\n  const safeResponse = Object.fromEntries(\n    Object.entries(obj).filter(([k]) =>\n      !/(token|secret|key|credential)/i.test(k)\n    )\n  );\n\n  return Object.fromEntries(\n    Object.entries(safeResponse).map(([k, v]) => [k, stripSensitive(v)])\n  );\n};\n\nlet parsedHost = '';\nlet isHttp = false;\nlet hasHost = false;\nlet isPublicLike = false;\nlet invalidReason = '';\n\nif (!inputVideoUrl) {\n  invalidReason = 'video_url is empty';\n} else {\n  const m = inputVideoUrl.match(/^https?:\\/\\/([^\\/?#]+)/i);\n  if (m && m[1]) {\n    parsedHost = String(m[1]).trim().toLowerCase();\n    isHttp = true;\n    hasHost = parsedHost.length > 0;\n    const localhostLike = /^(localhost|127\\.|0\\.0\\.0\\.0$|::1$)/i.test(parsedHost);\n    isPublicLike = hasHost && !localhostLike;\n  } else {\n    invalidReason = 'video_url must be absolute http/https URL';\n  }\n}\n\nconst looksSample = /samplelib\\.com|gtv-videos-bucket|ForBiggerJoyrides|ForBiggerEscapes/i.test(inputVideoUrl);\nconst looksMissing = /(^$|undefined|null|replace-me|example\\.com)/i.test(inputVideoUrl);\n\nlet valid = true;\nif (!inputVideoUrl || !isHttp || !hasHost || !isPublicLike || looksSample || looksMissing) {\n  valid = false;\n}\n\nlet reason = 'ok';\nif (!valid) {\n  if (invalidReason) reason = invalidReason;\n  else if (!isHttp) reason = 'video_url must start with http/https';\n  else if (!hasHost) reason = 'video_url host missing';\n  else if (!isPublicLike) reason = 'video_url does not look publicly reachable';\n  else if (looksSample) reason = 'video_url appears to be sample/fallback asset';\n  else if (looksMissing) reason = 'video_url appears temporary/invalid placeholder';\n  throw new Error(`Publisher video URL preflight failed: ${reason}; url=${inputVideoUrl}`);\n}\n\nlet headStatusCode = null;\nlet headContentType = '';\nlet headContentLength = '';\nlet headSafeResponse = null;\nlet headError = '';\n\ntry {\n  const headRaw = await this.helpers.httpRequest({\n    method: 'HEAD',\n    url: inputVideoUrl,\n    resolveWithFullResponse: true,\n    simple: false,\n    followRedirect: true,\n    timeout: 15000,\n  });\n\n  const headSafe = stripSensitive(headRaw);\n  const headHeaders = (headSafe && typeof headSafe.headers === 'object') ? headSafe.headers : {};\n  headStatusCode = Number(headSafe?.statusCode || headSafe?.status || 0) || null;\n  headContentType = String(\n    headHeaders['content-type'] ||\n    headHeaders['Content-Type'] ||\n    ''\n  );\n  headContentLength = String(\n    headHeaders['content-length'] ||\n    headHeaders['Content-Length'] ||\n    ''\n  );\n  headSafeResponse = headSafe;\n} catch (e) {\n  headError = String((e && e.message) || e || '');\n  const errResponse = (e && e.response && typeof e.response === 'object') ? e.response : null;\n  if (errResponse) {\n    const safeErr = stripSensitive(errResponse);\n    const h = (safeErr && typeof safeErr.headers === 'object') ? safeErr.headers : {};\n    headStatusCode = Number(safeErr?.statusCode || safeErr?.status || 0) || null;\n    headContentType = String(h['content-type'] || h['Content-Type'] || '');\n    headContentLength = String(h['content-length'] || h['Content-Length'] || '');\n    headSafeResponse = safeErr;\n  }\n}\n\nconst captionType = typeof $json.caption;\nconst captionSample = inputCaption.slice(0, 80);\nconst captionHasQuestionMarks = /\\?{2,}/.test(inputCaption) || inputCaption.includes('?');\nconst captionHasKorean = /[가-힣]/.test(inputCaption);\nconst igCreateRequestShape = {\n  media_type: 'REELS',\n  video_url: inputVideoUrl,\n  caption: inputCaption\n};\n\nconst store = $getWorkflowStaticData('global');\nstore.publisher_input_by_exec = store.publisher_input_by_exec || {};\nstore.publisher_input_by_exec[String($execution.id)] = {\n  video_url: inputVideoUrl,\n  caption: inputCaption,\n  source_node: sourceNode,\n  is_public_url: isPublicLike,\n  url_host: parsedHost,\n  test_id: String($json.test_id || ''),\n  head_status_code: headStatusCode,\n  head_content_type: headContentType,\n  head_content_length: headContentLength,\n  head_response: headSafeResponse,\n  head_error: headError\n};\n\nreturn {\n  json: {\n    ...$json,\n    publisher_input_video_url: inputVideoUrl,\n    publisher_input_caption: inputCaption,\n    publisher_input_source_node: sourceNode,\n    publisher_input_is_public_url: isPublicLike,\n    publisher_input_url_host: parsedHost,\n    publisher_video_url_valid: valid,\n    publisher_video_url_reason: reason,\n    publisher_video_head_status_code: headStatusCode,\n    publisher_video_head_content_type: headContentType,\n    publisher_video_head_content_length: headContentLength,\n    publisher_video_head_response: headSafeResponse,\n    publisher_video_head_error: headError,\n    publisher_caption_raw: inputCaption,\n    publisher_caption_type: captionType,\n    publisher_caption_sample: captionSample,\n    publisher_caption_has_question_marks: captionHasQuestionMarks,\n    publisher_caption_has_korean: captionHasKorean,\n    publisher_ig_create_request_shape: igCreateRequestShape\n  }\n};",
+        "notice": ""
+      },
+      "id": "trace-publisher-input-validate-url",
+      "name": "Trace Publisher Input + Validate URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const creationId = String($json.creation_id || $json.id || '').trim();\nconst caption = String($json.caption || '').trim();\n\nconst creationValid = creationId.length > 0;\nconst captionValid = true;\n\nconst payload = {\n  creation_id: creationId,\n  access_token: 'REDACTED'\n};\n\nlet payloadValid = creationValid;\nlet errorReason = '';\n\nif (!creationValid) {\n  payloadValid = false;\n  errorReason = 'creation_id is empty';\n}\n\ntry {\n  JSON.stringify(payload);\n} catch (e) {\n  payloadValid = false;\n  errorReason = `payload serialization failed: ${e.message}`;\n}\n\nif (!payloadValid) {\n  throw new Error(`IG publish payload invalid: ${errorReason}`);\n}\n\nreturn {\n  json: {\n    ...$json,\n    ig_publish_creation_id: creationId,\n    ig_publish_caption: caption,\n    ig_publish_creation_id_valid: creationValid,\n    ig_publish_caption_valid: captionValid,\n    ig_publish_payload_valid: payloadValid,\n    ig_publish_payload_error_reason: errorReason,\n    ig_publish_request_payload: payload,\n    ig_publish_request: {\n      endpoint: 'https://graph.facebook.com/v23.0/17841436538210981/media_publish',\n      contentType: 'form-urlencoded',\n      body: payload\n    }\n  }\n};",
+        "notice": ""
+      },
+      "id": "build-reel-publish-payload",
+      "name": "Build Reel Publish Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        460
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Publish Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Publish Payload": {
+      "main": [
+        [
+          {
+            "node": "Publish Safety Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Safety Gate": {
+      "main": [
+        [
+          {
+            "node": "IF Live Publish Allowed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Live Publish Allowed": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dry Run Publish Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Trace Publisher Input + Validate URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG Create Reel Container": {
+      "main": [
+        [
+          {
+            "node": "Init Readiness State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Readiness State": {
+      "main": [
+        [
+          {
+            "node": "IG Check Container Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG Check Container Status": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Readiness",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Readiness": {
+      "main": [
+        [
+          {
+            "node": "IF Container Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Container Ready": {
+      "main": [
+        [
+          {
+            "node": "Validate Caption Encoding",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Can Retry Readiness",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Can Retry Readiness": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Recheck",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Readiness Timeout Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Recheck": {
+      "main": [
+        [
+          {
+            "node": "IG Check Container Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG Publish Reel": {
+      "main": [
+        [
+          {
+            "node": "Disarm Publish Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Caption Encoding": {
+      "main": [
+        [
+          {
+            "node": "Build Reel Publish Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trace Publisher Input + Validate URL": {
+      "main": [
+        [
+          {
+            "node": "IG Create Reel Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reel Publish Payload": {
+      "main": [
+        [
+          {
+            "node": "IG Publish Reel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "timezone": "Asia/Seoul",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "potLIY8EREC9hXYl"
+  },
+  "staticData": {
+    "global": {
+      "publish_enabled": false,
+      "allow_one_live_publish": false,
+      "readiness_attempts": {},
+      "publisher_input_by_exec": {
+        "4018": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "caption": "diag approval trace caption 3",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "diag-1776909323"
+        },
+        "4020": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "caption": "diag approval trace caption 4",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "diag-1776909523"
+        },
+        "4022": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "caption": "diag polling fix validation",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "diag-1776910483"
+        },
+        "4024": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "caption": "diag publish payload fix",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "diag-1776911101"
+        },
+        "4026": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "caption": "diag timeout fail patch validation",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "diag-1776911789"
+        },
+        "4031": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_31bcf3f24f03477397b5fed7671ad099.mp4",
+          "caption": "?? ?? ??? ?? ??? ???.\n?? ?? ???? ??? ???? ?? ??? ?? ??? ????.\n?? ??? ??? ?? ?????? ???? ?????.\n?? ??? ??? ?? ???? ??? ?? ? ????.\n????? ?? ??? ?????.\n#??? #???? #???? #???? #????",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "1776941555714-qbxhhf",
+          "head_status_code": null,
+          "head_content_type": "",
+          "head_content_length": "",
+          "head_response": "",
+          "head_error": ""
+        },
+        "4032": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_31bcf3f24f03477397b5fed7671ad099.mp4",
+          "caption": "?? ?? ??? ?? ??? ???.\n?? ?? ???? ??? ???? ?? ??? ?? ??? ????.\n?? ??? ??? ?? ?????? ???? ?????.\n?? ??? ??? ?? ???? ??? ?? ? ????.\n????? ?? ??? ?????.\n#??? #???? #???? #???? #????",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "1776941555714-qbxhhf",
+          "head_status_code": null,
+          "head_content_type": "",
+          "head_content_length": "",
+          "head_response": "",
+          "head_error": ""
+        },
+        "4035": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_31bcf3f24f03477397b5fed7671ad099.mp4",
+          "caption": "??? ??? ??? ??? ??? ?? ?????. ?? ????? ? ?? ??? ?? ??? ???? ?? ?????. ??? ???? ?? ??? ???, ?? ? ??? ? ?? ?????? ????? ?? ??? ?????. #??? #???? #????",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "caption-encoding-check-01",
+          "head_status_code": null,
+          "head_content_type": "",
+          "head_content_length": "",
+          "head_response": "",
+          "head_error": ""
+        },
+        "4036": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_31bcf3f24f03477397b5fed7671ad099.mp4",
+          "caption": "많이들 놓치는 지점은 제품이 아니라 선택 순서입니다. 같은 가격대라도 내 사용 패턴과 맞지 않으면 만족감이 빨리 떨어집니다. 지금도 가격표만 보고 고르고 있다면, 다음 달 지출은 왜 계속 늘어날까요? 저장해두면 다음 선택이 달라집니다. #베이프 #전자담배 #선택기준",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "caption-encoding-check-02",
+          "head_status_code": null,
+          "head_content_type": "",
+          "head_content_length": "",
+          "head_response": "",
+          "head_error": ""
+        },
+        "4075": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_a421e80b0b344106a82d2f3ce78337fc.mp4",
+          "caption": "diag",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "1777015930991-mvktft",
+          "head_status_code": null,
+          "head_content_type": "",
+          "head_content_length": "",
+          "head_response": "",
+          "head_error": ""
+        },
+        "4084": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_a421e80b0b344106a82d2f3ce78337fc.mp4",
+          "caption": "diag",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "1777013603132-w6t9j0",
+          "head_status_code": null,
+          "head_content_type": "",
+          "head_content_length": "",
+          "head_response": "",
+          "head_error": ""
+        },
+        "4210": {
+          "video_url": "https://n8n.mykindredai.com/images/reel_19b4c700988d408dbc45b66072e0aacd.mp4",
+          "caption": "Phase 3C reel scheduler validation unique caption. ?? ?? ?? ?? ?????.",
+          "source_node": "Publish Safety Gate",
+          "is_public_url": true,
+          "url_host": "n8n.mykindredai.com",
+          "test_id": "phase3c-reel-test-1777118333",
+          "head_status_code": null,
+          "head_content_type": "",
+          "head_content_length": "",
+          "head_response": "",
+          "head_error": ""
+        }
+      },
+      "publisher_create_by_exec": {
+        "4020": {
+          "creation_id": "18080349941217941",
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "request": {
+            "media_type": "REELS",
+            "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+            "caption": "diag approval trace caption 4",
+            "endpoint": "https://graph.facebook.com/v23.0/17841436538210981/media"
+          },
+          "response": {
+            "id": "18080349941217941"
+          }
+        },
+        "4022": {
+          "creation_id": "18080351894217941",
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "request": {
+            "media_type": "REELS",
+            "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+            "caption": "diag polling fix validation",
+            "endpoint": "https://graph.facebook.com/v23.0/17841436538210981/media"
+          },
+          "response": {
+            "id": "18080351894217941"
+          }
+        },
+        "4024": {
+          "creation_id": "18080353988217941",
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "request": {
+            "media_type": "REELS",
+            "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+            "caption": "diag publish payload fix",
+            "endpoint": "https://graph.facebook.com/v23.0/17841436538210981/media"
+          },
+          "response": {
+            "id": "18080353988217941"
+          }
+        },
+        "4026": {
+          "creation_id": "18080355425217941",
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "request": {
+            "media_type": "REELS",
+            "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+            "caption": "diag timeout fail patch validation",
+            "endpoint": "https://graph.facebook.com/v23.0/17841436538210981/media"
+          },
+          "response": {
+            "id": "18080355425217941"
+          }
+        }
+      },
+      "readiness_details": {
+        "18080349941217941": {
+          "checks": [
+            {
+              "check_count": 1,
+              "creation_id": "18080349941217941",
+              "status_code": "UNKNOWN",
+              "status": "",
+              "error_message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"AKgLBeqWfwdSSRXtVtaxrfL\\\"}}\"",
+              "raw": {
+                "error": {
+                  "message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"AKgLBeqWfwdSSRXtVtaxrfL\\\"}}\"",
+                  "name": "AxiosError",
+                  "stack": "AxiosError: Request failed with status code 400\n    at settle (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/settle.js:19:12)\n    at RedirectableRequest.handleResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/adapters/http.js:746:9)\n    at RedirectableRequest.emit (node:events:520:35)\n    at RedirectableRequest._processResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:409:10)\n    at ClientRequest.RedirectableRequest._onNativeResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:102:12)\n    at Object.onceWrapper (node:events:623:26)\n    at ClientRequest.emit (node:events:508:28)\n    at HTTPParser.parserOnIncomingClient (node:_http_client:780:27)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)\n    at TLSSocket.socketOnData (node:_http_client:615:22)\n    at Axios.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/Axios.js:46:41)\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at invokeAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:95:10)\n    at proxyRequestToAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:439:20)\n    at Object.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:1557:4)",
+                  "code": "ERR_BAD_REQUEST",
+                  "status": 400
+                }
+              }
+            },
+            {
+              "check_count": 2,
+              "creation_id": "18080349941217941",
+              "status_code": "UNKNOWN",
+              "status": "",
+              "error_message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"ABlUyCfS3yz6X97IjHTDzJa\\\"}}\"",
+              "raw": {
+                "error": {
+                  "message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"ABlUyCfS3yz6X97IjHTDzJa\\\"}}\"",
+                  "name": "AxiosError",
+                  "stack": "AxiosError: Request failed with status code 400\n    at settle (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/settle.js:19:12)\n    at RedirectableRequest.handleResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/adapters/http.js:746:9)\n    at RedirectableRequest.emit (node:events:520:35)\n    at RedirectableRequest._processResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:409:10)\n    at ClientRequest.RedirectableRequest._onNativeResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:102:12)\n    at Object.onceWrapper (node:events:623:26)\n    at ClientRequest.emit (node:events:508:28)\n    at HTTPParser.parserOnIncomingClient (node:_http_client:780:27)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)\n    at TLSSocket.socketOnData (node:_http_client:615:22)\n    at Axios.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/Axios.js:46:41)\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at invokeAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:95:10)\n    at proxyRequestToAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:439:20)\n    at Object.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:1557:4)",
+                  "code": "ERR_BAD_REQUEST",
+                  "status": 400
+                }
+              }
+            },
+            {
+              "check_count": 3,
+              "creation_id": "18080349941217941",
+              "status_code": "UNKNOWN",
+              "status": "",
+              "error_message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"A5K66RPdviJEP7dZ3f4IR4o\\\"}}\"",
+              "raw": {
+                "error": {
+                  "message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"A5K66RPdviJEP7dZ3f4IR4o\\\"}}\"",
+                  "name": "AxiosError",
+                  "stack": "AxiosError: Request failed with status code 400\n    at settle (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/settle.js:19:12)\n    at RedirectableRequest.handleResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/adapters/http.js:746:9)\n    at RedirectableRequest.emit (node:events:520:35)\n    at RedirectableRequest._processResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:409:10)\n    at ClientRequest.RedirectableRequest._onNativeResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:102:12)\n    at Object.onceWrapper (node:events:623:26)\n    at ClientRequest.emit (node:events:508:28)\n    at HTTPParser.parserOnIncomingClient (node:_http_client:780:27)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)\n    at TLSSocket.socketOnData (node:_http_client:615:22)\n    at Axios.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/Axios.js:46:41)\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at invokeAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:95:10)\n    at proxyRequestToAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:439:20)\n    at Object.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:1557:4)",
+                  "code": "ERR_BAD_REQUEST",
+                  "status": 400
+                }
+              }
+            },
+            {
+              "check_count": 4,
+              "creation_id": "18080349941217941",
+              "status_code": "UNKNOWN",
+              "status": "",
+              "error_message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"A2y2E8Y5y0sWXn_h2M3XVWn\\\"}}\"",
+              "raw": {
+                "error": {
+                  "message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"A2y2E8Y5y0sWXn_h2M3XVWn\\\"}}\"",
+                  "name": "AxiosError",
+                  "stack": "AxiosError: Request failed with status code 400\n    at settle (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/settle.js:19:12)\n    at RedirectableRequest.handleResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/adapters/http.js:746:9)\n    at RedirectableRequest.emit (node:events:520:35)\n    at RedirectableRequest._processResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:409:10)\n    at ClientRequest.RedirectableRequest._onNativeResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:102:12)\n    at Object.onceWrapper (node:events:623:26)\n    at ClientRequest.emit (node:events:508:28)\n    at HTTPParser.parserOnIncomingClient (node:_http_client:780:27)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)\n    at TLSSocket.socketOnData (node:_http_client:615:22)\n    at Axios.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/Axios.js:46:41)\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at invokeAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:95:10)\n    at proxyRequestToAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:439:20)\n    at Object.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:1557:4)",
+                  "code": "ERR_BAD_REQUEST",
+                  "status": 400
+                }
+              }
+            },
+            {
+              "check_count": 5,
+              "creation_id": "18080349941217941",
+              "status_code": "UNKNOWN",
+              "status": "",
+              "error_message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"AF0LgPvb-4_bYS7PYNZnNFz\\\"}}\"",
+              "raw": {
+                "error": {
+                  "message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"AF0LgPvb-4_bYS7PYNZnNFz\\\"}}\"",
+                  "name": "AxiosError",
+                  "stack": "AxiosError: Request failed with status code 400\n    at settle (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/settle.js:19:12)\n    at RedirectableRequest.handleResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/adapters/http.js:746:9)\n    at RedirectableRequest.emit (node:events:520:35)\n    at RedirectableRequest._processResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:409:10)\n    at ClientRequest.RedirectableRequest._onNativeResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:102:12)\n    at Object.onceWrapper (node:events:623:26)\n    at ClientRequest.emit (node:events:508:28)\n    at HTTPParser.parserOnIncomingClient (node:_http_client:780:27)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)\n    at TLSSocket.socketOnData (node:_http_client:615:22)\n    at Axios.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/Axios.js:46:41)\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at invokeAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:95:10)\n    at proxyRequestToAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:439:20)\n    at Object.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:1557:4)",
+                  "code": "ERR_BAD_REQUEST",
+                  "status": 400
+                }
+              }
+            },
+            {
+              "check_count": 6,
+              "creation_id": "18080349941217941",
+              "status_code": "UNKNOWN",
+              "status": "",
+              "error_message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"AIQpjMQwYIouyLHSa4BVB-v\\\"}}\"",
+              "raw": {
+                "error": {
+                  "message": "400 - \"{\\\"error\\\":{\\\"message\\\":\\\"(#100) Tried accessing nonexisting field (error_message)\\\",\\\"type\\\":\\\"OAuthException\\\",\\\"code\\\":100,\\\"fbtrace_id\\\":\\\"AIQpjMQwYIouyLHSa4BVB-v\\\"}}\"",
+                  "name": "AxiosError",
+                  "stack": "AxiosError: Request failed with status code 400\n    at settle (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/settle.js:19:12)\n    at RedirectableRequest.handleResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/adapters/http.js:746:9)\n    at RedirectableRequest.emit (node:events:520:35)\n    at RedirectableRequest._processResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:409:10)\n    at ClientRequest.RedirectableRequest._onNativeResponse (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/follow-redirects@1.15.11/node_modules/follow-redirects/index.js:102:12)\n    at Object.onceWrapper (node:events:623:26)\n    at ClientRequest.emit (node:events:508:28)\n    at HTTPParser.parserOnIncomingClient (node:_http_client:780:27)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)\n    at TLSSocket.socketOnData (node:_http_client:615:22)\n    at Axios.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/axios@1.13.5/node_modules/axios/lib/core/Axios.js:46:41)\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at invokeAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:95:10)\n    at proxyRequestToAxios (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:439:20)\n    at Object.request (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+exporter-trace-otlp_9f358c3eeaef0d2736f54ac9757ada43/node_modules/n8n-core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts:1557:4)",
+                  "code": "ERR_BAD_REQUEST",
+                  "status": 400
+                }
+              }
+            }
+          ],
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "create_response": {
+            "id": "18080349941217941"
+          }
+        },
+        "18080351894217941": {
+          "checks": [
+            {
+              "check_count": 1,
+              "creation_id": "18080351894217941",
+              "ig_status_code": "IN_PROGRESS",
+              "ig_status_value": "In Progress: Media is still being processed.",
+              "ig_status_response": {
+                "id": "18080351894217941",
+                "status_code": "IN_PROGRESS",
+                "status": "In Progress: Media is still being processed."
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 2,
+              "creation_id": "18080351894217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080351894217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 3,
+              "creation_id": "18080351894217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080351894217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 4,
+              "creation_id": "18080351894217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080351894217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 5,
+              "creation_id": "18080351894217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080351894217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 6,
+              "creation_id": "18080351894217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080351894217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            }
+          ],
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "create_response": {
+            "id": "18080351894217941"
+          }
+        },
+        "18080353988217941": {
+          "checks": [
+            {
+              "check_count": 1,
+              "creation_id": "18080353988217941",
+              "ig_status_code": "IN_PROGRESS",
+              "ig_status_value": "In Progress: Media is still being processed.",
+              "ig_status_response": {
+                "id": "18080353988217941",
+                "status_code": "IN_PROGRESS",
+                "status": "In Progress: Media is still being processed."
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 2,
+              "creation_id": "18080353988217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080353988217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 3,
+              "creation_id": "18080353988217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080353988217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 4,
+              "creation_id": "18080353988217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080353988217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 5,
+              "creation_id": "18080353988217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080353988217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 6,
+              "creation_id": "18080353988217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080353988217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            }
+          ],
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "create_response": {
+            "id": "18080353988217941"
+          }
+        },
+        "18080355425217941": {
+          "checks": [
+            {
+              "check_count": 1,
+              "creation_id": "18080355425217941",
+              "ig_status_code": "IN_PROGRESS",
+              "ig_status_value": "In Progress: Media is still being processed.",
+              "ig_status_response": {
+                "id": "18080355425217941",
+                "status_code": "IN_PROGRESS",
+                "status": "In Progress: Media is still being processed."
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 2,
+              "creation_id": "18080355425217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080355425217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 3,
+              "creation_id": "18080355425217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080355425217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 4,
+              "creation_id": "18080355425217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080355425217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 5,
+              "creation_id": "18080355425217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080355425217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            },
+            {
+              "check_count": 6,
+              "creation_id": "18080355425217941",
+              "ig_status_code": "ERROR",
+              "ig_status_value": "Error: Media upload has failed with error code 2207082",
+              "ig_status_response": {
+                "id": "18080355425217941",
+                "status_code": "ERROR",
+                "status": "Error: Media upload has failed with error code 2207082"
+              },
+              "ig_status_error_object": null,
+              "ig_status_error_message_derived": ""
+            }
+          ],
+          "video_url": "https://n8n.mykindredai.com/images/reel_514bc0e798c445ad91215c6213238f40.mp4",
+          "create_response": {
+            "id": "18080355425217941"
+          }
+        }
+      },
+      "daily_publish_limit": 3,
+      "daily_publish_success_log": [
+        {
+          "dateKey": "2026-04-24",
+          "timestamp": "2026-04-24T08:07:45.274Z",
+          "executionId": "4075",
+          "test_id": "",
+          "media_id": "18127296943601661"
+        },
+        {
+          "dateKey": "2026-04-24",
+          "timestamp": "2026-04-24T11:50:47.055Z",
+          "executionId": "4084",
+          "test_id": "",
+          "media_id": "17914214865366234"
+        },
+        {
+          "dateKey": "2026-04-25",
+          "timestamp": "2026-04-25T12:01:36.474Z",
+          "executionId": "4210",
+          "test_id": "",
+          "media_id": "17884732956520356"
+        }
+      ]
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "3082c4d3-cc32-40f7-bc0d-c16fa746b367",
+  "activeVersionId": "3082c4d3-cc32-40f7-bc0d-c16fa746b367",
+  "versionCounter": 271,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-20T12:50:30.728Z",
+      "createdAt": "2026-04-20T12:50:30.728Z",
+      "role": "workflow:owner",
+      "workflowId": "TiD7fxWCuAX9mpt6",
+      "projectId": "M3e6xHUu7VezXSBg",
+      "project": {
+        "updatedAt": "2026-04-07T04:41:49.347Z",
+        "createdAt": "2026-04-05T09:30:33.360Z",
+        "id": "M3e6xHUu7VezXSBg",
+        "name": "민호 김 <ziemaziema@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-26T06:51:31.232Z",
+    "createdAt": "2026-04-26T06:51:31.232Z",
+    "versionId": "3082c4d3-cc32-40f7-bc0d-c16fa746b367",
+    "workflowId": "TiD7fxWCuAX9mpt6",
+    "nodes": [
+      {
+        "id": "clean-pub-trigger",
+        "name": "Webhook",
+        "parameters": {
+          "path": "clean_03_publisher",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          240,
+          300
+        ],
+        "typeVersion": 2,
+        "webhookId": "2297d2bb-187f-4202-ad8e-a02acfdccf5d"
+      },
+      {
+        "id": "clean-pub-normalize",
+        "name": "Normalize Publish Payload",
+        "parameters": {
+          "jsCode": "const body = $json.body || $json;\nreturn {\n  json: {\n    caption: String(body.caption || ''),\n    video_url: String(body.video_url || ''),\n    test_id: String(body.test_id || ''),\n    approved_via: String(body.approved_via || $json.approved_via || ''),\n    arm_live_publish: body.arm_live_publish === true || String(body.arm_live_publish || '').toLowerCase() === 'true',\n    dry_run: body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true',\n    test_mode: body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true',\n    diagnostic: body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true',\n  }\n};",
+          "mode": "runOnceForEachItem",
+          "notice": ""
+        },
+        "type": "n8n-nodes-base.code",
+        "position": [
+          500,
+          300
+        ],
+        "typeVersion": 2
+      },
+      {
+        "id": "clean-pub-gate",
+        "name": "Publish Safety Gate",
+        "parameters": {
+          "jsCode": "const store = $getWorkflowStaticData('global');\n\nstore.publish_enabled = store.publish_enabled ?? false;\nstore.allow_one_live_publish = store.allow_one_live_publish ?? false;\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3); // set 2 or 3 as needed\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\n\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\n\n// Keep a compact rolling window to avoid unbounded growth.\nstore.daily_publish_success_log = store.daily_publish_success_log.slice(-200);\n\nconst todaySuccessCount = store.daily_publish_success_log.filter((r) => String(r.dateKey || '') === todayKey).length;\nconst dailyLimit = Number($json.daily_publish_limit || store.daily_publish_limit || 3);\nconst dailyLimitReached = todaySuccessCount >= dailyLimit;\n\nconst requestedByApproval =\n  $json.arm_live_publish === true ||\n  String($json.arm_live_publish || '').toLowerCase() === 'true' ||\n  String($json.approved_via || '') === 'telegram_callback';\n\nif (requestedByApproval) {\n  store.publish_enabled = true;\n  store.allow_one_live_publish = true;\n}\n\nconst publishEnabled = store.publish_enabled === true || String(store.publish_enabled).toLowerCase() === 'true';\nconst armEnabled = store.allow_one_live_publish === true || String(store.allow_one_live_publish).toLowerCase() === 'true';\nlet livePublishAllowed = publishEnabled && armEnabled && !dailyLimitReached;\nconst inlineDryRun = $json.dry_run === true || $json.test_mode === true || $json.diagnostic === true;\nif (inlineDryRun) { livePublishAllowed = false; }\n\nif (livePublishAllowed) {\n  // one-shot safety: consume gate immediately for this approved request\n  store.publish_enabled = false;\n  store.allow_one_live_publish = false;\n} else if (publishEnabled && armEnabled && dailyLimitReached) {\n  // consume armed gate when blocked by daily cap to prevent accidental carry-over\n  store.publish_enabled = false;\n  store.allow_one_live_publish = false;\n}\n\nlet dryRunReason = '';\nif (!livePublishAllowed) {\n  if (dailyLimitReached) dryRunReason = 'DAILY_LIMIT_REACHED';\n  else if (inlineDryRun) dryRunReason = 'inline_test_mode_flag';\n  else dryRunReason = publishEnabled ? 'allow_one_live_publish=false' : 'publish_enabled=false';\n}\n\nreturn {\n  json: {\n    ...$json,\n    publish_enabled: publishEnabled,\n    allow_one_live_publish: armEnabled,\n    live_publish_allowed: livePublishAllowed ? 'true' : 'false',\n    daily_publish_limit: dailyLimit,\n    daily_publish_count_today: todaySuccessCount,\n    daily_publish_date_key: todayKey,\n    daily_limit_reached: dailyLimitReached,\n    dry_run_reason: livePublishAllowed ? '' : dryRunReason,\n    ready_for_live_publish: !livePublishAllowed\n  }\n};",
+          "mode": "runOnceForEachItem",
+          "notice": ""
+        },
+        "type": "n8n-nodes-base.code",
+        "position": [
+          740,
+          300
+        ],
+        "typeVersion": 2
+      },
+      {
+        "id": "clean-pub-if",
+        "name": "IF Live Publish Allowed",
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "typeValidation": "strict",
+              "leftValue": "",
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "operator": {
+                  "operation": "equals",
+                  "type": "string"
+                },
+                "rightValue": "true",
+                "leftValue": "={{$json.live_publish_allowed}}"
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "type": "n8n-nodes-base.if",
+        "position": [
+          980,
+          300
+        ],
+        "typeVersion": 2
+      },
+      {
+        "id": "clean-pub-dry-run",
+        "name": "Dry Run Publish Ready",
+        "parameters": {
+          "jsCode": "return {\n  json: {\n    ...$json,\n    dry_run: true,\n    publish_attempted: false,\n    publish_status: ($json.dry_run_reason === 'DAILY_LIMIT_REACHED') ? 'blocked_daily_limit' : 'blocked_dry_run',\n    dry_run_reason: $json.dry_run_reason || 'publish_enabled=false',\n    daily_publish_limit: $json.daily_publish_limit ?? null,\n    daily_publish_count_today: $json.daily_publish_count_today ?? null,\n    next_action: ($json.dry_run_reason === 'DAILY_LIMIT_REACHED')\n      ? 'wait until next day or increase daily_publish_limit (2/3)'\n      : 'set publish_enabled=true and allow_one_live_publish=true for one live attempt'\n  }\n};",
+          "mode": "runOnceForEachItem",
+          "notice": ""
+        },
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1220,
+          140
+        ],
+        "typeVersion": 2
+      },
+      {
+        "position": [
+          1220,
+          460
+        ],
+        "name": "Wait",
+        "id": "clean-pub-wait",
+        "webhookId": "ce500be4-9dbe-40de-bfa3-5ce07cf77d79",
+        "type": "n8n-nodes-base.wait",
+        "parameters": {
+          "amount": 120
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "clean-pub-create",
+        "name": "IG Create Reel Container",
+        "parameters": {
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "value": "REELS",
+                "name": "media_type"
+              },
+              {
+                "value": "={{$json.video_url}}",
+                "name": "video_url"
+              },
+              {
+                "value": "={{$json.caption}}",
+                "name": "caption"
+              },
+              {
+                "value": "REDACTED",
+                "name": "access_token"
+              }
+            ]
+          },
+          "method": "POST",
+          "options": {
+            "ignoreResponseCode": true,
+            "fullResponse": true
+          },
+          "contentType": "json",
+          "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
+          "specifyBody": "json",
+          "jsonBody": "={{ { media_type: \"REELS\", video_url: $json.video_url, caption: $json.caption, access_token: \"REDACTED\" } }}"
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1460,
+          460
+        ],
+        "typeVersion": 4.4
+      },
+      {
+        "id": "clean-pub-publish",
+        "name": "IG Publish Reel",
+        "parameters": {
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "creation_id",
+                "value": "={{$json.ig_publish_creation_id}}"
+              },
+              {
+                "name": "access_token",
+                "value": "={{$json.ig_publish_request_payload.access_token}}"
+              }
+            ]
+          },
+          "method": "POST",
+          "options": {},
+          "contentType": "form-urlencoded",
+          "url": "https://graph.facebook.com/v23.0/17841436538210981/media_publish",
+          "specifyBody": "keypair"
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1700,
+          460
+        ],
+        "typeVersion": 4.4
+      },
+      {
+        "id": "clean-pub-init-readiness",
+        "name": "Init Readiness State",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1620,
+          460
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const store = $getWorkflowStaticData('global');\nstore.publisher_input_by_exec = store.publisher_input_by_exec || {};\nstore.publisher_create_by_exec = store.publisher_create_by_exec || {};\nconst execKey = String($execution.id);\nconst traced = store.publisher_input_by_exec[execKey] || {};\n\nconst stripSensitive = (obj) => {\n  if (obj === null || obj === undefined) return obj;\n  if (Array.isArray(obj)) return obj.map(stripSensitive);\n  if (typeof obj !== 'object') return obj;\n\n  // Before logging any API response:\n  const safeResponse = Object.fromEntries(\n    Object.entries(obj).filter(([k]) =>\n      !/(token|secret|key|credential)/i.test(k)\n    )\n  );\n\n  return Object.fromEntries(\n    Object.entries(safeResponse).map(([k, v]) => [k, stripSensitive(v)])\n  );\n};\n\nconst rawCreateResponse = ($json && typeof $json === 'object') ? $json : {};\nconst safeCreateResponse = stripSensitive(rawCreateResponse);\nconst createStatusCode = Number(safeCreateResponse.statusCode || safeCreateResponse.status || 0) || null;\nconst createBodyRaw = (safeCreateResponse.body && typeof safeCreateResponse.body === 'object')\n  ? safeCreateResponse.body\n  : safeCreateResponse;\nconst createBody = stripSensitive(createBodyRaw);\n\nconst creationId = String(createBody.id || createBody.creation_id || safeCreateResponse.id || '').trim();\nconst createErrorObj = (createBody.error && typeof createBody.error === 'object') ? createBody.error : null;\nconst createErrorMessage = String(\n  (createErrorObj && (createErrorObj.message || createErrorObj.error_user_msg || createErrorObj.error_subcode || '')) ||\n  createBody.error_message ||\n  createBody.message ||\n  ''\n).trim();\nconst createErrorCode = String(\n  (createErrorObj && (createErrorObj.code || createErrorObj.error_subcode || '')) ||\n  createBody.error_code ||\n  ''\n).trim();\n\nconst requestPayload = {\n  media_type: 'REELS',\n  video_url: String(traced.video_url || ''),\n  caption: String(traced.caption || ''),\n  endpoint: 'https://graph.facebook.com/v23.0/17841436538210981/media'\n};\n\nconst responsePayload = {\n  statusCode: createStatusCode,\n  body: createBody\n};\n\nif (!creationId) {\n  throw new Error(\n    `IG create container failed before readiness: ${createErrorMessage || 'missing creation id'}; statusCode=${createStatusCode || 'NONE'}; video_url=${requestPayload.video_url}; response=${JSON.stringify(responsePayload)}`\n  );\n}\n\nstore.publisher_create_by_exec[execKey] = {\n  creation_id: creationId,\n  video_url: String(traced.video_url || ''),\n  request: requestPayload,\n  response: responsePayload,\n  response_status_code: createStatusCode,\n  response_error_code: createErrorCode,\n  response_error_message: createErrorMessage\n};\n\nreturn {\n  json: {\n    ...$json,\n    publisher_input_video_url: String(traced.video_url || ''),\n    publisher_input_caption: String(traced.caption || ''),\n    publisher_input_source_node: String(traced.source_node || ''),\n    publisher_input_is_public_url: traced.is_public_url === true,\n    publisher_input_url_host: String(traced.url_host || ''),\n    publisher_video_head_status_code: traced.head_status_code ?? null,\n    publisher_video_head_content_type: String(traced.head_content_type || ''),\n    publisher_video_head_content_length: String(traced.head_content_length || ''),\n    publisher_video_head_response: traced.head_response || null,\n    publisher_video_head_error: String(traced.head_error || ''),\n    creation_id: creationId,\n    readiness_check_count: 0,\n    readiness_max_checks: 6,\n    readiness_interval_seconds: 30,\n    ig_create_container_request: requestPayload,\n    ig_create_container_response: responsePayload,\n    ig_create_container_creation_id: creationId,\n    ig_create_container_status_code: createStatusCode,\n    ig_create_container_error_code: createErrorCode,\n    ig_create_container_error_message: createErrorMessage\n  }\n};",
+          "notice": ""
+        }
+      },
+      {
+        "id": "clean-pub-status-http",
+        "name": "IG Check Container Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1860,
+          460
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ (() => { const id = String($json.creation_id || \"\").trim(); if (!id) { throw new Error(\"creation_id is missing for IG status check\"); } return \"https://graph.facebook.com/v23.0/\" + id + \"?fields=id,status_code,status\"; })() }}",
+          "options": {
+            "ignoreResponseCode": true,
+            "fullResponse": true
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "REDACTED"
+              }
+            ]
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "clean-pub-eval-readiness",
+        "name": "Evaluate Readiness",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2100,
+          460
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const store = $getWorkflowStaticData('global');\nstore.readiness_attempts = store.readiness_attempts || {};\nstore.readiness_details = store.readiness_details || {};\nstore.publisher_create_by_exec = store.publisher_create_by_exec || {};\n\nconst stripSensitive = (obj) => {\n  if (obj === null || obj === undefined) return obj;\n  if (Array.isArray(obj)) return obj.map(stripSensitive);\n  if (typeof obj !== 'object') return obj;\n\n  // Before logging any API response:\n  const safeResponse = Object.fromEntries(\n    Object.entries(obj).filter(([k]) =>\n      !/(token|secret|key|credential)/i.test(k)\n    )\n  );\n\n  return Object.fromEntries(\n    Object.entries(safeResponse).map(([k, v]) => [k, stripSensitive(v)])\n  );\n};\n\nconst execKey = String($execution.id);\nconst createCtx = store.publisher_create_by_exec[execKey] || {};\n\nconst rawStatusResponse = ($json && typeof $json === 'object') ? $json : {};\nconst safeStatusResponse = stripSensitive(rawStatusResponse);\nconst pollHttpStatus = Number(safeStatusResponse.statusCode || safeStatusResponse.status || 0) || null;\nconst statusBodyRaw = (safeStatusResponse.body && typeof safeStatusResponse.body === 'object')\n  ? safeStatusResponse.body\n  : safeStatusResponse;\nconst statusBody = stripSensitive(statusBodyRaw);\n\nconst creationId = String(\n  statusBody.id ||\n  $json.creation_id ||\n  safeStatusResponse.id ||\n  createCtx.creation_id ||\n  ''\n).trim();\nif (!creationId) {\n  throw new Error('Missing creation_id during readiness evaluation');\n}\n\nconst maxChecks = Number($json.readiness_max_checks || 6);\nconst prevCount = Number(store.readiness_attempts[creationId] || 0);\nconst nextCount = prevCount + 1;\nstore.readiness_attempts[creationId] = nextCount;\n\nconst igStatusResponse = {\n  statusCode: pollHttpStatus,\n  body: statusBody\n};\nconst igStatusCode = String(statusBody.status_code || '').trim().toUpperCase();\nconst igStatusValue = String(statusBody.status || '').trim();\n\nconst igStatusErrorObject = (statusBody.error && typeof statusBody.error === 'object') ? statusBody.error : null;\nlet igStatusErrorMessageDerived = '';\nif (igStatusErrorObject && igStatusErrorObject.message) {\n  igStatusErrorMessageDerived = String(igStatusErrorObject.message);\n} else if (typeof statusBody.error_message === 'string' && statusBody.error_message.trim()) {\n  igStatusErrorMessageDerived = String(statusBody.error_message).trim();\n} else if (typeof statusBody.message === 'string' && statusBody.message.trim()) {\n  igStatusErrorMessageDerived = String(statusBody.message).trim();\n}\n\nconst igStatusErrorCode = String(\n  (igStatusErrorObject && (igStatusErrorObject.code || igStatusErrorObject.error_subcode || '')) ||\n  statusBody.error_code ||\n  ''\n).trim();\n\nconst detail = store.readiness_details[creationId] || {\n  checks: [],\n  video_url: String($json.publisher_input_video_url || createCtx.video_url || $json.video_url || ''),\n  create_response: $json.ig_create_container_response || createCtx.response || null\n};\n\ndetail.checks.push({\n  check_count: nextCount,\n  creation_id: creationId,\n  poll_http_status: pollHttpStatus,\n  ig_status_code: igStatusCode || 'UNKNOWN',\n  ig_status_value: igStatusValue || '',\n  ig_status_response: igStatusResponse,\n  ig_status_error_object: igStatusErrorObject,\n  ig_status_error_code: igStatusErrorCode || '',\n  ig_status_error_message_derived: igStatusErrorMessageDerived || ''\n});\n\nstore.readiness_details[creationId] = detail;\n\nconst ready = igStatusCode === 'FINISHED';\nconst hasRealApiError = Boolean(igStatusErrorObject || igStatusErrorMessageDerived);\nconst canRetry = !ready && !hasRealApiError && nextCount < maxChecks;\n\nconst finalStatus = igStatusCode || (hasRealApiError ? 'ERROR' : 'UNKNOWN');\nconst checks = detail.checks;\n\nif (ready || !canRetry) {\n  delete store.readiness_attempts[creationId];\n}\nif (ready) {\n  delete store.readiness_details[creationId];\n  delete store.publisher_create_by_exec[execKey];\n}\n\nreturn {\n  json: {\n    ...$json,\n    creation_id: creationId,\n    readiness_check_count: nextCount,\n    readiness_max_checks: maxChecks,\n    readiness_ready: ready,\n    readiness_can_retry: canRetry,\n    readiness_status_code: finalStatus,\n    readiness_status_text: igStatusValue,\n    ig_status_response: igStatusResponse,\n    ig_status_code: igStatusCode,\n    ig_status_value: igStatusValue,\n    ig_status_error_object: igStatusErrorObject,\n    ig_status_error_code: igStatusErrorCode,\n    ig_status_error_message_derived: igStatusErrorMessageDerived,\n    ig_status_checks: checks,\n    ig_final_status: finalStatus,\n    ig_final_error_message: igStatusErrorMessageDerived || '',\n    ig_final_creation_id: creationId,\n    ig_final_video_url: detail.video_url || '',\n    ig_final_status_payload: igStatusResponse\n  }\n};",
+          "notice": ""
+        }
+      },
+      {
+        "id": "clean-pub-if-ready",
+        "name": "IF Container Ready",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          2340,
+          460
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "typeValidation": "strict",
+              "leftValue": "",
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.readiness_ready}}",
+                "rightValue": "true",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "clean-pub-if-retry",
+        "name": "IF Can Retry Readiness",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          2580,
+          620
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "typeValidation": "strict",
+              "leftValue": "",
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.readiness_can_retry}}",
+                "rightValue": "true",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "clean-pub-wait-recheck",
+        "name": "Wait Before Recheck",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          2820,
+          540
+        ],
+        "parameters": {
+          "amount": 30
+        },
+        "webhookId": "b4fd05a0-76be-4321-974e-7e8d41d77f01"
+      },
+      {
+        "id": "clean-pub-readiness-timeout",
+        "name": "Readiness Timeout Fail",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2820,
+          700
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const creationId = String($json.ig_final_creation_id || $json.creation_id || 'UNKNOWN');\nconst status = String($json.ig_final_status || $json.readiness_status_code || 'UNKNOWN');\nconst checks = Number($json.readiness_check_count || 0);\nconst videoUrl = String($json.ig_final_video_url || $json.publisher_input_video_url || $json.video_url || '');\nconst derivedError = String($json.ig_final_error_message || $json.ig_status_error_message_derived || '');\n\nconst finalPayload = $json.ig_final_status_payload || $json.ig_status_response || null;\nconst statusChecks = Array.isArray($json.ig_status_checks) ? $json.ig_status_checks : [];\nconst lastCheck = statusChecks.length ? statusChecks[statusChecks.length - 1] : null;\n\nlet safeFinalPayload = finalPayload;\nlet safeLastCheck = lastCheck;\n\ntry {\n  if (finalPayload !== null && finalPayload !== undefined) {\n    JSON.stringify(finalPayload);\n  }\n} catch (e) {\n  safeFinalPayload = 'UNSERIALIZABLE_FINAL_PAYLOAD';\n}\n\ntry {\n  if (lastCheck !== null && lastCheck !== undefined) {\n    JSON.stringify(lastCheck);\n  }\n} catch (e) {\n  safeLastCheck = 'UNSERIALIZABLE_LAST_CHECK';\n}\n\nconst readinessDebug = {\n  creation_id: creationId,\n  status,\n  checks,\n  video_url: videoUrl,\n  derived_error: derivedError,\n  final_payload: safeFinalPayload,\n  last_check: safeLastCheck\n};\n\nconst debugStore = $getWorkflowStaticData('global');\ndebugStore.readiness_timeout_debug = debugStore.readiness_timeout_debug || {};\ndebugStore.readiness_timeout_debug[String($execution.id)] = readinessDebug;\n\nthrow new Error(`Readiness timeout: creation_id=${creationId} status=${status} checks=${checks} error=${derivedError || 'NONE'}`);",
+          "notice": ""
+        }
+      },
+      {
+        "id": "clean-pub-disarm-gate",
+        "name": "Disarm Publish Gate",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2420,
+          360
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const store = $getWorkflowStaticData(\"global\");\n\nstore.publish_enabled = false;\nstore.allow_one_live_publish = false;\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3);\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\n\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst dateKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\n\nconst first = ($input.first() && $input.first().json) ? $input.first().json : {};\nstore.daily_publish_success_log.push({\n  dateKey,\n  timestamp: new Date().toISOString(),\n  executionId: String($execution.id),\n  test_id: String(first.test_id || ''),\n  media_id: String(first.id || first.media_id || '')\n});\nstore.daily_publish_success_log = store.daily_publish_success_log.slice(-200);\n\nreturn items;",
+          "notice": ""
+        }
+      },
+      {
+        "id": "476c2e08-8a4f-412c-8921-f32ff4713fc7",
+        "name": "Validate Caption Encoding",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1460,
+          460
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const caption = String($json.caption ?? $json.captionText ?? '');\n\nif (/\\?{2,}/.test(caption) || caption.includes('?')) {\n  throw new Error('Caption encoding corrupted - publishing blocked');\n}\n\nreturn { json: { ...$json } };\n",
+          "notice": ""
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const inputVideoUrl = String($json.video_url || '').trim();\nconst inputCaption = String($json.caption || '');\nconst sourceNode = 'Publish Safety Gate';\n\nconst stripSensitive = (obj) => {\n  if (obj === null || obj === undefined) return obj;\n  if (Array.isArray(obj)) return obj.map(stripSensitive);\n  if (typeof obj !== 'object') return obj;\n\n  // Before logging any API response:\n  const safeResponse = Object.fromEntries(\n    Object.entries(obj).filter(([k]) =>\n      !/(token|secret|key|credential)/i.test(k)\n    )\n  );\n\n  return Object.fromEntries(\n    Object.entries(safeResponse).map(([k, v]) => [k, stripSensitive(v)])\n  );\n};\n\nlet parsedHost = '';\nlet isHttp = false;\nlet hasHost = false;\nlet isPublicLike = false;\nlet invalidReason = '';\n\nif (!inputVideoUrl) {\n  invalidReason = 'video_url is empty';\n} else {\n  const m = inputVideoUrl.match(/^https?:\\/\\/([^\\/?#]+)/i);\n  if (m && m[1]) {\n    parsedHost = String(m[1]).trim().toLowerCase();\n    isHttp = true;\n    hasHost = parsedHost.length > 0;\n    const localhostLike = /^(localhost|127\\.|0\\.0\\.0\\.0$|::1$)/i.test(parsedHost);\n    isPublicLike = hasHost && !localhostLike;\n  } else {\n    invalidReason = 'video_url must be absolute http/https URL';\n  }\n}\n\nconst looksSample = /samplelib\\.com|gtv-videos-bucket|ForBiggerJoyrides|ForBiggerEscapes/i.test(inputVideoUrl);\nconst looksMissing = /(^$|undefined|null|replace-me|example\\.com)/i.test(inputVideoUrl);\n\nlet valid = true;\nif (!inputVideoUrl || !isHttp || !hasHost || !isPublicLike || looksSample || looksMissing) {\n  valid = false;\n}\n\nlet reason = 'ok';\nif (!valid) {\n  if (invalidReason) reason = invalidReason;\n  else if (!isHttp) reason = 'video_url must start with http/https';\n  else if (!hasHost) reason = 'video_url host missing';\n  else if (!isPublicLike) reason = 'video_url does not look publicly reachable';\n  else if (looksSample) reason = 'video_url appears to be sample/fallback asset';\n  else if (looksMissing) reason = 'video_url appears temporary/invalid placeholder';\n  throw new Error(`Publisher video URL preflight failed: ${reason}; url=${inputVideoUrl}`);\n}\n\nlet headStatusCode = null;\nlet headContentType = '';\nlet headContentLength = '';\nlet headSafeResponse = null;\nlet headError = '';\n\ntry {\n  const headRaw = await this.helpers.httpRequest({\n    method: 'HEAD',\n    url: inputVideoUrl,\n    resolveWithFullResponse: true,\n    simple: false,\n    followRedirect: true,\n    timeout: 15000,\n  });\n\n  const headSafe = stripSensitive(headRaw);\n  const headHeaders = (headSafe && typeof headSafe.headers === 'object') ? headSafe.headers : {};\n  headStatusCode = Number(headSafe?.statusCode || headSafe?.status || 0) || null;\n  headContentType = String(\n    headHeaders['content-type'] ||\n    headHeaders['Content-Type'] ||\n    ''\n  );\n  headContentLength = String(\n    headHeaders['content-length'] ||\n    headHeaders['Content-Length'] ||\n    ''\n  );\n  headSafeResponse = headSafe;\n} catch (e) {\n  headError = String((e && e.message) || e || '');\n  const errResponse = (e && e.response && typeof e.response === 'object') ? e.response : null;\n  if (errResponse) {\n    const safeErr = stripSensitive(errResponse);\n    const h = (safeErr && typeof safeErr.headers === 'object') ? safeErr.headers : {};\n    headStatusCode = Number(safeErr?.statusCode || safeErr?.status || 0) || null;\n    headContentType = String(h['content-type'] || h['Content-Type'] || '');\n    headContentLength = String(h['content-length'] || h['Content-Length'] || '');\n    headSafeResponse = safeErr;\n  }\n}\n\nconst captionType = typeof $json.caption;\nconst captionSample = inputCaption.slice(0, 80);\nconst captionHasQuestionMarks = /\\?{2,}/.test(inputCaption) || inputCaption.includes('?');\nconst captionHasKorean = /[가-힣]/.test(inputCaption);\nconst igCreateRequestShape = {\n  media_type: 'REELS',\n  video_url: inputVideoUrl,\n  caption: inputCaption\n};\n\nconst store = $getWorkflowStaticData('global');\nstore.publisher_input_by_exec = store.publisher_input_by_exec || {};\nstore.publisher_input_by_exec[String($execution.id)] = {\n  video_url: inputVideoUrl,\n  caption: inputCaption,\n  source_node: sourceNode,\n  is_public_url: isPublicLike,\n  url_host: parsedHost,\n  test_id: String($json.test_id || ''),\n  head_status_code: headStatusCode,\n  head_content_type: headContentType,\n  head_content_length: headContentLength,\n  head_response: headSafeResponse,\n  head_error: headError\n};\n\nreturn {\n  json: {\n    ...$json,\n    publisher_input_video_url: inputVideoUrl,\n    publisher_input_caption: inputCaption,\n    publisher_input_source_node: sourceNode,\n    publisher_input_is_public_url: isPublicLike,\n    publisher_input_url_host: parsedHost,\n    publisher_video_url_valid: valid,\n    publisher_video_url_reason: reason,\n    publisher_video_head_status_code: headStatusCode,\n    publisher_video_head_content_type: headContentType,\n    publisher_video_head_content_length: headContentLength,\n    publisher_video_head_response: headSafeResponse,\n    publisher_video_head_error: headError,\n    publisher_caption_raw: inputCaption,\n    publisher_caption_type: captionType,\n    publisher_caption_sample: captionSample,\n    publisher_caption_has_question_marks: captionHasQuestionMarks,\n    publisher_caption_has_korean: captionHasKorean,\n    publisher_ig_create_request_shape: igCreateRequestShape\n  }\n};",
+          "notice": ""
+        },
+        "id": "trace-publisher-input-validate-url",
+        "name": "Trace Publisher Input + Validate URL",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1340,
+          460
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const creationId = String($json.creation_id || $json.id || '').trim();\nconst caption = String($json.caption || '').trim();\n\nconst creationValid = creationId.length > 0;\nconst captionValid = true;\n\nconst payload = {\n  creation_id: creationId,\n  access_token: 'REDACTED'\n};\n\nlet payloadValid = creationValid;\nlet errorReason = '';\n\nif (!creationValid) {\n  payloadValid = false;\n  errorReason = 'creation_id is empty';\n}\n\ntry {\n  JSON.stringify(payload);\n} catch (e) {\n  payloadValid = false;\n  errorReason = `payload serialization failed: ${e.message}`;\n}\n\nif (!payloadValid) {\n  throw new Error(`IG publish payload invalid: ${errorReason}`);\n}\n\nreturn {\n  json: {\n    ...$json,\n    ig_publish_creation_id: creationId,\n    ig_publish_caption: caption,\n    ig_publish_creation_id_valid: creationValid,\n    ig_publish_caption_valid: captionValid,\n    ig_publish_payload_valid: payloadValid,\n    ig_publish_payload_error_reason: errorReason,\n    ig_publish_request_payload: payload,\n    ig_publish_request: {\n      endpoint: 'https://graph.facebook.com/v23.0/17841436538210981/media_publish',\n      contentType: 'form-urlencoded',\n      body: payload\n    }\n  }\n};",
+          "notice": ""
+        },
+        "id": "build-reel-publish-payload",
+        "name": "Build Reel Publish Payload",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1940,
+          460
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Normalize Publish Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Publish Payload": {
+        "main": [
+          [
+            {
+              "node": "Publish Safety Gate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Publish Safety Gate": {
+        "main": [
+          [
+            {
+              "node": "IF Live Publish Allowed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Live Publish Allowed": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Dry Run Publish Ready",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Trace Publisher Input + Validate URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IG Create Reel Container": {
+        "main": [
+          [
+            {
+              "node": "Init Readiness State",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Init Readiness State": {
+        "main": [
+          [
+            {
+              "node": "IG Check Container Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IG Check Container Status": {
+        "main": [
+          [
+            {
+              "node": "Evaluate Readiness",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Evaluate Readiness": {
+        "main": [
+          [
+            {
+              "node": "IF Container Ready",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Container Ready": {
+        "main": [
+          [
+            {
+              "node": "Validate Caption Encoding",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "IF Can Retry Readiness",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Can Retry Readiness": {
+        "main": [
+          [
+            {
+              "node": "Wait Before Recheck",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Readiness Timeout Fail",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait Before Recheck": {
+        "main": [
+          [
+            {
+              "node": "IG Check Container Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IG Publish Reel": {
+        "main": [
+          [
+            {
+              "node": "Disarm Publish Gate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Caption Encoding": {
+        "main": [
+          [
+            {
+              "node": "Build Reel Publish Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trace Publisher Input + Validate URL": {
+        "main": [
+          [
+            {
+              "node": "IG Create Reel Container",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Reel Publish Payload": {
+        "main": [
+          [
+            {
+              "node": "IG Publish Reel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "민호 김",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-26T06:51:31.418Z",
+        "id": 876,
+        "workflowId": "TiD7fxWCuAX9mpt6",
+        "versionId": "3082c4d3-cc32-40f7-bc0d-c16fa746b367",
+        "event": "activated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T06:51:31.380Z",
+        "id": 875,
+        "workflowId": "TiD7fxWCuAX9mpt6",
+        "versionId": "3082c4d3-cc32-40f7-bc0d-c16fa746b367",
+        "event": "deactivated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      }
+    ]
+  }
+}

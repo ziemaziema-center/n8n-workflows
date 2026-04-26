@@ -1,0 +1,2349 @@
+{
+  "updatedAt": "2026-04-26T06:51:46.103Z",
+  "createdAt": "2026-04-20T12:50:30.400Z",
+  "id": "i6T6ke3ltKNQzaCl",
+  "name": "clean_02_approval",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "clean-appr-trigger",
+      "name": "Webhook",
+      "parameters": {
+        "path": "clean_02_approval",
+        "options": {},
+        "httpMethod": "POST"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        240,
+        300
+      ],
+      "typeVersion": 2,
+      "webhookId": "9f567fed-44d0-4417-a8be-a59a800aed38"
+    },
+    {
+      "id": "clean-appr-normalize",
+      "name": "Normalize Callback",
+      "parameters": {
+        "jsCode": "const first = $input.first();\nconst input = (first && first.json && typeof first.json === 'object') ? first.json : {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\n\nconst directAction = String(body.action || '').trim();\nif (directAction === 'cache_feed') {\n  const testId = String(body.test_id || '').trim();\n  const caption = String(body.caption || '').trim();\n  if (!testId || !caption) {\n    return [];\n  }\n  const store = $getWorkflowStaticData('global');\n  store.feed_payloads = (store.feed_payloads && typeof store.feed_payloads === 'object') ? store.feed_payloads : {};\n  store.feed_payloads[testId] = {\n    test_id: testId,\n    caption,\n    planned_publish_time: String(body.planned_publish_time || '21:00').trim(),\n    content_slot: String(body.content_slot || 'feed_2100').trim(),\n    source_url: String(body.source_url || '').trim(),\n    hook: String(body.hook || '').trim(),\n    image_url: String(body.image_url || body.media_url || '').trim(),\n    media_url: String(body.media_url || body.image_url || '').trim(),\n    updated_at: new Date().toISOString(),\n  };\n  return [];\n}\n\nif (directAction === 'cache_reel') {\n  const testId = String(body.test_id || '').trim();\n  const videoUrl = String(body.video_url || body.reel_video_url || body.media_url || body.reel_url || '').trim();\n  if (!testId || !/^https?:\\/\\//i.test(videoUrl)) {\n    return [];\n  }\n  const store = $getWorkflowStaticData('global');\n  store.reel_video_urls = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  store.reel_video_urls[testId] = videoUrl;\n  store.reel_payloads = (store.reel_payloads && typeof store.reel_payloads === 'object') ? store.reel_payloads : {};\n  store.reel_payloads[testId] = { test_id: testId, video_url: videoUrl, caption: String(body.caption || '').trim(), planned_publish_time: String(body.planned_publish_time || '').trim(), content_slot: String(body.content_slot || '').trim(), post_type: String(body.post_type || 'reel').trim(), updated_at: new Date().toISOString() };\n  store.reel_video_cached_at = new Date().toISOString();\n  return [];\n}\n\nif (directAction === 'cache_carousel') {\n  const testId = String(body.test_id || '').trim();\n  const carousel = (body.carousel && typeof body.carousel === 'object') ? body.carousel : null;\n  const media = Array.isArray(carousel?.media) ? carousel.media.filter((m) => String(m?.image_url || '').trim()) : [];\n  if (!testId || media.length < 2) {\n    return [];\n  }\n\n  // Preserve reel URL signal if provided in cache payload path.\n  const bodyReelUrlCandidates = [\n    body.video_url,\n    body.reel_video_url,\n    body.media_url,\n    body.reel_url,\n    body?.reel?.video_url,\n    body?.carousel?.reel_video_url,\n    body?.carousel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n  const cachedReelUrl = bodyReelUrlCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n\n  const store = $getWorkflowStaticData('global');\n  store.carousel_payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  store.carousel_payloads[testId] = {\n    caption: String(carousel.caption || '').trim(),\n    media: media.map((m, idx) => ({ position: Number(m.position || (idx + 1)), image_url: String(m.image_url || '').trim() })),\n    reel_video_url: cachedReelUrl,\n    updated_at: new Date().toISOString(),\n  };\n  return [];\n}\n\nconst callback = (body.callback_query && typeof body.callback_query === 'object') ? body.callback_query : null;\nif (!callback) {\n  return [];\n}\n\nconst callbackData = String(callback.data || body.callback_data || '').trim();\nconst [actionRaw, testIdRaw] = callbackData.split('|');\nconst action = String(actionRaw || '').trim();\nconst testId = String(testIdRaw || '').trim();\n\nconst isQueueAction = action === 'queue_feed' || action === 'queue_reel' || action === 'queue_carousel';\nconst isDeleteAction = action === 'delete_test' || action === 'delete';\n\nif (isQueueAction || isDeleteAction) {\n  if (!testId) {\n    throw new Error('Missing test_id in queue/delete callback');\n  }\n\n  const store = $getWorkflowStaticData('global');\n  store.daily_publish_queue = (store.daily_publish_queue && typeof store.daily_publish_queue === 'object') ? store.daily_publish_queue : {};\n  store.daily_deleted_items = (store.daily_deleted_items && typeof store.daily_deleted_items === 'object') ? store.daily_deleted_items : {};\n  store.clean_publish_guard = (store.clean_publish_guard && typeof store.clean_publish_guard === 'object') ? store.clean_publish_guard : {};\n\n  const nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\n  const todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\n  const dedupeKey = `${action}|${testId}`;\n  if (store.clean_publish_guard[dedupeKey]) {\n    return [];\n  }\n  store.clean_publish_guard[dedupeKey] = new Date().toISOString();\n\n  const message = (callback.message && typeof callback.message === 'object') ? callback.message : ((body.message && typeof body.message === 'object') ? body.message : {});\n  const callbackCaption = String(message.caption || message.text || '');\n  const reelMap = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  const feedPayloads = (store.feed_payloads && typeof store.feed_payloads === 'object') ? store.feed_payloads : {};\n  const feedPayload = (feedPayloads[testId] && typeof feedPayloads[testId] === 'object') ? feedPayloads[testId] : null;\n  const reelPayloads = (store.reel_payloads && typeof store.reel_payloads === 'object') ? store.reel_payloads : {};\n  const reelPayload = (reelPayloads[testId] && typeof reelPayloads[testId] === 'object') ? reelPayloads[testId] : null;\n  const carouselMap = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  let carouselPayload = (carouselMap[testId] && typeof carouselMap[testId] === 'object') ? carouselMap[testId] : null;\n  if (!carouselPayload || !Array.isArray(carouselPayload.media) || carouselPayload.media.length < 2) {\n    try {\n      await this.helpers.httpRequest({\n        method: 'POST',\n        url: 'https://n8n.mykindredai.com/webhook/clean_01_generator',\n        body: { action: 'resend_carousel_cache', test_id: testId },\n        json: true,\n        timeout: 25000,\n      });\n      const refreshedStore = $getWorkflowStaticData('global');\n      const refreshedMap = (refreshedStore.carousel_payloads && typeof refreshedStore.carousel_payloads === 'object') ? refreshedStore.carousel_payloads : {};\n      const refreshed = (refreshedMap[testId] && typeof refreshedMap[testId] === 'object') ? refreshedMap[testId] : null;\n      if (refreshed && Array.isArray(refreshed.media) && refreshed.media.length >= 2) carouselPayload = refreshed;\n    } catch (_e) { /* fallback failed silently */ }\n  }\n  const videoUrl = String(reelMap[testId] || '').trim();\n  const feedImageUrl = String(feedPayload?.image_url || feedPayload?.media_url || '').trim();\n\n  const slotMatch = callbackCaption.match(/\\[(FEED|CAROUSEL)\\s*\\|\\s*([0-9:]+)\\]/i);\n  const plannedTimeFromMessage = slotMatch ? String(slotMatch[2] || '').trim() : '';\n  const typeFromAction = action.replace(/^queue_/, '');\n  const plannedTime = plannedTimeFromMessage || String(feedPayload?.planned_publish_time || '').trim() || String(reelPayload?.planned_publish_time || '').trim() || (\n    typeFromAction === 'feed' ? '21:00' :\n    typeFromAction === 'carousel' ? '' :\n    ''\n  );\n\n  if (isDeleteAction) {\n    store.daily_deleted_items[testId] = {\n      test_id: testId,\n      dateKey: todayKey,\n      deleted_at: new Date().toISOString(),\n      callback_data: callbackData,\n      status: 'deleted',\n    };\n    if (store.daily_publish_queue[testId]) {\n      store.daily_publish_queue[testId].status = 'deleted';\n      store.daily_publish_queue[testId].deleted_at = new Date().toISOString();\n    }\n    return [];\n  }\n\n  if (store.daily_deleted_items[testId]) {\n    return [];\n  }\n\n  if (typeFromAction === 'reel' && !/^https?:\\/\\//i.test(videoUrl)) {\n    throw new Error(`Queue reel blocked: missing cached reel video for ${testId}`);\n  }\n\n  if (typeFromAction === 'carousel') {\n    const media = Array.isArray(carouselPayload?.media) ? carouselPayload.media : [];\n    if (media.length < 2) {\n      throw new Error(`Queue carousel blocked: missing carousel media for ${testId} (fallback also failed)`);\n    }\n  }\n\n  store.daily_publish_queue[testId] = {\n    test_id: testId,\n    dateKey: todayKey,\n    post_type: typeFromAction,\n    route_action: action,\n    status: 'queued',\n    queued_at: new Date().toISOString(),\n    planned_publish_time: plannedTime,\n    caption: typeFromAction === 'carousel'\n      ? String(carouselPayload?.caption || callbackCaption || '').trim()\n      : (typeFromAction === 'reel' ? String(reelPayload?.caption || callbackCaption || '').trim() : String(feedPayload?.caption || callbackCaption || '').trim()),\n    video_url: typeFromAction === 'reel' ? videoUrl : '',\n    image_url: typeFromAction === 'feed' ? feedImageUrl : '',\n    media_url: typeFromAction === 'feed' ? feedImageUrl : '',\n    carousel: typeFromAction === 'carousel' ? {\n      caption: String(carouselPayload?.caption || callbackCaption || '').trim(),\n      media: Array.isArray(carouselPayload?.media) ? carouselPayload.media : [],\n    } : null,\n    source: 'telegram_queue_button',\n  };\n\n  return [];\n}\n\n\nconst isReelApprove = action === 'approve_test' || action === 'approve' || action === 'approve_reel';\nconst isCarouselApprove = action === 'approve_carousel';\nif (!isReelApprove && !isCarouselApprove) {\n  return [];\n}\n\nif (!testId) {\n  throw new Error('Missing test_id in approve callback');\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.clean_publish_guard = (store.clean_publish_guard && typeof store.clean_publish_guard === 'object') ? store.clean_publish_guard : {};\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3);\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\n\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nstore.daily_publish_success_log = store.daily_publish_success_log.slice(-300);\nconst todaySuccessCount = store.daily_publish_success_log.filter((r) => String(r.dateKey || '') === todayKey).length;\nif (todaySuccessCount >= store.daily_publish_limit) {\n  throw new Error(`DAILY_LIMIT_REACHED limit=${store.daily_publish_limit} count=${todaySuccessCount}`);\n}\n\nconst dedupeKey = `${action}|${testId}`;\nif (store.clean_publish_guard[dedupeKey]) {\n  return [];\n}\nstore.clean_publish_guard[dedupeKey] = new Date().toISOString();\n\nconst message = (callback.message && typeof callback.message === 'object') ? callback.message : ((body.message && typeof body.message === 'object') ? body.message : {});\nconst callbackCaption = String(message.caption || message.text || '');\n\nif (isReelApprove) {\n  const payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  const payload = payloads[testId] && typeof payloads[testId] === 'object' ? payloads[testId] : null;\n\n  const videoMap = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  const mappedVideoUrl = String(videoMap[testId] || '').trim();\n\n  // Fallback order:\n  // 1) staticData.global.reel_video_urls[test_id]\n  // 2) callback/body payload fields\n  // 3) cached carousel/static payload fields that may contain reel URL\n  const callbackCandidates = [\n    body.video_url,\n    body.reel_video_url,\n    body.media_url,\n    body.reel_url,\n    body?.reel?.video_url,\n    body?.carousel?.reel_video_url,\n    body?.carousel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n\n  const payloadCandidates = [\n    payload?.reel_video_url,\n    payload?.video_url,\n    payload?.media_url,\n    payload?.reel_url,\n    payload?.reel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n\n  const callbackVideoUrl = callbackCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n  const payloadVideoUrl = payloadCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n  const finalVideoUrl = mappedVideoUrl || callbackVideoUrl || payloadVideoUrl;\n\n  if (!finalVideoUrl) {\n    throw new Error(`Reel asset missing for approved test_id ${testId}; publish blocked`);\n  }\n\n  if (/samplelib\\.com|gtv-videos-bucket|ForBiggerJoyrides|ForBiggerEscapes/i.test(finalVideoUrl)) {\n    throw new Error('Generic sample video blocked for approve flow');\n  }\n\n  return [{\n    json: {\n      route_action: 'approve_reel',\n      callback_data: action,\n      test_id: testId,\n      caption: callbackCaption,\n      video_url: finalVideoUrl,\n      video_source: mappedVideoUrl ? 'reel_cache' : (callbackVideoUrl ? 'callback_payload' : 'carousel_payload'),\n      approved_via: 'telegram_callback',\n      arm_live_publish: true,\n      daily_publish_limit: store.daily_publish_limit,\n      daily_publish_count_today: todaySuccessCount,\n      dry_run: body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true',\n      test_mode: body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true',\n      diagnostic: body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true',\n    }\n  }];\n}\n\nconst payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\nlet payload = payloads[testId] && typeof payloads[testId] === 'object' ? payloads[testId] : null;\nlet media = Array.isArray(payload?.media) ? payload.media : [];\nif (!payload || media.length < 2) {\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://n8n.mykindredai.com/webhook/clean_01_generator',\n      body: { action: 'resend_carousel_cache', test_id: testId },\n      json: true,\n      timeout: 25000,\n    });\n    const refreshedStore2 = $getWorkflowStaticData('global');\n    const refreshedMap2 = (refreshedStore2.carousel_payloads && typeof refreshedStore2.carousel_payloads === 'object') ? refreshedStore2.carousel_payloads : {};\n    const refreshed2 = refreshedMap2[testId] && typeof refreshedMap2[testId] === 'object' ? refreshedMap2[testId] : null;\n    if (refreshed2 && Array.isArray(refreshed2.media) && refreshed2.media.length >= 2) { payload = refreshed2; media = refreshed2.media; }\n  } catch (_e2) { /* fallback failed silently */ }\n}\nif (!payload || media.length < 2) {\n  throw new Error(`Carousel media payload missing for approved test_id ${testId} (fallback also failed)`);\n}\n\nreturn [{\n  json: {\n    route_action: 'approve_carousel',\n    callback_data: action,\n    test_id: testId,\n    caption: String(payload.caption || callbackCaption || '').trim(),\n    carousel: {\n      caption: String(payload.caption || callbackCaption || '').trim(),\n      media,\n    },\n    approved_via: 'telegram_callback',\n    arm_live_publish: true,\n    daily_publish_limit: store.daily_publish_limit,\n    daily_publish_count_today: todaySuccessCount,\n    dry_run: body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true',\n    test_mode: body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true',\n    diagnostic: body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true',\n  }\n}];",
+        "mode": "runOnceForAllItems",
+        "notice": ""
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        500,
+        300
+      ],
+      "typeVersion": 2
+    },
+    {
+      "id": "clean-appr-http",
+      "name": "Trigger Publisher",
+      "parameters": {
+        "specifyBody": "json",
+        "sendBody": true,
+        "method": "POST",
+        "options": {},
+        "jsonBody": "={{ {\"caption\": $json.caption, \"video_url\": $json.video_url, \"test_id\": $json.test_id, \"approved_via\": $json.approved_via, \"arm_live_publish\": true, \"daily_publish_limit\": $json.daily_publish_limit, \"dry_run\": $json.dry_run || false, \"test_mode\": $json.test_mode || false, \"diagnostic\": $json.diagnostic || false} }}",
+        "url": "https://n8n.mykindredai.com/webhook/clean_03_publisher"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1000,
+        220
+      ],
+      "typeVersion": 4.4
+    },
+    {
+      "id": "route-by-action-clean02-node",
+      "name": "Route by Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.route_action}}",
+                    "rightValue": "approve_reel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "approve_reel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.route_action}}",
+                    "rightValue": "approve_carousel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "approve_carousel"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "trigger-carousel-publisher-clean02-node",
+      "name": "Trigger Carousel Publisher",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1000,
+        380
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.mykindredai.com/webhook/clean_04_carousel_publisher",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"test_id\": $json.test_id, \"caption\": $json.caption, \"carousel\": $json.carousel, \"approved_via\": $json.approved_via, \"arm_live_publish\": true, \"daily_publish_limit\": $json.daily_publish_limit, \"dry_run\": $json.dry_run || false, \"test_mode\": $json.test_mode || false, \"diagnostic\": $json.diagnostic || false} }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "record-publish-success-clean02-node",
+      "name": "Record Publish Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json || {};\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3);\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst dateKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nconst mediaId = String(j.media_id || j.id || '').trim();\nconst status = String(j.publish_status || '').toLowerCase();\nconst success = Boolean(j.publishSuccess === true || j.publish_success === true || status === 'success' || mediaId);\nif (success) {\n  store.daily_publish_success_log.push({\n    dateKey,\n    timestamp: new Date().toISOString(),\n    test_id: String(j.test_id || ''),\n    route_action: String(j.route_action || ''),\n    media_id: mediaId,\n    executionId: String($execution.id || ''),\n  });\n  store.daily_publish_success_log = store.daily_publish_success_log.slice(-300);\n}\nreturn { json: { ...j, publish_success_recorded: success } };"
+      }
+    },
+    {
+      "id": "phase3a-dry-run-webhook",
+      "name": "Phase 3A Dry Run Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        760
+      ],
+      "parameters": {
+        "path": "clean_02_phase3a_dry_run",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "phase3a-dry-run-clean-02-approval"
+    },
+    {
+      "id": "phase3a-queue-scanner-dry-run",
+      "name": "Phase 3A Queue Scanner Dry Run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        760
+      ],
+      "parameters": {
+        "jsCode": "const first = $input.first();\nconst input = first && first.json && typeof first.json === 'object' ? first.json : {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\n\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_queue = store.daily_publish_queue && typeof store.daily_publish_queue === 'object' ? store.daily_publish_queue : {};\nstore.daily_deleted_items = store.daily_deleted_items && typeof store.daily_deleted_items === 'object' ? store.daily_deleted_items : {};\n\nconst diagnosticItems = Array.isArray(body.phase3a_diagnostic_items) ? body.phase3a_diagnostic_items : [];\nconst diagnosticDeleted = body.phase3a_diagnostic_deleted_items && typeof body.phase3a_diagnostic_deleted_items === 'object'\n  ? body.phase3a_diagnostic_deleted_items\n  : {};\nconst useDiagnosticInput = diagnosticItems.length > 0;\n\nconst queue = useDiagnosticInput\n  ? Object.fromEntries(diagnosticItems.map((item, idx) => [String(item.test_id || `diagnostic-${idx + 1}`), item]))\n  : store.daily_publish_queue;\nconst deletedItems = useDiagnosticInput ? diagnosticDeleted : store.daily_deleted_items;\n\nconst nowSeoul = body.now_override\n  ? new Date(String(body.now_override))\n  : new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nconst nowMinutes = nowSeoul.getHours() * 60 + nowSeoul.getMinutes();\n\nfunction parseTimeMinutes(value) {\n  const s = String(value || '').trim();\n  const m = s.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (!m) return null;\n  const hh = Number(m[1]);\n  const mm = Number(m[2]);\n  if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;\n  return hh * 60 + mm;\n}\n\nconst summary = {\n  mode: useDiagnosticInput ? 'diagnostic_input' : 'staticData',\n  dry_run_only: true,\n  now_kst: nowSeoul.toISOString(),\n  today_key: todayKey,\n  actual_static_queue_count: Object.keys(store.daily_publish_queue || {}).length,\n  total_queue_count: 0,\n  due_count: 0,\n  would_publish_count: 0,\n  would_publish_reels: 0,\n  would_publish_carousels: 0,\n  would_publish_feeds: 0,\n  skipped_deleted_count: 0,\n  skipped_pending_or_missing_count: 0,\n  skipped_not_due_count: 0,\n  skipped_already_done_count: 0,\n  skipped_failed_or_blocked_count: 0,\n  items: [],\n};\n\nfor (const [testId, rawItem] of Object.entries(queue || {})) {\n  const item = rawItem && typeof rawItem === 'object' ? rawItem : {};\n  const postType = String(item.post_type || item.type || '').trim();\n  const status = String(item.status || '').trim();\n  const publishStatus = String(item.publish_status || '').trim().toLowerCase();\n  const plannedTime = String(item.planned_publish_time || '').trim();\n  const plannedMinutes = parseTimeMinutes(plannedTime);\n  const isDeleted = status === 'deleted' || Boolean(deletedItems[testId]);\n\n  const decision = {\n    test_id: String(item.test_id || testId),\n    post_type: postType,\n    status,\n    publish_status: publishStatus,\n    planned_publish_time: plannedTime,\n    decision: 'would_skip',\n    would_skip_reason: '',\n  };\n\n  summary.total_queue_count += 1;\n\n  if (isDeleted) {\n    decision.would_skip_reason = 'deleted';\n    summary.skipped_deleted_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (status !== 'queued' || !postType || plannedMinutes === null) {\n    decision.would_skip_reason = status !== 'queued' ? 'not_queued' : (!postType ? 'post_type_missing' : 'planned_publish_time_missing_or_invalid');\n    summary.skipped_pending_or_missing_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (publishStatus === 'published') {\n    decision.would_skip_reason = 'already_published';\n    summary.skipped_already_done_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (publishStatus === 'failed' || publishStatus === 'blocked') {\n    decision.would_skip_reason = `already_${publishStatus}`;\n    summary.skipped_failed_or_blocked_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (plannedMinutes > nowMinutes) {\n    decision.would_skip_reason = 'not_due_yet';\n    summary.skipped_not_due_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  summary.due_count += 1;\n\n  if (postType === 'reel') {\n    if (!/^https?:\\/\\//i.test(String(item.video_url || ''))) {\n      decision.would_skip_reason = 'reel_asset_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_reels += 1;\n    }\n  } else if (postType === 'carousel') {\n    const media = Array.isArray(item.carousel?.media) ? item.carousel.media : [];\n    const hasPair = Boolean(item.paired_reel_test_id || item.paired_reel_slot || item.publish_after_reel_success);\n    if (!hasPair) {\n      decision.would_skip_reason = 'carousel_pairing_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else if (media.length < 2 || media.length > 10) {\n      decision.would_skip_reason = 'carousel_media_missing_or_invalid';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_carousels += 1;\n    }\n  } else if (postType === 'feed') {\n    if (!String(item.caption || '').trim()) {\n      decision.would_skip_reason = 'feed_caption_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else if (!/^https?:\\/\\//i.test(String(item.image_url || item.media_url || ''))) {\n      decision.would_skip_reason = 'feed_asset_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_feeds += 1;\n    }\n  } else {\n    decision.would_skip_reason = 'unknown_post_type';\n    summary.skipped_pending_or_missing_count += 1;\n  }\n\n  summary.items.push(decision);\n}\n\nstore.last_scheduler_dry_run_at = new Date().toISOString();\nstore.last_scheduler_dry_run_summary = {\n  mode: summary.mode,\n  total_queue_count: summary.total_queue_count,\n  due_count: summary.due_count,\n  would_publish_count: summary.would_publish_count,\n  skipped_deleted_count: summary.skipped_deleted_count,\n  skipped_not_due_count: summary.skipped_not_due_count,\n};\n\nreturn [{ json: summary }];"
+      }
+    },
+    {
+      "id": "phase3c-scheduler-webhook",
+      "name": "Phase 3C Scheduler Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        1040
+      ],
+      "parameters": {
+        "path": "clean_02_phase3c_scheduler",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "phase3c-scheduler-clean-02-approval"
+    },
+    {
+      "id": "phase3c-scheduler-execute",
+      "name": "Phase 3C Scheduler Execute",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        1040
+      ],
+      "parameters": {
+        "jsCode": "\nconst IG_USER_ID = '17841436538210981';\nconst ACCESS_TOKEN = \"REDACTED\";\nconst GRAPH = 'https://graph.facebook.com/v23.0';\nconst first = $input.first();\nconst input = first && first.json && typeof first.json === 'object' ? first.json : {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_queue = store.daily_publish_queue && typeof store.daily_publish_queue === 'object' ? store.daily_publish_queue : {};\nstore.daily_deleted_items = store.daily_deleted_items && typeof store.daily_deleted_items === 'object' ? store.daily_deleted_items : {};\nstore.published_content_hashes = Array.isArray(store.published_content_hashes) ? store.published_content_hashes : [];\n\nconst nowSeoul = body.now_override ? new Date(String(body.now_override)) : new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst nowMinutes = nowSeoul.getHours() * 60 + nowSeoul.getMinutes();\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth()+1).padStart(2,'0')}-${String(nowSeoul.getDate()).padStart(2,'0')}`;\n\nfunction parseTimeMinutes(value) {\n  const s = String(value || '').trim();\n  const m = s.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (!m) return null;\n  const hh = Number(m[1]);\n  const mm = Number(m[2]);\n  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;\n  return hh * 60 + mm;\n}\n\nfunction block(item, reason) {\n  item.publish_status = 'blocked';\n  item.blocked_reason = reason;\n  item.blocked_at = new Date().toISOString();\n  return { test_id: item.test_id, post_type: item.post_type, decision: 'blocked', reason };\n}\n\nfunction finalContentGuard(item) {\n  if (item.duplicate_blocked === true) return 'content_duplicate_or_similar';\n  if (item.needs_manual_review === true) return 'content_duplicate_or_similar';\n  if (String(item.publish_status || '').toLowerCase() === 'published') return 'already_published';\n  if (['failed','blocked'].includes(String(item.publish_status || '').toLowerCase())) return `already_${item.publish_status}`;\n  const ch = String(item.content_hash || '').trim();\n  if (ch && store.published_content_hashes.some(r => r.post_type === item.post_type && r.content_hash === ch && r.test_id !== item.test_id)) {\n    return 'content_duplicate_or_similar';\n  }\n  return '';\n}\n\nasync function publishFeed(item) {\n  const imageUrl = String(item.image_url || item.media_url || '').trim();\n  const caption = String(item.caption || '').trim();\n  if (!imageUrl || !caption) throw new Error('missing_feed_asset');\n\n  function getStatus(resp) {\n    return Number(resp?.statusCode || resp?.status || 200);\n  }\n  function getBody(resp) {\n    return resp && Object.prototype.hasOwnProperty.call(resp, 'body') ? resp.body : resp;\n  }\n  function throwGraph(stage, resp) {\n    const status = getStatus(resp);\n    const body = getBody(resp);\n    const err = new Error(`${stage}_failed_${status}`);\n    err.graphBody = body;\n    err.httpStatus = status;\n    throw err;\n  }\n\n  const createResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${GRAPH}/${IG_USER_ID}/media`,\n    body: { image_url: imageUrl, caption, access_token: ACCESS_TOKEN },\n    json: true,\n    timeout: 60000,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true,\n  });\n  if (getStatus(createResp) >= 400) throwGraph('feed_container_create', createResp);\n  const create = getBody(createResp);\n  const creationId = String(create?.id || '').trim();\n  if (!creationId) throw new Error('feed_container_missing_id');\n  await new Promise(resolve => setTimeout(resolve, 3000));\n\n  const publishResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${GRAPH}/${IG_USER_ID}/media_publish`,\n    body: { creation_id: creationId, access_token: ACCESS_TOKEN },\n    json: true,\n    timeout: 60000,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true,\n  });\n  if (getStatus(publishResp) >= 400) throwGraph('feed_media_publish', publishResp);\n  const published = getBody(publishResp);\n  const mediaId = String(published?.id || '').trim();\n  if (!mediaId) throw new Error('feed_publish_missing_media_id');\n  return { media_id: mediaId, creation_id: creationId };\n}\nconst summary = {\n  dry_run: false,\n  scheduler: 'phase3c',\n  now_kst: nowSeoul.toISOString(),\n  total_queue_count: Object.keys(store.daily_publish_queue).length,\n  published: [],\n  blocked: [],\n  skipped: [],\n  errors: [],\n};\n\nconst entries = Object.entries(store.daily_publish_queue)\n  .map(([key, item]) => [key, item && typeof item === 'object' ? item : {}])\n  .sort((a,b) => String(a[1].planned_publish_time || '').localeCompare(String(b[1].planned_publish_time || '')));\n\nfor (const [key, item] of entries) {\n  item.test_id = String(item.test_id || key);\n  const status = String(item.status || '').toLowerCase();\n  const postType = String(item.post_type || '').toLowerCase();\n  const planned = parseTimeMinutes(item.planned_publish_time);\n  if (store.daily_deleted_items[item.test_id] || status === 'deleted') {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: 'deleted' });\n    continue;\n  }\n  if (status !== 'queued') {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: 'not_queued' });\n    continue;\n  }\n  if (planned === null || planned > nowMinutes) {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: planned === null ? 'planned_publish_time_missing_or_invalid' : 'not_due_yet' });\n    continue;\n  }\n\n  const guardReason = finalContentGuard(item);\n  if (guardReason) {\n    if (guardReason.startsWith('already_')) {\n      summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: guardReason });\n    } else {\n      summary.blocked.push(block(item, guardReason));\n    }\n    continue;\n  }\n\n  if (postType === 'carousel') {\n    summary.blocked.push(block(item, 'carousel_rate_limit_pending'));\n    continue;\n  }\n\n  try {\n    if (postType === 'reel') {\n      if (!/^https?:\\/\\//i.test(String(item.video_url || ''))) throw new Error('missing_reel_asset');\n      const res = await this.helpers.httpRequest({\n        method: 'POST',\n        url: 'https://n8n.mykindredai.com/webhook/clean_03_publisher',\n        body: {\n          caption: String(item.caption || ''),\n          video_url: String(item.video_url || ''),\n          test_id: item.test_id,\n          approved_via: 'phase3c_scheduler',\n          arm_live_publish: true,\n          daily_publish_limit: Number(item.daily_publish_limit || store.daily_publish_limit || 3),\n        },\n        json: true,\n        timeout: 120000,\n      });\n      item.publish_status = 'triggered';\n      item.triggered_at = new Date().toISOString();\n      item.publisher_workflow = 'clean_03_publisher';\n      item.publisher_execution_confirmed = false;\n      item.publisher_response = typeof res === 'object' ? res : { response: String(res || '') };\n      summary.triggered = Array.isArray(summary.triggered) ? summary.triggered : [];\n      summary.triggered.push({ test_id: item.test_id, post_type: postType, publisher: 'clean_03_publisher' });\n    } else if (postType === 'feed') {\n      const feed = await publishFeed.call(this, item);\n      item.publish_status = 'published';\n      item.published_at = new Date().toISOString();\n      item.media_id = feed.media_id;\n      item.creation_id = feed.creation_id;\n      item.publisher_workflow = 'phase3c_feed_inline';\n      summary.published.push({ test_id: item.test_id, post_type: postType, media_id: feed.media_id });\n    } else {\n      summary.blocked.push(block(item, 'unknown_post_type'));\n      continue;\n    }\n    if (item.content_hash) {\n      store.published_content_hashes.push({ test_id: item.test_id, post_type: postType, content_hash: item.content_hash, published_at: new Date().toISOString() });\n      store.published_content_hashes = store.published_content_hashes.slice(-500);\n    }\n  } catch (e) {\n    const response = e && e.response ? e.response : {};\n    const rawCandidate = e.graphBody || response.body || response.data || e.body || e.data || e.description || (e.cause && (e.cause.body || e.cause.data || e.cause.message)) || '';\n    let rawText = '';\n    if (typeof rawCandidate === 'string') {\n      rawText = rawCandidate;\n    } else if (rawCandidate && typeof rawCandidate === 'object') {\n      try { rawText = JSON.stringify(rawCandidate); } catch (_) { rawText = String(rawCandidate); }\n    }\n    if (!rawText) rawText = String(e.message || e || '');\n    rawText = rawText.split(ACCESS_TOKEN).join('REDACTED');\n    rawText = rawText.replace(/access_token=REDACTED&\\\\s]+)/gi, 'access_token=REDACTED\n    let responseBody = {};\n    try { responseBody = JSON.parse(rawText); } catch (_) { responseBody = {}; }\n    const graphError = responseBody && responseBody.error ? responseBody.error : {};\n    item.publish_status = 'failed';\n    item.failed_reason = String(e.message || e);\n    item.failed_at = new Date().toISOString();\n    item.graph_error_message = String(graphError.message || responseBody.message || rawText).slice(0, 1000);\n    item.graph_error_code = graphError.code !== undefined ? graphError.code : '';\n    item.graph_error_subcode = graphError.error_subcode !== undefined ? graphError.error_subcode : '';\n    item.graph_error_type = String(graphError.type || '');\n    item.graph_error_http_status = e.httpStatus || response.statusCode || response.status || '';\n    item.graph_error_raw_sanitized = rawText.slice(0, 2000);\n    item.graph_error_body_present = !!rawText;\n    summary.errors.push({\n      test_id: item.test_id,\n      post_type: postType,\n      error: item.failed_reason,\n      graph_error_message: item.graph_error_message,\n      graph_error_code: item.graph_error_code,\n      graph_error_subcode: item.graph_error_subcode\n    });\n  }\n}\n\ntry {\n  const text = [\n    '[PHASE 3C SCHEDULER]',\n    `published: ${summary.published.length}`,\n    `triggered: ${(summary.triggered || []).length}`,\n    `blocked: ${summary.blocked.length}`,\n    `skipped: ${summary.skipped.length}`,\n    `errors: ${summary.errors.length}`,\n    '',\n    '[PUBLISHED]',\n    summary.published.map(x => `- ${x.post_type} / ${x.test_id} / ${x.media_id || x.publisher || ''}`).join('\\n') || '없음',\n    '',\n    '[TRIGGERED]',\n    (summary.triggered || []).map(x => `- ${x.post_type} / ${x.test_id} / ${x.publisher || ''}`).join('\\n') || '없음',\n    '',\n    '[BLOCKED]',\n    summary.blocked.map(x => `- ${x.post_type} / ${x.test_id} / ${x.reason}`).join('\\n') || '없음',\n    '',\n    '[ERRORS]',\n    summary.errors.map(x => `- ${x.post_type} / ${x.test_id} / ${x.error}`).join('\\n') || '없음',\n  ].join('\\n');\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.telegram.org/botREDACTED/sendMessage',\n    body: { chat_id: '7592247598', text },\n    json: true,\n    timeout: 15000,\n  });\n} catch (e) {\n  summary.telegram_summary_error = String(e.message || e);\n}\n\nstore.last_phase3c_scheduler_summary = summary;\nreturn [{ json: summary }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Callback": {
+      "main": [
+        [
+          {
+            "node": "Route by Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Action": {
+      "main": [
+        [
+          {
+            "node": "Trigger Publisher",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trigger Carousel Publisher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Publisher": {
+      "main": [
+        [
+          {
+            "node": "Record Publish Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Carousel Publisher": {
+      "main": [
+        [
+          {
+            "node": "Record Publish Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Phase 3A Dry Run Webhook": {
+      "main": [
+        [
+          {
+            "node": "Phase 3A Queue Scanner Dry Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Phase 3C Scheduler Webhook": {
+      "main": [
+        [
+          {
+            "node": "Phase 3C Scheduler Execute",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "timezone": "Asia/Seoul",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "potLIY8EREC9hXYl"
+  },
+  "staticData": {
+    "global": {
+      "clean_publish_guard": {
+        "1776692164769-oqqv43ka": "2026-04-20T13:36:06.862Z",
+        "1776713964823-4u9d5887": "2026-04-20T19:39:26.963Z",
+        "1776714106714-zdbw0zii": "2026-04-20T19:41:48.951Z",
+        "1776721412224-ays29w7s": "2026-04-20T21:43:34.374Z",
+        "1776721417702-g4bvb2x1": "2026-04-20T21:43:39.820Z",
+        "1776721480974-yefa0vgm": "2026-04-20T21:44:43.190Z",
+        "1776721486459-vc9d8x3s": "2026-04-20T21:44:48.583Z",
+        "1776741763156-qgwwy9hn": "2026-04-21T03:22:45.301Z",
+        "1776743418460-1cwnpc2y": "2026-04-21T03:50:20.563Z",
+        "1776746656850-bq1hhbc2": "2026-04-21T04:44:18.990Z",
+        "1776748558081-03rjyml2": "2026-04-21T05:16:00.256Z",
+        "1776751491993-weir9t": "2026-04-21T06:06:41.775Z",
+        "1776774590187-nhrr8v": "2026-04-21T12:30:44.719Z",
+        "1776776981432-snqqv5": "2026-04-21T13:12:24.408Z",
+        "1776814106016-1a727b": "2026-04-21T23:30:49.392Z",
+        "1776856697050-u1taee": "2026-04-22T11:40:27.003Z",
+        "diag-1776908882": "2026-04-23T01:48:04.944Z",
+        "diag-1776909120": "2026-04-23T01:52:02.412Z",
+        "diag-1776909323": "2026-04-23T01:55:25.473Z",
+        "diag-1776909523": "2026-04-23T01:58:45.174Z",
+        "diag-1776910483": "2026-04-23T02:14:45.419Z",
+        "diag-1776911101": "2026-04-23T02:25:03.278Z",
+        "diag-1776911789": "2026-04-23T02:36:31.604Z",
+        "approve_carousel|1776983400223-3wveyb": "2026-04-24T07:00:48.617Z",
+        "approve_carousel|1777015930991-mvktft": "2026-04-24T07:45:04.760Z",
+        "approve_carousel|1777013603132-w6t9j0": "2026-04-24T08:04:57.035Z",
+        "approve_reel|1777015930991-mvktft": "2026-04-24T08:05:03.956Z",
+        "approve_carousel|1777021200227-7hh1g1": "2026-04-24T11:47:55.937Z",
+        "approve_reel|1777013603132-w6t9j0": "2026-04-24T11:48:07.141Z",
+        "approve_carousel|1776999600274-94ij6f": "2026-04-24T12:05:57.816Z",
+        "queue_feed|1777115775500-1-duil2": "2026-04-25T11:21:24.376Z",
+        "queue_feed|phase3b-feed-url-check": "2026-04-25T11:48:23.786Z",
+        "queue_reel|phase3c-reel-test-1777118333": "2026-04-25T11:58:55.455Z",
+        "queue_feed|phase3c-feed-test-1777118333": "2026-04-25T11:58:55.642Z",
+        "queue_carousel|phase3c-carousel-block-1777118333": "2026-04-25T11:58:55.845Z",
+        "queue_feed|1777129914429-1-tnikq": "2026-04-25T15:16:47.174Z",
+        "queue_carousel|1777130096983-7-omlw1": "2026-04-25T15:18:47.470Z",
+        "queue_reel|1777131282551-2-qlplm": "2026-04-25T15:50:17.963Z",
+        "queue_feed|1777159802662-1-v6u5w": "2026-04-26T03:26:22.101Z",
+        "queue_carousel|1777159802663-3-2ipll": "2026-04-26T03:26:46.584Z",
+        "queue_reel|1777159802663-2-resx4": "2026-04-26T03:27:03.972Z",
+        "queue_carousel|patch_test_carousel_20260426140645": "2026-04-26T05:07:04.753Z",
+        "approve_carousel|patch_test_carousel_20260426140645": "2026-04-26T05:08:32.535Z",
+        "approve_carousel|dryrun_guard_test_20260426155437": "2026-04-26T06:54:42.945Z"
+      },
+      "carousel_payloads": {
+        "1776983400223-3wveyb": {
+          "caption": "지금 이 구조 모르면 계속 손해 봅니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776983400223-3wveyb_01_84ux6jde.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776983400223-3wveyb_02_sei627pe.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776983400223-3wveyb_03_ncrifpfe.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776983400223-3wveyb_04_vqpygitw.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776983400223-3wveyb_05_7i46q5i2.png"
+            }
+          ],
+          "updated_at": "2026-04-23T22:30:50.117Z"
+        },
+        "1776999600274-94ij6f": {
+          "caption": "매장 반응을 보면 왜 바뀌는지 보입니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776999600274-94ij6f_01_tu1dayuy.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776999600274-94ij6f_02_2d8vw2o5.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776999600274-94ij6f_03_36hubqcz.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776999600274-94ij6f_04_98hfgh64.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1776999600274-94ij6f_05_5b3aevhd.png"
+            }
+          ],
+          "updated_at": "2026-04-24T03:00:50.523Z"
+        },
+        "1777008743473-fb0rfa": {
+          "caption": "공급 이동 신호를 먼저 읽어야 합니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008743473-fb0rfa_01_eiby9vms.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008743473-fb0rfa_02_34g2jc6d.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008743473-fb0rfa_03_esr4k5ip.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008743473-fb0rfa_04_rxva934i.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008743473-fb0rfa_05_hdi4vrea.png"
+            }
+          ],
+          "updated_at": "2026-04-24T05:33:13.251Z"
+        },
+        "1777008842714-ec6mgi": {
+          "caption": "공급 이동 신호를 먼저 읽어야 합니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008842714-ec6mgi_01_o7zu0fvf.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008842714-ec6mgi_02_90pd4rb1.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008842714-ec6mgi_03_bbym9y7j.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008842714-ec6mgi_04_3msmztbt.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008842714-ec6mgi_05_2awxgv31.png"
+            }
+          ],
+          "updated_at": "2026-04-24T05:34:47.448Z"
+        },
+        "1777008919286-lmca3a": {
+          "caption": "공급 이동 신호를 먼저 읽어야 합니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008919286-lmca3a_01_oafy7msd.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008919286-lmca3a_02_yl9p1lys.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008919286-lmca3a_03_lj3dxds7.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008919286-lmca3a_04_dnzcydw8.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777008919286-lmca3a_05_96vvt5id.png"
+            }
+          ],
+          "updated_at": "2026-04-24T05:36:08.814Z"
+        },
+        "1777009572730-ncnw9j": {
+          "caption": "시장 반응은 생각보다 빠르게 옵니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777009572730-ncnw9j_01_vzvuvqs2.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777009572730-ncnw9j_02_0m7r0f1f.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777009572730-ncnw9j_03_8r8pd8v0.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777009572730-ncnw9j_04_dr5o22jc.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777009572730-ncnw9j_05_qf4vvp5t.png"
+            }
+          ],
+          "updated_at": "2026-04-24T05:46:53.913Z"
+        },
+        "1777013603132-w6t9j0": {
+          "caption": "지금 이 구조 모르면 계속 손해 봅니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777013603132-w6t9j0_01_53gyu9xq.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777013603132-w6t9j0_02_29l7vimg.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777013603132-w6t9j0_03_6nfllvvq.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777013603132-w6t9j0_04_o3p5nlvl.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777013603132-w6t9j0_05_5ctfdfyn.png"
+            }
+          ],
+          "updated_at": "2026-04-24T06:54:09.649Z"
+        },
+        "1777015930991-mvktft": {
+          "caption": "많이들 놓치는 지점은 제품이 아니라 선택 순서입니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777015930991-mvktft_01_l2israzy.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777015930991-mvktft_02_w5t9a1ds.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777015930991-mvktft_03_mwu9npdw.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777015930991-mvktft_04_gzyudoa2.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777015930991-mvktft_05_ubndpele.png"
+            }
+          ],
+          "updated_at": "2026-04-24T07:32:35.300Z"
+        },
+        "1777021200227-7hh1g1": {
+          "caption": "매장 반응을 보면 왜 바뀌는지 보입니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777021200227-7hh1g1_01_39dqw7er.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777021200227-7hh1g1_02_ruxkezw3.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777021200227-7hh1g1_03_8k9q6yat.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777021200227-7hh1g1_04_c2mpndaz.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777021200227-7hh1g1_05_ptghe007.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-24T09:00:22.328Z"
+        },
+        "1777035600236-jnzpfz": {
+          "caption": "공급 이동 신호를 먼저 읽어야 합니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777035600236-jnzpfz_01_7ydd7pex.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777035600236-jnzpfz_02_c0lxh24h.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777035600236-jnzpfz_03_aod6va8q.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777035600236-jnzpfz_04_41hqvf8e.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777035600236-jnzpfz_05_zsbpwwsw.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-24T13:00:24.305Z"
+        },
+        "1777069800231-z20tkg": {
+          "caption": "시장 반응은 생각보다 빠르게 옵니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777069800231-z20tkg_01_gij6isfr.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777069800231-z20tkg_02_v2yb5vgo.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777069800231-z20tkg_03_fsoe7yk9.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777069800231-z20tkg_04_mhsaiyhr.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777069800231-z20tkg_05_fwcyk48w.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-24T22:30:21.014Z"
+        },
+        "1777086000258-ztkdcn": {
+          "caption": "지금 이 구조 모르면 계속 손해 봅니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777086000258-ztkdcn_01_7zfeq02e.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777086000258-ztkdcn_02_05olhod8.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777086000258-ztkdcn_03_we3xpjw4.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777086000258-ztkdcn_04_5qr6dqqv.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777086000258-ztkdcn_05_8wzcz79y.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T03:00:22.263Z"
+        },
+        "1777088029231-u6lhvm": {
+          "caption": "매장 반응을 보면 왜 바뀌는지 보입니다 · 저장해두고 비교하면 실수 확률이 줄어듭니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777088029231-u6lhvm_01_xowomdfr.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777088029231-u6lhvm_02_gfw46lgq.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777088029231-u6lhvm_03_idt6enwp.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777088029231-u6lhvm_04_0qmqx2cg.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777088029231-u6lhvm_05_8c1pc2cm.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T03:34:14.667Z"
+        },
+        "1777091611110-3-azz2w": {
+          "caption": "최근 전자담배 규제 뉴스에서 [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-3-azz2w_01_togubib9.png"
+            },
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-5-ria3k_01_xjbrdo56.png"
+            },
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-7-be46h_01_wmnmqtsh.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-3-azz2w_02_se08orf2.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-5-ria3k_02_9sd5pg27.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-7-be46h_02_7pcu2356.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-3-azz2w_03_5wahyaia.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-5-ria3k_03_5gja6wvx.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-7-be46h_03_i3bg4gej.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-3-azz2w_04_j448blfu.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-5-ria3k_04_kpyc63m2.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-7-be46h_04_pd4qco13.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-3-azz2w_05_kq8hn44h.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-5-ria3k_05_xj76vbjk.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777091611110-7-be46h_05_kjzozw0y.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T04:34:55.950Z"
+        },
+        "1777092811325-7-hz40v": {
+          "caption": "최근 전자담배 규제 뉴스에서 ‘액상형’도 담배…금연 구역서 피우면 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777092811325-7-hz40v_01_a8jesx7j.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777092811325-7-hz40v_02_0qz7xaoy.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777092811325-7-hz40v_03_kp015v6d.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777092811325-7-hz40v_04_r815t5bz.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777092811325-7-hz40v_05_soudnsya.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T04:56:27.087Z"
+        },
+        "1777093199525-7-ag0qm": {
+          "caption": "4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777093199525-7-ag0qm_01_r1znmp3z.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777093199525-7-ag0qm_02_x1vx2r0c.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777093199525-7-ag0qm_03_hd6xq2w5.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777093199525-7-ag0qm_04_tqv8kjtf.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777093199525-7-ag0qm_05_wssbua4c.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T05:02:50.992Z"
+        },
+        "1777094045145-7-uyjfl": {
+          "caption": "4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094045145-7-uyjfl_01_xfhndg7i.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094045145-7-uyjfl_02_nmj7cwau.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094045145-7-uyjfl_03_n0p7pq59.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094045145-7-uyjfl_04_6c1qdhld.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094045145-7-uyjfl_05_zl0bz7gh.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T05:15:40.188Z"
+        },
+        "1777094264544-7-omcnj": {
+          "caption": "4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094264544-7-omcnj_01_lnq8kjtx.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094264544-7-omcnj_02_6428lk2d.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094264544-7-omcnj_03_uvfu3ufu.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094264544-7-omcnj_04_edho5cye.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777094264544-7-omcnj_05_24riy5c2.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T05:19:22.607Z"
+        },
+        "1777111110020-7-niwjp": {
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777111110020-7-niwjp_01_p5c1gat2.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777111110020-7-niwjp_02_5p4zei10.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777111110020-7-niwjp_03_jvqpu70x.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777111110020-7-niwjp_04_512ol46o.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777111110020-7-niwjp_05_fbqg1d75.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T10:03:10.573Z"
+        },
+        "1777114257327-5-n9na5": {
+          "caption": "4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777114257327-5-n9na5_01_rgkwwdgm.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777114257327-5-n9na5_02_f14ndcn0.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777114257327-5-n9na5_03_ugqw18mf.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777114257327-5-n9na5_04_si66h8h0.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777114257327-5-n9na5_05_k66alczg.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T10:54:26.510Z"
+        },
+        "1777115018847-5-ax0tr": {
+          "caption": "4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115018847-5-ax0tr_01_p6odbtnt.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115018847-5-ax0tr_02_087oy6kq.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115018847-5-ax0tr_04_iekfj4yf.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115018847-5-ax0tr_05_pqdj5gny.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T11:07:22.811Z"
+        },
+        "1777115405880-7-ogzsq": {
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115405880-7-ogzsq_01_feelrpvp.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115405880-7-ogzsq_02_el19vdai.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115405880-7-ogzsq_03_qd4danue.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115405880-7-ogzsq_04_rr9kobey.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115405880-7-ogzsq_05_4g812ubq.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T11:13:12.338Z"
+        },
+        "1777115775500-5-ljxl2": {
+          "caption": "4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115775500-5-ljxl2_01_1awa9t6a.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115775500-5-ljxl2_02_hn8pjv7k.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115775500-5-ljxl2_03_24qa1yoj.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115775500-5-ljxl2_04_3ze3a9p1.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777115775500-5-ljxl2_05_nhhmtfgn.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T11:19:32.738Z"
+        },
+        "1777116790487-3-zut99": {
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777116790487-3-zut99_01_qv56edwp.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777116790487-3-zut99_02_cjtq42zb.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777116790487-3-zut99_03_35yxdqh1.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777116790487-3-zut99_04_0sptu25o.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777116790487-3-zut99_05_mtntl1yi.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T11:36:22.186Z"
+        },
+        "phase3c-carousel-block-1777118333": {
+          "caption": "Phase 3C carousel should be blocked",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T11:58:55.757Z"
+        },
+        "1777129914430-5-mxwea": {
+          "caption": "4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777129914430-5-mxwea_01_brokko8i.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777129914430-5-mxwea_02_vvy9jjuo.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777129914430-5-mxwea_03_y83vnpfl.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777129914430-5-mxwea_04_p2oytjtf.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777129914430-5-mxwea_05_539kyptk.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T15:13:53.920Z"
+        },
+        "1777130096983-7-omlw1": {
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_01_wmzk9qap.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_02_i65g91b6.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_03_7pm4o7al.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_04_1h5z28ic.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_05_dct5hnl7.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T15:18:15.431Z"
+        },
+        "1777131282552-7-9365o": {
+          "caption": "이 방식 쓰는 사람들, 거의 다 잘못 알고 있습니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n선택 순서 오류에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131282552-7-9365o_01_kybg2b0u.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131282552-7-9365o_02_1k7ec3ex.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131282552-7-9365o_03_u4u46y0z.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131282552-7-9365o_04_4cjye536.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131282552-7-9365o_05_i7crlw6n.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T15:37:50.911Z"
+        },
+        "1777131817532-5-blmsy": {
+          "caption": "이건 업자들은 알고 소비자는 모릅니다. 4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n비용 착각에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131817532-5-blmsy_01_o2stgo29.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131817532-5-blmsy_02_zjw05y0c.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131817532-5-blmsy_03_lprfhfit.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131817532-5-blmsy_04_ee55l2ks.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131817532-5-blmsy_05_v2hfy2cm.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T15:46:59.212Z"
+        },
+        "1777131845509-5-11cig": {
+          "caption": "다들 가격 보는데, 이게 먼저입니다. 4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\\n규제 충격에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131845509-5-11cig_01_ovgquvdt.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131845509-5-11cig_02_2drn1yvh.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131845509-5-11cig_03_npsgtets.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131845509-5-11cig_04_79umv462.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777131845509-5-11cig_05_dfgtg8mx.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T15:49:10.995Z"
+        },
+        "1777159802663-3-2ipll": {
+          "caption": "싸다고 좋은 게 아니라, 이게 문제입니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n소비자 심리 착각에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_01_f7l48mhv.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_02_gjbfz5wg.png"
+            },
+            {
+              "position": 3,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_03_dejj01t2.png"
+            },
+            {
+              "position": 4,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_04_hcuef015.png"
+            },
+            {
+              "position": 5,
+              "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_05_b0uiytan.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-25T23:33:06.632Z"
+        },
+        "patch_test_carousel_20260426140645": {
+          "caption": "Test carousel caption for patch verification",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-26T05:06:48.643Z"
+        },
+        "dryrun_guard_test_20260426155437": {
+          "caption": "dry run guard verification",
+          "media": [
+            {
+              "position": 1,
+              "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+            },
+            {
+              "position": 2,
+              "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+            }
+          ],
+          "reel_video_url": "",
+          "updated_at": "2026-04-26T06:54:40.859Z"
+        }
+      },
+      "daily_publish_limit": 3,
+      "daily_publish_success_log": [],
+      "reel_video_urls": {
+        "1777088029231-u6lhvm": "https://n8n.mykindredai.com/images/reel_9f8aceda3b854280b385e7c70eefe601.mp4",
+        "1777092811325-4-jh2ur": "https://n8n.mykindredai.com/images/reel_a3eac490c1624a768685bc9f977f00fe.mp4",
+        "1777092811325-6-xk8b4": "https://n8n.mykindredai.com/images/reel_ddde9c53ba484f6785ea240b8917d2a8.mp4",
+        "1777093199525-2-j3ml1": "https://n8n.mykindredai.com/images/reel_a88dcf98dbab4e3dbcdfa24cf5388a5b.mp4",
+        "1777093199525-6-feqgp": "https://n8n.mykindredai.com/images/reel_3b4d8ac2081a47bba4414dac53396873.mp4",
+        "1777094045144-4-tiuj1": "https://n8n.mykindredai.com/images/reel_f2088592d69b49708f1b9241d00a83c4.mp4",
+        "1777094045145-6-292hy": "https://n8n.mykindredai.com/images/reel_f3cd3adb5a3f434291695f75b60f84c1.mp4",
+        "1777094264544-2-17uni": "https://n8n.mykindredai.com/images/reel_94b0e2d66346480ead8acdcbeef80c5d.mp4",
+        "1777094264544-6-qfnns": "https://n8n.mykindredai.com/images/reel_36fe03230c6148bd9c5691cc06bf7856.mp4",
+        "phase2-reel-cache-test-kr-001": "https://n8n.mykindredai.com/images/reel_test_phase2.mp4",
+        "1777109562346-2-w4tct": "https://n8n.mykindredai.com/images/reel_3401074df313410cb8abd7c7160ca1ca.mp4",
+        "1777109562346-6-w30lj": "https://n8n.mykindredai.com/images/reel_888ccae95aa2417c84205ae874713457.mp4",
+        "1777111110020-2-o5eq5": "https://n8n.mykindredai.com/images/reel_7d27e9c8fb6e491fbf8a0ed3104347c2.mp4",
+        "1777111110020-6-j5wwe": "https://n8n.mykindredai.com/images/reel_e8d317e6789d4a72b37d2c60c93dd706.mp4",
+        "1777114257327-4-85k7a": "https://n8n.mykindredai.com/images/reel_354df4278f91480dbc75f0ba4410dd56.mp4",
+        "1777115018847-2-mvjdw": "https://n8n.mykindredai.com/images/reel_24193bc446ab429aa253b6a76d7b5c27.mp4",
+        "1777115018847-6-s90ae": "https://n8n.mykindredai.com/images/reel_a50e2db78d89415aa2e006b547ed22c3.mp4",
+        "1777115405880-2-jaxmw": "https://n8n.mykindredai.com/images/reel_9622e162ea0342b1a0a80b5d11cc075b.mp4",
+        "1777115405880-6-zskda": "https://n8n.mykindredai.com/images/reel_16804e7309bc46f8be6fe83cd1883b41.mp4",
+        "1777115775500-2-60hpg": "https://n8n.mykindredai.com/images/reel_735e7f71b6e148a0b4f7481162caf24f.mp4",
+        "1777115775500-6-9mdaz": "https://n8n.mykindredai.com/images/reel_e678c88c79894f13bb390fab643d5f89.mp4",
+        "1777116790487-2-j9n1w": "https://n8n.mykindredai.com/images/reel_0acab9a9042245b7b932f008e516c609.mp4",
+        "1777116790488-6-h4ggp": "https://n8n.mykindredai.com/images/reel_19b4c700988d408dbc45b66072e0aacd.mp4",
+        "phase3c-reel-test-1777118333": "https://n8n.mykindredai.com/images/reel_19b4c700988d408dbc45b66072e0aacd.mp4",
+        "1777129914430-2-qeoce": "https://n8n.mykindredai.com/images/reel_397cfeec45dd45b0aba31fe2c40abc6d.mp4",
+        "1777129914430-6-j59xv": "https://n8n.mykindredai.com/images/reel_2eaad54cb12e462f99a8cca97b161020.mp4",
+        "1777130096983-2-nle6h": "https://n8n.mykindredai.com/images/reel_5369ac2bccdd45a3823ee58069c26769.mp4",
+        "1777130096983-6-n3ltg": "https://n8n.mykindredai.com/images/reel_a038a42956464b01bb6a5375d7523914.mp4",
+        "1777131282551-2-qlplm": "https://n8n.mykindredai.com/images/reel_1e76c1bf5328432eac9e550fb7e924a0.mp4",
+        "1777131282552-6-dpv4q": "https://n8n.mykindredai.com/images/reel_5e7d15b9c33e4a939ea3ceac1f88d6d1.mp4",
+        "1777131817532-2-58kdo": "https://n8n.mykindredai.com/images/reel_f8bdafe892e541c5a8215fa94da4cc83.mp4",
+        "1777131817532-6-d528n": "https://n8n.mykindredai.com/images/reel_4ca2d53fa29f40f6944a896829b9b417.mp4",
+        "1777131845508-2-oa90t": "https://n8n.mykindredai.com/images/reel_1b746b7c59ff4ad283f01c2c5784f475.mp4",
+        "1777131845509-6-tr97v": "https://n8n.mykindredai.com/images/reel_1ed987c4688c4bd6b36bced2864c387d.mp4",
+        "1777159802663-2-resx4": "https://n8n.mykindredai.com/images/reel_1746caacdff14868a9404f3e31c1561e.mp4",
+        "1777159802663-6-6hm9l": "https://n8n.mykindredai.com/images/reel_79ec798080404eb4b9478245b87f436a.mp4"
+      },
+      "reel_video_cached_at": "2026-04-25T23:30:57.217Z",
+      "daily_publish_queue": {
+        "1777115775500-1-duil2": {
+          "test_id": "1777115775500-1-duil2",
+          "dateKey": "2026-04-25",
+          "post_type": "feed",
+          "route_action": "queue_feed",
+          "status": "queued",
+          "queued_at": "2026-04-25T11:21:24.376Z",
+          "planned_publish_time": "21:00",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이거 그냥 뉴스 제목 하나로 넘기면 손해다. 전자담배 규제는 이제 취향 문제가 아니라, 어디서 피우고, 어떻게 팔고, 어떤 문구를 붙일 수 있는지까지 한 번에 묶이는 문제로 바뀌고 있다. 예전처럼 “전담은 좀 다르지 않나” 하고 넘기면, 실제 현장에서는 금연구역, 과태료, 광고 문구, 매장 안내에서 바로 헷갈린다.\n\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n\n그래서 지금 봐야 할 건 찬반보다 기준이다. 4월 24일 이후 합성니코틴 전담이 어떤 규제 안으로 들어갔는지, 금연구역과 광고 제한이 어떻게 붙는지, 매장에서 어떤 말이 달라지는지 확인해야 한다. 너라면 이걸 소비자 보호라고 보냐, 아니면 뒤늦게 만든 단속 장치라고 보냐?",
+          "video_url": "",
+          "carousel": null,
+          "source": "telegram_queue_button",
+          "publish_status": "failed",
+          "failed_reason": "missing_feed_asset",
+          "failed_at": "2026-04-25T12:14:04.653Z",
+          "graph_error_message": "",
+          "graph_error_code": "",
+          "graph_error_subcode": "",
+          "graph_error_type": "",
+          "graph_error_body_present": false
+        },
+        "phase3b-feed-url-check": {
+          "test_id": "phase3b-feed-url-check",
+          "dateKey": "2026-04-25",
+          "post_type": "feed",
+          "route_action": "queue_feed",
+          "status": "queued",
+          "queued_at": "2026-04-25T11:48:23.786Z",
+          "planned_publish_time": "00:00",
+          "caption": "feed queue image url validation",
+          "video_url": "",
+          "image_url": "https://n8n.mykindredai.com/images/fallback.png",
+          "media_url": "https://n8n.mykindredai.com/images/fallback.png",
+          "carousel": null,
+          "source": "telegram_queue_button",
+          "graph_error_type": "OAuthException",
+          "publish_status": "failed",
+          "failed_reason": "feed_media_publish_failed_403",
+          "failed_at": "2026-04-25T12:17:57.541Z",
+          "graph_error_message": "Application request limit reached",
+          "graph_error_code": 4,
+          "graph_error_subcode": 2207051,
+          "graph_error_http_status": 403,
+          "graph_error_raw_sanitized": "{\"error\":{\"message\":\"Application request limit reached\",\"type\":\"OAuthException\",\"is_transient\":false,\"code\":4,\"error_subcode\":2207051,\"error_user_title\":\"행동이 차단되었습니다\",\"error_user_msg\":\"Instagram은 커뮤니티를 보호하기 위해 특정 활동을 제한합니다. 이 조치가 실수라고 생각하는 경우 저희에게 알려주세요.\",\"fbtrace_id\":\"ApC1ywDND0OTKXgXW4hzTcp\"}}",
+          "graph_error_body_present": true
+        },
+        "phase3c-reel-test-1777118333": {
+          "test_id": "phase3c-reel-test-1777118333",
+          "dateKey": "2026-04-25",
+          "post_type": "reel",
+          "route_action": "queue_reel",
+          "status": "queued",
+          "queued_at": "2026-04-25T11:58:55.455Z",
+          "planned_publish_time": "00:00",
+          "caption": "Phase 3C reel scheduler validation unique caption. ?? ?? ?? ?? ?????.",
+          "video_url": "https://n8n.mykindredai.com/images/reel_19b4c700988d408dbc45b66072e0aacd.mp4",
+          "image_url": "",
+          "media_url": "",
+          "carousel": null,
+          "source": "telegram_queue_button",
+          "publish_status": "published",
+          "published_at": "2026-04-25T11:58:56.143Z",
+          "publisher_workflow": "clean_03_publisher",
+          "publisher_response": {
+            "message": "Workflow was started"
+          },
+          "blocked_at": "2026-04-25T12:14:04.652Z"
+        },
+        "phase3c-feed-test-1777118333": {
+          "test_id": "phase3c-feed-test-1777118333",
+          "dateKey": "2026-04-25",
+          "post_type": "feed",
+          "route_action": "queue_feed",
+          "status": "queued",
+          "queued_at": "2026-04-25T11:58:55.642Z",
+          "planned_publish_time": "00:00",
+          "caption": "Phase 3C feed scheduler validation unique caption. ?? ??? ?? ?? ?????.",
+          "video_url": "",
+          "image_url": "https://n8n.mykindredai.com/images/fallback.png",
+          "media_url": "https://n8n.mykindredai.com/images/fallback.png",
+          "carousel": null,
+          "source": "telegram_queue_button",
+          "publish_status": "failed",
+          "failed_reason": "Request failed with status code 403",
+          "failed_at": "2026-04-25T11:59:07.229Z",
+          "blocked_at": "2026-04-25T12:14:04.652Z"
+        },
+        "phase3c-carousel-block-1777118333": {
+          "test_id": "phase3c-carousel-block-1777118333",
+          "dateKey": "2026-04-25",
+          "post_type": "carousel",
+          "route_action": "queue_carousel",
+          "status": "queued",
+          "queued_at": "2026-04-25T11:58:55.845Z",
+          "planned_publish_time": "00:00",
+          "caption": "Phase 3C carousel should be blocked",
+          "video_url": "",
+          "image_url": "",
+          "media_url": "",
+          "carousel": {
+            "caption": "Phase 3C carousel should be blocked",
+            "media": [
+              {
+                "position": 1,
+                "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+              },
+              {
+                "position": 2,
+                "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+              }
+            ]
+          },
+          "source": "telegram_queue_button",
+          "publish_status": "blocked",
+          "blocked_reason": "carousel_rate_limit_pending",
+          "blocked_at": "2026-04-25T12:14:04.652Z"
+        },
+        "1777129914429-1-tnikq": {
+          "test_id": "1777129914429-1-tnikq",
+          "dateKey": "2026-04-26",
+          "post_type": "feed",
+          "route_action": "queue_feed",
+          "status": "queued",
+          "queued_at": "2026-04-25T15:16:47.174Z",
+          "planned_publish_time": "21:00",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이 뉴스는 그냥 넘기면 손해다.\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n너라면 이걸 소비자 보호라고 보냐, 아니면 늦게 온 단속 장치라고 보냐?",
+          "video_url": "",
+          "image_url": "",
+          "media_url": "",
+          "carousel": null,
+          "source": "telegram_queue_button"
+        },
+        "1777130096983-7-omlw1": {
+          "test_id": "1777130096983-7-omlw1",
+          "dateKey": "2026-04-26",
+          "post_type": "carousel",
+          "route_action": "queue_carousel",
+          "status": "queued",
+          "queued_at": "2026-04-25T15:18:47.470Z",
+          "planned_publish_time": "22:05",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "video_url": "",
+          "image_url": "",
+          "media_url": "",
+          "carousel": {
+            "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n이 정도면 보호야, 아니면 과한 단속이야?",
+            "media": [
+              {
+                "position": 1,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_01_wmzk9qap.png"
+              },
+              {
+                "position": 2,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_02_i65g91b6.png"
+              },
+              {
+                "position": 3,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_03_7pm4o7al.png"
+              },
+              {
+                "position": 4,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_04_1h5z28ic.png"
+              },
+              {
+                "position": 5,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777130096983-7-omlw1_05_dct5hnl7.png"
+              }
+            ]
+          },
+          "source": "telegram_queue_button"
+        },
+        "1777131282551-2-qlplm": {
+          "test_id": "1777131282551-2-qlplm",
+          "dateKey": "2026-04-26",
+          "post_type": "reel",
+          "route_action": "queue_reel",
+          "status": "queued",
+          "queued_at": "2026-04-25T15:50:17.964Z",
+          "planned_publish_time": "12:00",
+          "caption": "이건 업자들은 알고 소비자는 모릅니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n반복 구매 패턴에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "video_url": "https://n8n.mykindredai.com/images/reel_1e76c1bf5328432eac9e550fb7e924a0.mp4",
+          "image_url": "",
+          "media_url": "",
+          "carousel": null,
+          "source": "telegram_queue_button"
+        },
+        "1777159802662-1-v6u5w": {
+          "test_id": "1777159802662-1-v6u5w",
+          "dateKey": "2026-04-26",
+          "post_type": "feed",
+          "route_action": "queue_feed",
+          "status": "queued",
+          "queued_at": "2026-04-26T03:26:22.101Z",
+          "planned_publish_time": "21:00",
+          "caption": "이거 안 보면 다음 달에 후회합니다. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용\n선택 순서 오류에서 제일 불편한 건 이겁니다. 말은 규제 정리인데, 소비자는 매장 앞에서야 뒤늦게 배운다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "video_url": "",
+          "image_url": "",
+          "media_url": "",
+          "carousel": null,
+          "source": "telegram_queue_button"
+        },
+        "1777159802663-3-2ipll": {
+          "test_id": "1777159802663-3-2ipll",
+          "dateKey": "2026-04-26",
+          "post_type": "carousel",
+          "route_action": "queue_carousel",
+          "status": "queued",
+          "queued_at": "2026-04-26T03:26:46.584Z",
+          "planned_publish_time": "12:05",
+          "caption": "싸다고 좋은 게 아니라, 이게 문제입니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n소비자 심리 착각에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.",
+          "video_url": "",
+          "image_url": "",
+          "media_url": "",
+          "carousel": {
+            "caption": "싸다고 좋은 게 아니라, 이게 문제입니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\\n소비자 심리 착각에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.",
+            "media": [
+              {
+                "position": 1,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_01_f7l48mhv.png"
+              },
+              {
+                "position": 2,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_02_gjbfz5wg.png"
+              },
+              {
+                "position": 3,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_03_dejj01t2.png"
+              },
+              {
+                "position": 4,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_04_hcuef015.png"
+              },
+              {
+                "position": 5,
+                "image_url": "https://n8n.mykindredai.com/images/carousel_1777159802663-3-2ipll_05_b0uiytan.png"
+              }
+            ]
+          },
+          "source": "telegram_queue_button"
+        },
+        "1777159802663-2-resx4": {
+          "test_id": "1777159802663-2-resx4",
+          "dateKey": "2026-04-26",
+          "post_type": "reel",
+          "route_action": "queue_reel",
+          "status": "queued",
+          "queued_at": "2026-04-26T03:27:03.972Z",
+          "planned_publish_time": "12:00",
+          "caption": "싸다고 좋은 게 아니라, 이게 문제입니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n규제 충격에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "video_url": "https://n8n.mykindredai.com/images/reel_1746caacdff14868a9404f3e31c1561e.mp4",
+          "image_url": "",
+          "media_url": "",
+          "carousel": null,
+          "source": "telegram_queue_button"
+        },
+        "patch_test_carousel_20260426140645": {
+          "test_id": "patch_test_carousel_20260426140645",
+          "dateKey": "2026-04-26",
+          "post_type": "carousel",
+          "route_action": "queue_carousel",
+          "status": "queued",
+          "queued_at": "2026-04-26T05:07:04.753Z",
+          "planned_publish_time": "12:05",
+          "caption": "Test carousel caption for patch verification",
+          "video_url": "",
+          "image_url": "",
+          "media_url": "",
+          "carousel": {
+            "caption": "Test carousel caption for patch verification",
+            "media": [
+              {
+                "position": 1,
+                "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+              },
+              {
+                "position": 2,
+                "image_url": "https://n8n.mykindredai.com/images/fallback.png"
+              }
+            ]
+          },
+          "source": "telegram_queue_button"
+        }
+      },
+      "daily_deleted_items": {},
+      "reel_payloads": {
+        "phase2-reel-cache-test-kr-001": {
+          "test_id": "phase2-reel-cache-test-kr-001",
+          "video_url": "https://n8n.mykindredai.com/images/reel_test_phase2.mp4",
+          "caption": "4? 24? ?? ??, ????? ???? ?? ???\n?? ??? ?? ??? ???.",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T06:51:32.563Z"
+        },
+        "1777109562346-2-w4tct": {
+          "test_id": "1777109562346-2-w4tct",
+          "video_url": "https://n8n.mykindredai.com/images/reel_3401074df313410cb8abd7c7160ca1ca.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T09:34:40.102Z"
+        },
+        "1777109562346-6-w30lj": {
+          "test_id": "1777109562346-6-w30lj",
+          "video_url": "https://n8n.mykindredai.com/images/reel_888ccae95aa2417c84205ae874713457.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T09:34:40.469Z"
+        },
+        "1777111110020-2-o5eq5": {
+          "test_id": "1777111110020-2-o5eq5",
+          "video_url": "https://n8n.mykindredai.com/images/reel_7d27e9c8fb6e491fbf8a0ed3104347c2.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T10:00:20.757Z"
+        },
+        "1777111110020-6-j5wwe": {
+          "test_id": "1777111110020-6-j5wwe",
+          "video_url": "https://n8n.mykindredai.com/images/reel_e8d317e6789d4a72b37d2c60c93dd706.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T10:00:21.251Z"
+        },
+        "1777114257327-4-85k7a": {
+          "test_id": "1777114257327-4-85k7a",
+          "video_url": "https://n8n.mykindredai.com/images/reel_354df4278f91480dbc75f0ba4410dd56.mp4",
+          "caption": "4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "18:00",
+          "content_slot": "reel_1800",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T10:52:02.189Z"
+        },
+        "1777115018847-2-mvjdw": {
+          "test_id": "1777115018847-2-mvjdw",
+          "video_url": "https://n8n.mykindredai.com/images/reel_24193bc446ab429aa253b6a76d7b5c27.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:05:14.703Z"
+        },
+        "1777115018847-6-s90ae": {
+          "test_id": "1777115018847-6-s90ae",
+          "video_url": "https://n8n.mykindredai.com/images/reel_a50e2db78d89415aa2e006b547ed22c3.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:05:15.170Z"
+        },
+        "1777115405880-2-jaxmw": {
+          "test_id": "1777115405880-2-jaxmw",
+          "video_url": "https://n8n.mykindredai.com/images/reel_9622e162ea0342b1a0a80b5d11cc075b.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:11:10.585Z"
+        },
+        "1777115405880-6-zskda": {
+          "test_id": "1777115405880-6-zskda",
+          "video_url": "https://n8n.mykindredai.com/images/reel_16804e7309bc46f8be6fe83cd1883b41.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:11:11.087Z"
+        },
+        "1777115775500-2-60hpg": {
+          "test_id": "1777115775500-2-60hpg",
+          "video_url": "https://n8n.mykindredai.com/images/reel_735e7f71b6e148a0b4f7481162caf24f.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:17:19.872Z"
+        },
+        "1777115775500-6-9mdaz": {
+          "test_id": "1777115775500-6-9mdaz",
+          "video_url": "https://n8n.mykindredai.com/images/reel_e678c88c79894f13bb390fab643d5f89.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:17:20.372Z"
+        },
+        "1777116790487-2-j9n1w": {
+          "test_id": "1777116790487-2-j9n1w",
+          "video_url": "https://n8n.mykindredai.com/images/reel_0acab9a9042245b7b932f008e516c609.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료 이거 모르면 돈보다 먼저 판단력이 털린다.\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n너 이거 그냥 넘길 거야, 아니면 다음 계산대 앞에서 덜 당할 거야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:34:15.338Z"
+        },
+        "1777116790488-6-h4ggp": {
+          "test_id": "1777116790488-6-h4ggp",
+          "video_url": "https://n8n.mykindredai.com/images/reel_19b4c700988d408dbc45b66072e0aacd.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료 이건 보호냐, 뒷북 단속이냐부터 갈린다.\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n너는 이거 찬성이야, 아니면 말만 보호인 뒷북이라고 봐?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:34:15.917Z"
+        },
+        "phase3c-reel-test-1777118333": {
+          "test_id": "phase3c-reel-test-1777118333",
+          "video_url": "https://n8n.mykindredai.com/images/reel_19b4c700988d408dbc45b66072e0aacd.mp4",
+          "caption": "Phase 3C reel scheduler validation unique caption. ?? ?? ?? ?? ?????.",
+          "planned_publish_time": "00:00",
+          "content_slot": "reel_test",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T11:58:55.351Z"
+        },
+        "1777129914430-2-qeoce": {
+          "test_id": "1777129914430-2-qeoce",
+          "video_url": "https://n8n.mykindredai.com/images/reel_397cfeec45dd45b0aba31fe2c40abc6d.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료 이거 모르면 돈보다 먼저 판단력이 털린다.\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n너 이거 그냥 넘길 거야, 아니면 다음 계산대 앞에서 덜 당할 거야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:13:07.854Z"
+        },
+        "1777129914430-6-j59xv": {
+          "test_id": "1777129914430-6-j59xv",
+          "video_url": "https://n8n.mykindredai.com/images/reel_2eaad54cb12e462f99a8cca97b161020.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료 이건 보호냐, 뒷북 단속이냐부터 갈린다.\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n너는 이거 찬성이야, 아니면 말만 보호인 뒷북이라고 봐?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:13:08.571Z"
+        },
+        "1777130096983-2-nle6h": {
+          "test_id": "1777130096983-2-nle6h",
+          "video_url": "https://n8n.mykindredai.com/images/reel_5369ac2bccdd45a3823ee58069c26769.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료 이거 모르면 돈보다 먼저 판단력이 털린다.\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n너 이거 그냥 넘길 거야, 아니면 다음 계산대 앞에서 덜 당할 거야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:15:57.335Z"
+        },
+        "1777130096983-6-n3ltg": {
+          "test_id": "1777130096983-6-n3ltg",
+          "video_url": "https://n8n.mykindredai.com/images/reel_a038a42956464b01bb6a5375d7523914.mp4",
+          "caption": "4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료 이건 보호냐, 뒷북 단속이냐부터 갈린다.\n이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.\n여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.\n너는 이거 찬성이야, 아니면 말만 보호인 뒷북이라고 봐?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:15:57.918Z"
+        },
+        "1777131282551-2-qlplm": {
+          "test_id": "1777131282551-2-qlplm",
+          "video_url": "https://n8n.mykindredai.com/images/reel_1e76c1bf5328432eac9e550fb7e924a0.mp4",
+          "caption": "이건 업자들은 알고 소비자는 모릅니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n반복 구매 패턴에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:35:38.481Z"
+        },
+        "1777131282552-6-dpv4q": {
+          "test_id": "1777131282552-6-dpv4q",
+          "video_url": "https://n8n.mykindredai.com/images/reel_5e7d15b9c33e4a939ea3ceac1f88d6d1.mp4",
+          "caption": "이거 모르면 계속 돈 날립니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n소비자 심리 착각에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:35:39.047Z"
+        },
+        "1777131817532-2-58kdo": {
+          "test_id": "1777131817532-2-58kdo",
+          "video_url": "https://n8n.mykindredai.com/images/reel_f8bdafe892e541c5a8215fa94da4cc83.mp4",
+          "caption": "다들 가격 보는데, 이게 먼저입니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n비용 착각에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:45:01.318Z"
+        },
+        "1777131817532-6-d528n": {
+          "test_id": "1777131817532-6-d528n",
+          "video_url": "https://n8n.mykindredai.com/images/reel_4ca2d53fa29f40f6944a896829b9b417.mp4",
+          "caption": "싸다고 좋은 게 아니라, 이게 문제입니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n매장 vs 소비자 정보 차이에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:45:02.262Z"
+        },
+        "1777131845508-2-oa90t": {
+          "test_id": "1777131845508-2-oa90t",
+          "video_url": "https://n8n.mykindredai.com/images/reel_1b746b7c59ff4ad283f01c2c5784f475.mp4",
+          "caption": "지금 바뀌는 구조, 늦으면 바로 손해입니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n규제 충격에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:45:48.876Z"
+        },
+        "1777131845509-6-tr97v": {
+          "test_id": "1777131845509-6-tr97v",
+          "video_url": "https://n8n.mykindredai.com/images/reel_1ed987c4688c4bd6b36bced2864c387d.mp4",
+          "caption": "이거 안 보면 다음 달에 후회합니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n반복 구매 패턴에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T15:45:49.418Z"
+        },
+        "1777159802663-2-resx4": {
+          "test_id": "1777159802663-2-resx4",
+          "video_url": "https://n8n.mykindredai.com/images/reel_1746caacdff14868a9404f3e31c1561e.mp4",
+          "caption": "싸다고 좋은 게 아니라, 이게 문제입니다. 4월 24일 시행 기준, [단독] ‘RS니코틴’ 액상형 전담도 규제…금연구역 흡연시 과태료\n규제 충격에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "12:00",
+          "content_slot": "reel_1200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T23:30:56.703Z"
+        },
+        "1777159802663-6-6hm9l": {
+          "test_id": "1777159802663-6-6hm9l",
+          "video_url": "https://n8n.mykindredai.com/images/reel_79ec798080404eb4b9478245b87f436a.mp4",
+          "caption": "이거 모르면 계속 돈 날립니다. 4월 24일 시행 기준, ‘액상형’도 담배…금연 구역서 피우면 과태료\n반복 구매 패턴에서 제일 불편한 건 이겁니다. 이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "22:00",
+          "content_slot": "reel_2200",
+          "post_type": "reel",
+          "updated_at": "2026-04-25T23:30:57.217Z"
+        }
+      },
+      "last_scheduler_dry_run_at": "2026-04-25T08:48:56.209Z",
+      "last_scheduler_dry_run_summary": {
+        "mode": "diagnostic_input",
+        "total_queue_count": 8,
+        "due_count": 3,
+        "would_publish_count": 1,
+        "skipped_deleted_count": 1,
+        "skipped_not_due_count": 1
+      },
+      "feed_payloads": {
+        "1777114257326-1-sgb13": {
+          "test_id": "1777114257326-1-sgb13",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이거 그냥 뉴스 제목 하나로 넘기면 손해다. 전자담배 규제는 이제 취향 문제가 아니라, 어디서 피우고, 어떻게 팔고, 어떤 문구를 붙일 수 있는지까지 한 번에 묶이는 문제로 바뀌고 있다. 예전처럼 “전담은 좀 다르지 않나” 하고 넘기면, 실제 현장에서는 금연구역, 과태료, 광고 문구, 매장 안내에서 바로 헷갈린다.\n\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n\n그래서 지금 봐야 할 건 찬반보다 기준이다. 4월 24일 이후 합성니코틴 전담이 어떤 규제 안으로 들어갔는지, 금연구역과 광고 제한이 어떻게 붙는지, 매장에서 어떤 말이 달라지는지 확인해야 한다. 너라면 이걸 소비자 보호라고 보냐, 아니면 뒤늦게 만든 단속 장치라고 보냐?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "updated_at": "2026-04-25T10:55:00.915Z"
+        },
+        "1777115018847-1-r3nhn": {
+          "test_id": "1777115018847-1-r3nhn",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이거 그냥 뉴스 제목 하나로 넘기면 손해다. 전자담배 규제는 이제 취향 문제가 아니라, 어디서 피우고, 어떻게 팔고, 어떤 문구를 붙일 수 있는지까지 한 번에 묶이는 문제로 바뀌고 있다. 예전처럼 “전담은 좀 다르지 않나” 하고 넘기면, 실제 현장에서는 금연구역, 과태료, 광고 문구, 매장 안내에서 바로 헷갈린다.\n\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n\n그래서 지금 봐야 할 건 찬반보다 기준이다. 4월 24일 이후 합성니코틴 전담이 어떤 규제 안으로 들어갔는지, 금연구역과 광고 제한이 어떻게 붙는지, 매장에서 어떤 말이 달라지는지 확인해야 한다. 너라면 이걸 소비자 보호라고 보냐, 아니면 뒤늦게 만든 단속 장치라고 보냐?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "updated_at": "2026-04-25T11:07:50.092Z"
+        },
+        "1777115405879-1-85831": {
+          "test_id": "1777115405879-1-85831",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이거 그냥 뉴스 제목 하나로 넘기면 손해다. 전자담배 규제는 이제 취향 문제가 아니라, 어디서 피우고, 어떻게 팔고, 어떤 문구를 붙일 수 있는지까지 한 번에 묶이는 문제로 바뀌고 있다. 예전처럼 “전담은 좀 다르지 않나” 하고 넘기면, 실제 현장에서는 금연구역, 과태료, 광고 문구, 매장 안내에서 바로 헷갈린다.\n\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n\n그래서 지금 봐야 할 건 찬반보다 기준이다. 4월 24일 이후 합성니코틴 전담이 어떤 규제 안으로 들어갔는지, 금연구역과 광고 제한이 어떻게 붙는지, 매장에서 어떤 말이 달라지는지 확인해야 한다. 너라면 이걸 소비자 보호라고 보냐, 아니면 뒤늦게 만든 단속 장치라고 보냐?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "updated_at": "2026-04-25T11:13:52.102Z"
+        },
+        "1777115775500-1-duil2": {
+          "test_id": "1777115775500-1-duil2",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이거 그냥 뉴스 제목 하나로 넘기면 손해다. 전자담배 규제는 이제 취향 문제가 아니라, 어디서 피우고, 어떻게 팔고, 어떤 문구를 붙일 수 있는지까지 한 번에 묶이는 문제로 바뀌고 있다. 예전처럼 “전담은 좀 다르지 않나” 하고 넘기면, 실제 현장에서는 금연구역, 과태료, 광고 문구, 매장 안내에서 바로 헷갈린다.\n\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n\n그래서 지금 봐야 할 건 찬반보다 기준이다. 4월 24일 이후 합성니코틴 전담이 어떤 규제 안으로 들어갔는지, 금연구역과 광고 제한이 어떻게 붙는지, 매장에서 어떤 말이 달라지는지 확인해야 한다. 너라면 이걸 소비자 보호라고 보냐, 아니면 뒤늦게 만든 단속 장치라고 보냐?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "updated_at": "2026-04-25T11:20:00.466Z"
+        },
+        "1777116790487-1-9ybju": {
+          "test_id": "1777116790487-1-9ybju",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이 뉴스는 그냥 넘기면 손해다.\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n너라면 이걸 소비자 보호라고 보냐, 아니면 늦게 온 단속 장치라고 보냐?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "updated_at": "2026-04-25T11:36:48.539Z"
+        },
+        "phase3b-feed-url-check": {
+          "test_id": "phase3b-feed-url-check",
+          "caption": "feed queue image url validation",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "",
+          "hook": "",
+          "image_url": "https://n8n.mykindredai.com/images/fallback.png",
+          "media_url": "https://n8n.mykindredai.com/images/fallback.png",
+          "updated_at": "2026-04-25T11:48:23.461Z"
+        },
+        "phase3c-feed-test-1777118333": {
+          "test_id": "phase3c-feed-test-1777118333",
+          "caption": "Phase 3C feed scheduler validation unique caption. ?? ??? ?? ?? ?????.",
+          "planned_publish_time": "00:00",
+          "content_slot": "feed_test",
+          "source_url": "",
+          "hook": "",
+          "image_url": "https://n8n.mykindredai.com/images/fallback.png",
+          "media_url": "https://n8n.mykindredai.com/images/fallback.png",
+          "updated_at": "2026-04-25T11:58:55.537Z"
+        },
+        "1777129914429-1-tnikq": {
+          "test_id": "1777129914429-1-tnikq",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이 뉴스는 그냥 넘기면 손해다.\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n너라면 이걸 소비자 보호라고 보냐, 아니면 늦게 온 단속 장치라고 보냐?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "image_url": "",
+          "media_url": "",
+          "updated_at": "2026-04-25T15:14:22.276Z"
+        },
+        "1777130096983-1-zv1yo": {
+          "test_id": "1777130096983-1-zv1yo",
+          "caption": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용 이 뉴스는 그냥 넘기면 손해다.\n핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.\n소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.\n더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.\n너라면 이걸 소비자 보호라고 보냐, 아니면 늦게 온 단속 장치라고 보냐?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "image_url": "",
+          "media_url": "",
+          "updated_at": "2026-04-25T15:18:51.144Z"
+        },
+        "1777131282550-1-yz580": {
+          "test_id": "1777131282550-1-yz580",
+          "caption": "이거 안 보면 다음 달에 후회합니다. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용\n반복 구매 패턴에서 제일 불편한 건 이겁니다. 말은 규제 정리인데, 소비자는 매장 앞에서야 뒤늦게 배운다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "이거 안 보면 다음 달에 후회합니다. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "image_url": "",
+          "media_url": "",
+          "updated_at": "2026-04-25T15:38:24.951Z"
+        },
+        "1777131817531-1-jpfht": {
+          "test_id": "1777131817531-1-jpfht",
+          "caption": "이거 모르면 계속 돈 날립니다. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용\n비용 착각에서 제일 불편한 건 이겁니다. 말은 규제 정리인데, 소비자는 매장 앞에서야 뒤늦게 배운다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "이거 모르면 계속 돈 날립니다. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "image_url": "",
+          "media_url": "",
+          "updated_at": "2026-04-25T15:47:29.839Z"
+        },
+        "1777131845508-1-gyl2r": {
+          "test_id": "1777131845508-1-gyl2r",
+          "caption": "왜 같은 걸 사도 돈이 더 나갈까요?. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용\n규제 충격에서 제일 불편한 건 이겁니다. 말은 규제 정리인데, 소비자는 매장 앞에서야 뒤늦게 배운다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "왜 같은 걸 사도 돈이 더 나갈까요?. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "image_url": "",
+          "media_url": "",
+          "updated_at": "2026-04-25T15:49:43.042Z"
+        },
+        "1777159802662-1-v6u5w": {
+          "test_id": "1777159802662-1-v6u5w",
+          "caption": "이거 안 보면 다음 달에 후회합니다. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용\n선택 순서 오류에서 제일 불편한 건 이겁니다. 말은 규제 정리인데, 소비자는 매장 앞에서야 뒤늦게 배운다.\n아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.\n이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.\n이 정도면 보호야, 아니면 과한 단속이야?",
+          "planned_publish_time": "21:00",
+          "content_slot": "feed_2100",
+          "source_url": "https://news.google.com/rss/articles/REDACTED?oc=5",
+          "hook": "이거 안 보면 다음 달에 후회합니다. 4월 24일 시행 기준, 합성니코틴 전자담배도 '담배' 된다… 내일부터 세금·온라인판매 금지 적용",
+          "image_url": "",
+          "media_url": "",
+          "updated_at": "2026-04-25T23:33:31.273Z"
+        }
+      },
+      "published_content_hashes": [],
+      "last_phase3c_scheduler_summary": {
+        "dry_run": false,
+        "scheduler": "phase3c",
+        "now_kst": "2026-04-25T21:25:00.000Z",
+        "total_queue_count": 5,
+        "published": [],
+        "blocked": [],
+        "skipped": [
+          {
+            "test_id": "phase3c-reel-test-1777118333",
+            "post_type": "reel",
+            "reason": "already_published"
+          },
+          {
+            "test_id": "phase3c-feed-test-1777118333",
+            "post_type": "feed",
+            "reason": "already_failed"
+          },
+          {
+            "test_id": "phase3c-carousel-block-1777118333",
+            "post_type": "carousel",
+            "reason": "already_blocked"
+          },
+          {
+            "test_id": "1777115775500-1-duil2",
+            "post_type": "feed",
+            "reason": "already_failed"
+          }
+        ],
+        "errors": [
+          {
+            "test_id": "phase3b-feed-url-check",
+            "post_type": "feed",
+            "error": "feed_media_publish_failed_403",
+            "graph_error_message": "Application request limit reached",
+            "graph_error_code": 4,
+            "graph_error_subcode": 2207051
+          }
+        ]
+      }
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "93b83800-f68c-417b-afb1-883ba67e9ccf",
+  "activeVersionId": "93b83800-f68c-417b-afb1-883ba67e9ccf",
+  "versionCounter": 333,
+  "triggerCount": 3,
+  "shared": [
+    {
+      "updatedAt": "2026-04-20T12:50:30.402Z",
+      "createdAt": "2026-04-20T12:50:30.402Z",
+      "role": "workflow:owner",
+      "workflowId": "i6T6ke3ltKNQzaCl",
+      "projectId": "M3e6xHUu7VezXSBg",
+      "project": {
+        "updatedAt": "2026-04-07T04:41:49.347Z",
+        "createdAt": "2026-04-05T09:30:33.360Z",
+        "id": "M3e6xHUu7VezXSBg",
+        "name": "민호 김 <ziemaziema@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-26T06:51:46.104Z",
+    "createdAt": "2026-04-26T06:51:46.104Z",
+    "versionId": "93b83800-f68c-417b-afb1-883ba67e9ccf",
+    "workflowId": "i6T6ke3ltKNQzaCl",
+    "nodes": [
+      {
+        "id": "clean-appr-trigger",
+        "name": "Webhook",
+        "parameters": {
+          "path": "clean_02_approval",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          240,
+          300
+        ],
+        "typeVersion": 2,
+        "webhookId": "9f567fed-44d0-4417-a8be-a59a800aed38"
+      },
+      {
+        "id": "clean-appr-normalize",
+        "name": "Normalize Callback",
+        "parameters": {
+          "jsCode": "const first = $input.first();\nconst input = (first && first.json && typeof first.json === 'object') ? first.json : {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\n\nconst directAction = String(body.action || '').trim();\nif (directAction === 'cache_feed') {\n  const testId = String(body.test_id || '').trim();\n  const caption = String(body.caption || '').trim();\n  if (!testId || !caption) {\n    return [];\n  }\n  const store = $getWorkflowStaticData('global');\n  store.feed_payloads = (store.feed_payloads && typeof store.feed_payloads === 'object') ? store.feed_payloads : {};\n  store.feed_payloads[testId] = {\n    test_id: testId,\n    caption,\n    planned_publish_time: String(body.planned_publish_time || '21:00').trim(),\n    content_slot: String(body.content_slot || 'feed_2100').trim(),\n    source_url: String(body.source_url || '').trim(),\n    hook: String(body.hook || '').trim(),\n    image_url: String(body.image_url || body.media_url || '').trim(),\n    media_url: String(body.media_url || body.image_url || '').trim(),\n    updated_at: new Date().toISOString(),\n  };\n  return [];\n}\n\nif (directAction === 'cache_reel') {\n  const testId = String(body.test_id || '').trim();\n  const videoUrl = String(body.video_url || body.reel_video_url || body.media_url || body.reel_url || '').trim();\n  if (!testId || !/^https?:\\/\\//i.test(videoUrl)) {\n    return [];\n  }\n  const store = $getWorkflowStaticData('global');\n  store.reel_video_urls = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  store.reel_video_urls[testId] = videoUrl;\n  store.reel_payloads = (store.reel_payloads && typeof store.reel_payloads === 'object') ? store.reel_payloads : {};\n  store.reel_payloads[testId] = { test_id: testId, video_url: videoUrl, caption: String(body.caption || '').trim(), planned_publish_time: String(body.planned_publish_time || '').trim(), content_slot: String(body.content_slot || '').trim(), post_type: String(body.post_type || 'reel').trim(), updated_at: new Date().toISOString() };\n  store.reel_video_cached_at = new Date().toISOString();\n  return [];\n}\n\nif (directAction === 'cache_carousel') {\n  const testId = String(body.test_id || '').trim();\n  const carousel = (body.carousel && typeof body.carousel === 'object') ? body.carousel : null;\n  const media = Array.isArray(carousel?.media) ? carousel.media.filter((m) => String(m?.image_url || '').trim()) : [];\n  if (!testId || media.length < 2) {\n    return [];\n  }\n\n  // Preserve reel URL signal if provided in cache payload path.\n  const bodyReelUrlCandidates = [\n    body.video_url,\n    body.reel_video_url,\n    body.media_url,\n    body.reel_url,\n    body?.reel?.video_url,\n    body?.carousel?.reel_video_url,\n    body?.carousel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n  const cachedReelUrl = bodyReelUrlCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n\n  const store = $getWorkflowStaticData('global');\n  store.carousel_payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  store.carousel_payloads[testId] = {\n    caption: String(carousel.caption || '').trim(),\n    media: media.map((m, idx) => ({ position: Number(m.position || (idx + 1)), image_url: String(m.image_url || '').trim() })),\n    reel_video_url: cachedReelUrl,\n    updated_at: new Date().toISOString(),\n  };\n  return [];\n}\n\nconst callback = (body.callback_query && typeof body.callback_query === 'object') ? body.callback_query : null;\nif (!callback) {\n  return [];\n}\n\nconst callbackData = String(callback.data || body.callback_data || '').trim();\nconst [actionRaw, testIdRaw] = callbackData.split('|');\nconst action = String(actionRaw || '').trim();\nconst testId = String(testIdRaw || '').trim();\n\nconst isQueueAction = action === 'queue_feed' || action === 'queue_reel' || action === 'queue_carousel';\nconst isDeleteAction = action === 'delete_test' || action === 'delete';\n\nif (isQueueAction || isDeleteAction) {\n  if (!testId) {\n    throw new Error('Missing test_id in queue/delete callback');\n  }\n\n  const store = $getWorkflowStaticData('global');\n  store.daily_publish_queue = (store.daily_publish_queue && typeof store.daily_publish_queue === 'object') ? store.daily_publish_queue : {};\n  store.daily_deleted_items = (store.daily_deleted_items && typeof store.daily_deleted_items === 'object') ? store.daily_deleted_items : {};\n  store.clean_publish_guard = (store.clean_publish_guard && typeof store.clean_publish_guard === 'object') ? store.clean_publish_guard : {};\n\n  const nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\n  const todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\n  const dedupeKey = `${action}|${testId}`;\n  if (store.clean_publish_guard[dedupeKey]) {\n    return [];\n  }\n  store.clean_publish_guard[dedupeKey] = new Date().toISOString();\n\n  const message = (callback.message && typeof callback.message === 'object') ? callback.message : ((body.message && typeof body.message === 'object') ? body.message : {});\n  const callbackCaption = String(message.caption || message.text || '');\n  const reelMap = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  const feedPayloads = (store.feed_payloads && typeof store.feed_payloads === 'object') ? store.feed_payloads : {};\n  const feedPayload = (feedPayloads[testId] && typeof feedPayloads[testId] === 'object') ? feedPayloads[testId] : null;\n  const reelPayloads = (store.reel_payloads && typeof store.reel_payloads === 'object') ? store.reel_payloads : {};\n  const reelPayload = (reelPayloads[testId] && typeof reelPayloads[testId] === 'object') ? reelPayloads[testId] : null;\n  const carouselMap = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  let carouselPayload = (carouselMap[testId] && typeof carouselMap[testId] === 'object') ? carouselMap[testId] : null;\n  if (!carouselPayload || !Array.isArray(carouselPayload.media) || carouselPayload.media.length < 2) {\n    try {\n      await this.helpers.httpRequest({\n        method: 'POST',\n        url: 'https://n8n.mykindredai.com/webhook/clean_01_generator',\n        body: { action: 'resend_carousel_cache', test_id: testId },\n        json: true,\n        timeout: 25000,\n      });\n      const refreshedStore = $getWorkflowStaticData('global');\n      const refreshedMap = (refreshedStore.carousel_payloads && typeof refreshedStore.carousel_payloads === 'object') ? refreshedStore.carousel_payloads : {};\n      const refreshed = (refreshedMap[testId] && typeof refreshedMap[testId] === 'object') ? refreshedMap[testId] : null;\n      if (refreshed && Array.isArray(refreshed.media) && refreshed.media.length >= 2) carouselPayload = refreshed;\n    } catch (_e) { /* fallback failed silently */ }\n  }\n  const videoUrl = String(reelMap[testId] || '').trim();\n  const feedImageUrl = String(feedPayload?.image_url || feedPayload?.media_url || '').trim();\n\n  const slotMatch = callbackCaption.match(/\\[(FEED|CAROUSEL)\\s*\\|\\s*([0-9:]+)\\]/i);\n  const plannedTimeFromMessage = slotMatch ? String(slotMatch[2] || '').trim() : '';\n  const typeFromAction = action.replace(/^queue_/, '');\n  const plannedTime = plannedTimeFromMessage || String(feedPayload?.planned_publish_time || '').trim() || String(reelPayload?.planned_publish_time || '').trim() || (\n    typeFromAction === 'feed' ? '21:00' :\n    typeFromAction === 'carousel' ? '' :\n    ''\n  );\n\n  if (isDeleteAction) {\n    store.daily_deleted_items[testId] = {\n      test_id: testId,\n      dateKey: todayKey,\n      deleted_at: new Date().toISOString(),\n      callback_data: callbackData,\n      status: 'deleted',\n    };\n    if (store.daily_publish_queue[testId]) {\n      store.daily_publish_queue[testId].status = 'deleted';\n      store.daily_publish_queue[testId].deleted_at = new Date().toISOString();\n    }\n    return [];\n  }\n\n  if (store.daily_deleted_items[testId]) {\n    return [];\n  }\n\n  if (typeFromAction === 'reel' && !/^https?:\\/\\//i.test(videoUrl)) {\n    throw new Error(`Queue reel blocked: missing cached reel video for ${testId}`);\n  }\n\n  if (typeFromAction === 'carousel') {\n    const media = Array.isArray(carouselPayload?.media) ? carouselPayload.media : [];\n    if (media.length < 2) {\n      throw new Error(`Queue carousel blocked: missing carousel media for ${testId} (fallback also failed)`);\n    }\n  }\n\n  store.daily_publish_queue[testId] = {\n    test_id: testId,\n    dateKey: todayKey,\n    post_type: typeFromAction,\n    route_action: action,\n    status: 'queued',\n    queued_at: new Date().toISOString(),\n    planned_publish_time: plannedTime,\n    caption: typeFromAction === 'carousel'\n      ? String(carouselPayload?.caption || callbackCaption || '').trim()\n      : (typeFromAction === 'reel' ? String(reelPayload?.caption || callbackCaption || '').trim() : String(feedPayload?.caption || callbackCaption || '').trim()),\n    video_url: typeFromAction === 'reel' ? videoUrl : '',\n    image_url: typeFromAction === 'feed' ? feedImageUrl : '',\n    media_url: typeFromAction === 'feed' ? feedImageUrl : '',\n    carousel: typeFromAction === 'carousel' ? {\n      caption: String(carouselPayload?.caption || callbackCaption || '').trim(),\n      media: Array.isArray(carouselPayload?.media) ? carouselPayload.media : [],\n    } : null,\n    source: 'telegram_queue_button',\n  };\n\n  return [];\n}\n\n\nconst isReelApprove = action === 'approve_test' || action === 'approve' || action === 'approve_reel';\nconst isCarouselApprove = action === 'approve_carousel';\nif (!isReelApprove && !isCarouselApprove) {\n  return [];\n}\n\nif (!testId) {\n  throw new Error('Missing test_id in approve callback');\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.clean_publish_guard = (store.clean_publish_guard && typeof store.clean_publish_guard === 'object') ? store.clean_publish_guard : {};\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3);\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\n\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nstore.daily_publish_success_log = store.daily_publish_success_log.slice(-300);\nconst todaySuccessCount = store.daily_publish_success_log.filter((r) => String(r.dateKey || '') === todayKey).length;\nif (todaySuccessCount >= store.daily_publish_limit) {\n  throw new Error(`DAILY_LIMIT_REACHED limit=${store.daily_publish_limit} count=${todaySuccessCount}`);\n}\n\nconst dedupeKey = `${action}|${testId}`;\nif (store.clean_publish_guard[dedupeKey]) {\n  return [];\n}\nstore.clean_publish_guard[dedupeKey] = new Date().toISOString();\n\nconst message = (callback.message && typeof callback.message === 'object') ? callback.message : ((body.message && typeof body.message === 'object') ? body.message : {});\nconst callbackCaption = String(message.caption || message.text || '');\n\nif (isReelApprove) {\n  const payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  const payload = payloads[testId] && typeof payloads[testId] === 'object' ? payloads[testId] : null;\n\n  const videoMap = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  const mappedVideoUrl = String(videoMap[testId] || '').trim();\n\n  // Fallback order:\n  // 1) staticData.global.reel_video_urls[test_id]\n  // 2) callback/body payload fields\n  // 3) cached carousel/static payload fields that may contain reel URL\n  const callbackCandidates = [\n    body.video_url,\n    body.reel_video_url,\n    body.media_url,\n    body.reel_url,\n    body?.reel?.video_url,\n    body?.carousel?.reel_video_url,\n    body?.carousel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n\n  const payloadCandidates = [\n    payload?.reel_video_url,\n    payload?.video_url,\n    payload?.media_url,\n    payload?.reel_url,\n    payload?.reel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n\n  const callbackVideoUrl = callbackCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n  const payloadVideoUrl = payloadCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n  const finalVideoUrl = mappedVideoUrl || callbackVideoUrl || payloadVideoUrl;\n\n  if (!finalVideoUrl) {\n    throw new Error(`Reel asset missing for approved test_id ${testId}; publish blocked`);\n  }\n\n  if (/samplelib\\.com|gtv-videos-bucket|ForBiggerJoyrides|ForBiggerEscapes/i.test(finalVideoUrl)) {\n    throw new Error('Generic sample video blocked for approve flow');\n  }\n\n  return [{\n    json: {\n      route_action: 'approve_reel',\n      callback_data: action,\n      test_id: testId,\n      caption: callbackCaption,\n      video_url: finalVideoUrl,\n      video_source: mappedVideoUrl ? 'reel_cache' : (callbackVideoUrl ? 'callback_payload' : 'carousel_payload'),\n      approved_via: 'telegram_callback',\n      arm_live_publish: true,\n      daily_publish_limit: store.daily_publish_limit,\n      daily_publish_count_today: todaySuccessCount,\n      dry_run: body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true',\n      test_mode: body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true',\n      diagnostic: body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true',\n    }\n  }];\n}\n\nconst payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\nlet payload = payloads[testId] && typeof payloads[testId] === 'object' ? payloads[testId] : null;\nlet media = Array.isArray(payload?.media) ? payload.media : [];\nif (!payload || media.length < 2) {\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://n8n.mykindredai.com/webhook/clean_01_generator',\n      body: { action: 'resend_carousel_cache', test_id: testId },\n      json: true,\n      timeout: 25000,\n    });\n    const refreshedStore2 = $getWorkflowStaticData('global');\n    const refreshedMap2 = (refreshedStore2.carousel_payloads && typeof refreshedStore2.carousel_payloads === 'object') ? refreshedStore2.carousel_payloads : {};\n    const refreshed2 = refreshedMap2[testId] && typeof refreshedMap2[testId] === 'object' ? refreshedMap2[testId] : null;\n    if (refreshed2 && Array.isArray(refreshed2.media) && refreshed2.media.length >= 2) { payload = refreshed2; media = refreshed2.media; }\n  } catch (_e2) { /* fallback failed silently */ }\n}\nif (!payload || media.length < 2) {\n  throw new Error(`Carousel media payload missing for approved test_id ${testId} (fallback also failed)`);\n}\n\nreturn [{\n  json: {\n    route_action: 'approve_carousel',\n    callback_data: action,\n    test_id: testId,\n    caption: String(payload.caption || callbackCaption || '').trim(),\n    carousel: {\n      caption: String(payload.caption || callbackCaption || '').trim(),\n      media,\n    },\n    approved_via: 'telegram_callback',\n    arm_live_publish: true,\n    daily_publish_limit: store.daily_publish_limit,\n    daily_publish_count_today: todaySuccessCount,\n    dry_run: body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true',\n    test_mode: body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true',\n    diagnostic: body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true',\n  }\n}];",
+          "mode": "runOnceForAllItems",
+          "notice": ""
+        },
+        "type": "n8n-nodes-base.code",
+        "position": [
+          500,
+          300
+        ],
+        "typeVersion": 2
+      },
+      {
+        "id": "clean-appr-http",
+        "name": "Trigger Publisher",
+        "parameters": {
+          "specifyBody": "json",
+          "sendBody": true,
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ {\"caption\": $json.caption, \"video_url\": $json.video_url, \"test_id\": $json.test_id, \"approved_via\": $json.approved_via, \"arm_live_publish\": true, \"daily_publish_limit\": $json.daily_publish_limit, \"dry_run\": $json.dry_run || false, \"test_mode\": $json.test_mode || false, \"diagnostic\": $json.diagnostic || false} }}",
+          "url": "https://n8n.mykindredai.com/webhook/clean_03_publisher"
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1000,
+          220
+        ],
+        "typeVersion": 4.4
+      },
+      {
+        "id": "route-by-action-clean02-node",
+        "name": "Route by Action",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3,
+        "position": [
+          760,
+          300
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.route_action}}",
+                      "rightValue": "approve_reel",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "approve_reel"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.route_action}}",
+                      "rightValue": "approve_carousel",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "approve_carousel"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "trigger-carousel-publisher-clean02-node",
+        "name": "Trigger Carousel Publisher",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1000,
+          380
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://n8n.mykindredai.com/webhook/clean_04_carousel_publisher",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"test_id\": $json.test_id, \"caption\": $json.caption, \"carousel\": $json.carousel, \"approved_via\": $json.approved_via, \"arm_live_publish\": true, \"daily_publish_limit\": $json.daily_publish_limit, \"dry_run\": $json.dry_run || false, \"test_mode\": $json.test_mode || false, \"diagnostic\": $json.diagnostic || false} }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "record-publish-success-clean02-node",
+        "name": "Record Publish Success",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1240,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const j = $json || {};\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3);\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst dateKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nconst mediaId = String(j.media_id || j.id || '').trim();\nconst status = String(j.publish_status || '').toLowerCase();\nconst success = Boolean(j.publishSuccess === true || j.publish_success === true || status === 'success' || mediaId);\nif (success) {\n  store.daily_publish_success_log.push({\n    dateKey,\n    timestamp: new Date().toISOString(),\n    test_id: String(j.test_id || ''),\n    route_action: String(j.route_action || ''),\n    media_id: mediaId,\n    executionId: String($execution.id || ''),\n  });\n  store.daily_publish_success_log = store.daily_publish_success_log.slice(-300);\n}\nreturn { json: { ...j, publish_success_recorded: success } };"
+        }
+      },
+      {
+        "id": "phase3a-dry-run-webhook",
+        "name": "Phase 3A Dry Run Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          760
+        ],
+        "parameters": {
+          "path": "clean_02_phase3a_dry_run",
+          "httpMethod": "POST",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "webhookId": "phase3a-dry-run-clean-02-approval"
+      },
+      {
+        "id": "phase3a-queue-scanner-dry-run",
+        "name": "Phase 3A Queue Scanner Dry Run",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          520,
+          760
+        ],
+        "parameters": {
+          "jsCode": "const first = $input.first();\nconst input = first && first.json && typeof first.json === 'object' ? first.json : {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\n\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_queue = store.daily_publish_queue && typeof store.daily_publish_queue === 'object' ? store.daily_publish_queue : {};\nstore.daily_deleted_items = store.daily_deleted_items && typeof store.daily_deleted_items === 'object' ? store.daily_deleted_items : {};\n\nconst diagnosticItems = Array.isArray(body.phase3a_diagnostic_items) ? body.phase3a_diagnostic_items : [];\nconst diagnosticDeleted = body.phase3a_diagnostic_deleted_items && typeof body.phase3a_diagnostic_deleted_items === 'object'\n  ? body.phase3a_diagnostic_deleted_items\n  : {};\nconst useDiagnosticInput = diagnosticItems.length > 0;\n\nconst queue = useDiagnosticInput\n  ? Object.fromEntries(diagnosticItems.map((item, idx) => [String(item.test_id || `diagnostic-${idx + 1}`), item]))\n  : store.daily_publish_queue;\nconst deletedItems = useDiagnosticInput ? diagnosticDeleted : store.daily_deleted_items;\n\nconst nowSeoul = body.now_override\n  ? new Date(String(body.now_override))\n  : new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nconst nowMinutes = nowSeoul.getHours() * 60 + nowSeoul.getMinutes();\n\nfunction parseTimeMinutes(value) {\n  const s = String(value || '').trim();\n  const m = s.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (!m) return null;\n  const hh = Number(m[1]);\n  const mm = Number(m[2]);\n  if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;\n  return hh * 60 + mm;\n}\n\nconst summary = {\n  mode: useDiagnosticInput ? 'diagnostic_input' : 'staticData',\n  dry_run_only: true,\n  now_kst: nowSeoul.toISOString(),\n  today_key: todayKey,\n  actual_static_queue_count: Object.keys(store.daily_publish_queue || {}).length,\n  total_queue_count: 0,\n  due_count: 0,\n  would_publish_count: 0,\n  would_publish_reels: 0,\n  would_publish_carousels: 0,\n  would_publish_feeds: 0,\n  skipped_deleted_count: 0,\n  skipped_pending_or_missing_count: 0,\n  skipped_not_due_count: 0,\n  skipped_already_done_count: 0,\n  skipped_failed_or_blocked_count: 0,\n  items: [],\n};\n\nfor (const [testId, rawItem] of Object.entries(queue || {})) {\n  const item = rawItem && typeof rawItem === 'object' ? rawItem : {};\n  const postType = String(item.post_type || item.type || '').trim();\n  const status = String(item.status || '').trim();\n  const publishStatus = String(item.publish_status || '').trim().toLowerCase();\n  const plannedTime = String(item.planned_publish_time || '').trim();\n  const plannedMinutes = parseTimeMinutes(plannedTime);\n  const isDeleted = status === 'deleted' || Boolean(deletedItems[testId]);\n\n  const decision = {\n    test_id: String(item.test_id || testId),\n    post_type: postType,\n    status,\n    publish_status: publishStatus,\n    planned_publish_time: plannedTime,\n    decision: 'would_skip',\n    would_skip_reason: '',\n  };\n\n  summary.total_queue_count += 1;\n\n  if (isDeleted) {\n    decision.would_skip_reason = 'deleted';\n    summary.skipped_deleted_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (status !== 'queued' || !postType || plannedMinutes === null) {\n    decision.would_skip_reason = status !== 'queued' ? 'not_queued' : (!postType ? 'post_type_missing' : 'planned_publish_time_missing_or_invalid');\n    summary.skipped_pending_or_missing_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (publishStatus === 'published') {\n    decision.would_skip_reason = 'already_published';\n    summary.skipped_already_done_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (publishStatus === 'failed' || publishStatus === 'blocked') {\n    decision.would_skip_reason = `already_${publishStatus}`;\n    summary.skipped_failed_or_blocked_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (plannedMinutes > nowMinutes) {\n    decision.would_skip_reason = 'not_due_yet';\n    summary.skipped_not_due_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  summary.due_count += 1;\n\n  if (postType === 'reel') {\n    if (!/^https?:\\/\\//i.test(String(item.video_url || ''))) {\n      decision.would_skip_reason = 'reel_asset_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_reels += 1;\n    }\n  } else if (postType === 'carousel') {\n    const media = Array.isArray(item.carousel?.media) ? item.carousel.media : [];\n    const hasPair = Boolean(item.paired_reel_test_id || item.paired_reel_slot || item.publish_after_reel_success);\n    if (!hasPair) {\n      decision.would_skip_reason = 'carousel_pairing_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else if (media.length < 2 || media.length > 10) {\n      decision.would_skip_reason = 'carousel_media_missing_or_invalid';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_carousels += 1;\n    }\n  } else if (postType === 'feed') {\n    if (!String(item.caption || '').trim()) {\n      decision.would_skip_reason = 'feed_caption_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else if (!/^https?:\\/\\//i.test(String(item.image_url || item.media_url || ''))) {\n      decision.would_skip_reason = 'feed_asset_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_feeds += 1;\n    }\n  } else {\n    decision.would_skip_reason = 'unknown_post_type';\n    summary.skipped_pending_or_missing_count += 1;\n  }\n\n  summary.items.push(decision);\n}\n\nstore.last_scheduler_dry_run_at = new Date().toISOString();\nstore.last_scheduler_dry_run_summary = {\n  mode: summary.mode,\n  total_queue_count: summary.total_queue_count,\n  due_count: summary.due_count,\n  would_publish_count: summary.would_publish_count,\n  skipped_deleted_count: summary.skipped_deleted_count,\n  skipped_not_due_count: summary.skipped_not_due_count,\n};\n\nreturn [{ json: summary }];"
+        }
+      },
+      {
+        "id": "phase3c-scheduler-webhook",
+        "name": "Phase 3C Scheduler Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          1040
+        ],
+        "parameters": {
+          "path": "clean_02_phase3c_scheduler",
+          "httpMethod": "POST",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "webhookId": "phase3c-scheduler-clean-02-approval"
+      },
+      {
+        "id": "phase3c-scheduler-execute",
+        "name": "Phase 3C Scheduler Execute",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          540,
+          1040
+        ],
+        "parameters": {
+          "jsCode": "\nconst IG_USER_ID = '17841436538210981';\nconst ACCESS_TOKEN = \"REDACTED\";\nconst GRAPH = 'https://graph.facebook.com/v23.0';\nconst first = $input.first();\nconst input = first && first.json && typeof first.json === 'object' ? first.json : {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_queue = store.daily_publish_queue && typeof store.daily_publish_queue === 'object' ? store.daily_publish_queue : {};\nstore.daily_deleted_items = store.daily_deleted_items && typeof store.daily_deleted_items === 'object' ? store.daily_deleted_items : {};\nstore.published_content_hashes = Array.isArray(store.published_content_hashes) ? store.published_content_hashes : [];\n\nconst nowSeoul = body.now_override ? new Date(String(body.now_override)) : new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst nowMinutes = nowSeoul.getHours() * 60 + nowSeoul.getMinutes();\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth()+1).padStart(2,'0')}-${String(nowSeoul.getDate()).padStart(2,'0')}`;\n\nfunction parseTimeMinutes(value) {\n  const s = String(value || '').trim();\n  const m = s.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (!m) return null;\n  const hh = Number(m[1]);\n  const mm = Number(m[2]);\n  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;\n  return hh * 60 + mm;\n}\n\nfunction block(item, reason) {\n  item.publish_status = 'blocked';\n  item.blocked_reason = reason;\n  item.blocked_at = new Date().toISOString();\n  return { test_id: item.test_id, post_type: item.post_type, decision: 'blocked', reason };\n}\n\nfunction finalContentGuard(item) {\n  if (item.duplicate_blocked === true) return 'content_duplicate_or_similar';\n  if (item.needs_manual_review === true) return 'content_duplicate_or_similar';\n  if (String(item.publish_status || '').toLowerCase() === 'published') return 'already_published';\n  if (['failed','blocked'].includes(String(item.publish_status || '').toLowerCase())) return `already_${item.publish_status}`;\n  const ch = String(item.content_hash || '').trim();\n  if (ch && store.published_content_hashes.some(r => r.post_type === item.post_type && r.content_hash === ch && r.test_id !== item.test_id)) {\n    return 'content_duplicate_or_similar';\n  }\n  return '';\n}\n\nasync function publishFeed(item) {\n  const imageUrl = String(item.image_url || item.media_url || '').trim();\n  const caption = String(item.caption || '').trim();\n  if (!imageUrl || !caption) throw new Error('missing_feed_asset');\n\n  function getStatus(resp) {\n    return Number(resp?.statusCode || resp?.status || 200);\n  }\n  function getBody(resp) {\n    return resp && Object.prototype.hasOwnProperty.call(resp, 'body') ? resp.body : resp;\n  }\n  function throwGraph(stage, resp) {\n    const status = getStatus(resp);\n    const body = getBody(resp);\n    const err = new Error(`${stage}_failed_${status}`);\n    err.graphBody = body;\n    err.httpStatus = status;\n    throw err;\n  }\n\n  const createResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${GRAPH}/${IG_USER_ID}/media`,\n    body: { image_url: imageUrl, caption, access_token: ACCESS_TOKEN },\n    json: true,\n    timeout: 60000,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true,\n  });\n  if (getStatus(createResp) >= 400) throwGraph('feed_container_create', createResp);\n  const create = getBody(createResp);\n  const creationId = String(create?.id || '').trim();\n  if (!creationId) throw new Error('feed_container_missing_id');\n  await new Promise(resolve => setTimeout(resolve, 3000));\n\n  const publishResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${GRAPH}/${IG_USER_ID}/media_publish`,\n    body: { creation_id: creationId, access_token: ACCESS_TOKEN },\n    json: true,\n    timeout: 60000,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true,\n  });\n  if (getStatus(publishResp) >= 400) throwGraph('feed_media_publish', publishResp);\n  const published = getBody(publishResp);\n  const mediaId = String(published?.id || '').trim();\n  if (!mediaId) throw new Error('feed_publish_missing_media_id');\n  return { media_id: mediaId, creation_id: creationId };\n}\nconst summary = {\n  dry_run: false,\n  scheduler: 'phase3c',\n  now_kst: nowSeoul.toISOString(),\n  total_queue_count: Object.keys(store.daily_publish_queue).length,\n  published: [],\n  blocked: [],\n  skipped: [],\n  errors: [],\n};\n\nconst entries = Object.entries(store.daily_publish_queue)\n  .map(([key, item]) => [key, item && typeof item === 'object' ? item : {}])\n  .sort((a,b) => String(a[1].planned_publish_time || '').localeCompare(String(b[1].planned_publish_time || '')));\n\nfor (const [key, item] of entries) {\n  item.test_id = String(item.test_id || key);\n  const status = String(item.status || '').toLowerCase();\n  const postType = String(item.post_type || '').toLowerCase();\n  const planned = parseTimeMinutes(item.planned_publish_time);\n  if (store.daily_deleted_items[item.test_id] || status === 'deleted') {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: 'deleted' });\n    continue;\n  }\n  if (status !== 'queued') {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: 'not_queued' });\n    continue;\n  }\n  if (planned === null || planned > nowMinutes) {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: planned === null ? 'planned_publish_time_missing_or_invalid' : 'not_due_yet' });\n    continue;\n  }\n\n  const guardReason = finalContentGuard(item);\n  if (guardReason) {\n    if (guardReason.startsWith('already_')) {\n      summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: guardReason });\n    } else {\n      summary.blocked.push(block(item, guardReason));\n    }\n    continue;\n  }\n\n  if (postType === 'carousel') {\n    summary.blocked.push(block(item, 'carousel_rate_limit_pending'));\n    continue;\n  }\n\n  try {\n    if (postType === 'reel') {\n      if (!/^https?:\\/\\//i.test(String(item.video_url || ''))) throw new Error('missing_reel_asset');\n      const res = await this.helpers.httpRequest({\n        method: 'POST',\n        url: 'https://n8n.mykindredai.com/webhook/clean_03_publisher',\n        body: {\n          caption: String(item.caption || ''),\n          video_url: String(item.video_url || ''),\n          test_id: item.test_id,\n          approved_via: 'phase3c_scheduler',\n          arm_live_publish: true,\n          daily_publish_limit: Number(item.daily_publish_limit || store.daily_publish_limit || 3),\n        },\n        json: true,\n        timeout: 120000,\n      });\n      item.publish_status = 'triggered';\n      item.triggered_at = new Date().toISOString();\n      item.publisher_workflow = 'clean_03_publisher';\n      item.publisher_execution_confirmed = false;\n      item.publisher_response = typeof res === 'object' ? res : { response: String(res || '') };\n      summary.triggered = Array.isArray(summary.triggered) ? summary.triggered : [];\n      summary.triggered.push({ test_id: item.test_id, post_type: postType, publisher: 'clean_03_publisher' });\n    } else if (postType === 'feed') {\n      const feed = await publishFeed.call(this, item);\n      item.publish_status = 'published';\n      item.published_at = new Date().toISOString();\n      item.media_id = feed.media_id;\n      item.creation_id = feed.creation_id;\n      item.publisher_workflow = 'phase3c_feed_inline';\n      summary.published.push({ test_id: item.test_id, post_type: postType, media_id: feed.media_id });\n    } else {\n      summary.blocked.push(block(item, 'unknown_post_type'));\n      continue;\n    }\n    if (item.content_hash) {\n      store.published_content_hashes.push({ test_id: item.test_id, post_type: postType, content_hash: item.content_hash, published_at: new Date().toISOString() });\n      store.published_content_hashes = store.published_content_hashes.slice(-500);\n    }\n  } catch (e) {\n    const response = e && e.response ? e.response : {};\n    const rawCandidate = e.graphBody || response.body || response.data || e.body || e.data || e.description || (e.cause && (e.cause.body || e.cause.data || e.cause.message)) || '';\n    let rawText = '';\n    if (typeof rawCandidate === 'string') {\n      rawText = rawCandidate;\n    } else if (rawCandidate && typeof rawCandidate === 'object') {\n      try { rawText = JSON.stringify(rawCandidate); } catch (_) { rawText = String(rawCandidate); }\n    }\n    if (!rawText) rawText = String(e.message || e || '');\n    rawText = rawText.split(ACCESS_TOKEN).join('REDACTED');\n    rawText = rawText.replace(/access_token=REDACTED&\\\\s]+)/gi, 'access_token=REDACTED\n    let responseBody = {};\n    try { responseBody = JSON.parse(rawText); } catch (_) { responseBody = {}; }\n    const graphError = responseBody && responseBody.error ? responseBody.error : {};\n    item.publish_status = 'failed';\n    item.failed_reason = String(e.message || e);\n    item.failed_at = new Date().toISOString();\n    item.graph_error_message = String(graphError.message || responseBody.message || rawText).slice(0, 1000);\n    item.graph_error_code = graphError.code !== undefined ? graphError.code : '';\n    item.graph_error_subcode = graphError.error_subcode !== undefined ? graphError.error_subcode : '';\n    item.graph_error_type = String(graphError.type || '');\n    item.graph_error_http_status = e.httpStatus || response.statusCode || response.status || '';\n    item.graph_error_raw_sanitized = rawText.slice(0, 2000);\n    item.graph_error_body_present = !!rawText;\n    summary.errors.push({\n      test_id: item.test_id,\n      post_type: postType,\n      error: item.failed_reason,\n      graph_error_message: item.graph_error_message,\n      graph_error_code: item.graph_error_code,\n      graph_error_subcode: item.graph_error_subcode\n    });\n  }\n}\n\ntry {\n  const text = [\n    '[PHASE 3C SCHEDULER]',\n    `published: ${summary.published.length}`,\n    `triggered: ${(summary.triggered || []).length}`,\n    `blocked: ${summary.blocked.length}`,\n    `skipped: ${summary.skipped.length}`,\n    `errors: ${summary.errors.length}`,\n    '',\n    '[PUBLISHED]',\n    summary.published.map(x => `- ${x.post_type} / ${x.test_id} / ${x.media_id || x.publisher || ''}`).join('\\n') || '없음',\n    '',\n    '[TRIGGERED]',\n    (summary.triggered || []).map(x => `- ${x.post_type} / ${x.test_id} / ${x.publisher || ''}`).join('\\n') || '없음',\n    '',\n    '[BLOCKED]',\n    summary.blocked.map(x => `- ${x.post_type} / ${x.test_id} / ${x.reason}`).join('\\n') || '없음',\n    '',\n    '[ERRORS]',\n    summary.errors.map(x => `- ${x.post_type} / ${x.test_id} / ${x.error}`).join('\\n') || '없음',\n  ].join('\\n');\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.telegram.org/botREDACTED/sendMessage',\n    body: { chat_id: '7592247598', text },\n    json: true,\n    timeout: 15000,\n  });\n} catch (e) {\n  summary.telegram_summary_error = String(e.message || e);\n}\n\nstore.last_phase3c_scheduler_summary = summary;\nreturn [{ json: summary }];\n"
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Normalize Callback",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Callback": {
+        "main": [
+          [
+            {
+              "node": "Route by Action",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route by Action": {
+        "main": [
+          [
+            {
+              "node": "Trigger Publisher",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Trigger Carousel Publisher",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger Publisher": {
+        "main": [
+          [
+            {
+              "node": "Record Publish Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger Carousel Publisher": {
+        "main": [
+          [
+            {
+              "node": "Record Publish Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Phase 3A Dry Run Webhook": {
+        "main": [
+          [
+            {
+              "node": "Phase 3A Queue Scanner Dry Run",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Phase 3C Scheduler Webhook": {
+        "main": [
+          [
+            {
+              "node": "Phase 3C Scheduler Execute",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "민호 김",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-26T06:51:46.191Z",
+        "id": 878,
+        "workflowId": "i6T6ke3ltKNQzaCl",
+        "versionId": "93b83800-f68c-417b-afb1-883ba67e9ccf",
+        "event": "activated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T06:51:46.154Z",
+        "id": 877,
+        "workflowId": "i6T6ke3ltKNQzaCl",
+        "versionId": "93b83800-f68c-417b-afb1-883ba67e9ccf",
+        "event": "deactivated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      }
+    ]
+  }
+}

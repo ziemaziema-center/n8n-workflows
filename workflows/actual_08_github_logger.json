@@ -1,0 +1,425 @@
+{
+  "updatedAt": "2026-04-26T08:09:06.589Z",
+  "createdAt": "2026-04-26T08:06:26.155Z",
+  "id": "erhlCDNhT4gFxFdS",
+  "name": "actual_08_github_logger",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "github-log-intake",
+      "name": "GitHub Log Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "github-log-intake",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {},
+        "responseData": "firstEntryJson"
+      },
+      "webhookId": "actual-08-github-log-intake"
+    },
+    {
+      "id": "prepare-github-log",
+      "name": "Prepare GitHub Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst input = $json.body && typeof $json.body === 'object' ? $json.body : $json;\nconst now = new Date();\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction stamp(d) {\n  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${String(d.getMilliseconds()).padStart(3, '0')}`;\n}\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'REDACTED');\n  s = s.replace(/(access_token=REDACTED&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{90,})/g, 'REDACTED');\n  return s;\n}\nconst isError = input.is_error === true || input.status === 'error' || !!input.error;\nconst ts = stamp(now);\nconst payload = {\n  captured_at: now.toISOString(),\n  source: input.source || 'n8n',\n  workflow_name: input.workflow_name || input.workflowName || '',\n  workflow_id: input.workflow_id || input.workflowId || '',\n  execution_id: input.execution_id || input.executionId || '',\n  status: input.status || (isError ? 'error' : 'success'),\n  is_error: isError,\n  data: input,\n};\nconst sanitized = JSON.parse(redact(payload));\nreturn [{\n  json: {\n    ...sanitized,\n    github_execution_path: `logs/executions/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_error_path: `logs/errors/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_content: JSON.stringify(sanitized, null, 2),\n    commit_message: `debug: github_logger - stored ${isError ? 'error' : 'execution'} log`\n  }\n}];\n"
+      }
+    },
+    {
+      "id": "save-execution-log",
+      "name": "Save Execution Log",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "owner": {
+          "__rl": true,
+          "value": "ziemaziema-center",
+          "mode": "list"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "n8n-workflows",
+          "mode": "list"
+        },
+        "filePath": "={{$json.github_execution_path}}",
+        "fileContent": "={{$json.github_content}}",
+        "commitMessage": "={{$json.commit_message}}"
+      },
+      "credentials": "REDACTED",
+      "webhookId": "00d28814-5294-4ce1-851c-9c4bb2b6b17e"
+    },
+    {
+      "id": "if-error-log",
+      "name": "If Error Log",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        760,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.is_error}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "save-error-log",
+      "name": "Save Error Log",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        -80
+      ],
+      "parameters": {
+        "resource": "file",
+        "owner": {
+          "__rl": true,
+          "value": "ziemaziema-center",
+          "mode": "list"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "n8n-workflows",
+          "mode": "list"
+        },
+        "filePath": "={{$json.github_error_path}}",
+        "fileContent": "={{$json.github_content}}",
+        "commitMessage": "={{$json.commit_message}}"
+      },
+      "credentials": "REDACTED",
+      "webhookId": "cad4b512-6441-4bc6-8f6e-b629d527c07d"
+    }
+  ],
+  "connections": {
+    "GitHub Log Intake": {
+      "main": [
+        [
+          {
+            "node": "Prepare GitHub Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare GitHub Log": {
+      "main": [
+        [
+          {
+            "node": "Save Execution Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Execution Log": {
+      "main": [
+        [
+          {
+            "node": "If Error Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Error Log": {
+      "main": [
+        [
+          {
+            "node": "Save Error Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul",
+    "saveExecutionProgress": true,
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {},
+  "meta": null,
+  "pinData": null,
+  "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+  "activeVersionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+  "versionCounter": 8,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-26T08:06:26.163Z",
+      "createdAt": "2026-04-26T08:06:26.163Z",
+      "role": "workflow:owner",
+      "workflowId": "erhlCDNhT4gFxFdS",
+      "projectId": "M3e6xHUu7VezXSBg",
+      "project": {
+        "updatedAt": "2026-04-07T04:41:49.347Z",
+        "createdAt": "2026-04-05T09:30:33.360Z",
+        "id": "M3e6xHUu7VezXSBg",
+        "name": "민호 김 <ziemaziema@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-26T08:09:06.590Z",
+    "createdAt": "2026-04-26T08:09:06.590Z",
+    "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+    "workflowId": "erhlCDNhT4gFxFdS",
+    "nodes": [
+      {
+        "id": "github-log-intake",
+        "name": "GitHub Log Intake",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "path": "github-log-intake",
+          "httpMethod": "POST",
+          "responseMode": "onReceived",
+          "options": {},
+          "responseData": "firstEntryJson"
+        },
+        "webhookId": "actual-08-github-log-intake"
+      },
+      {
+        "id": "prepare-github-log",
+        "name": "Prepare GitHub Log",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {
+          "jsCode": "\nconst input = $json.body && typeof $json.body === 'object' ? $json.body : $json;\nconst now = new Date();\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction stamp(d) {\n  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${String(d.getMilliseconds()).padStart(3, '0')}`;\n}\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'REDACTED');\n  s = s.replace(/(access_token=REDACTED&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{90,})/g, 'REDACTED');\n  return s;\n}\nconst isError = input.is_error === true || input.status === 'error' || !!input.error;\nconst ts = stamp(now);\nconst payload = {\n  captured_at: now.toISOString(),\n  source: input.source || 'n8n',\n  workflow_name: input.workflow_name || input.workflowName || '',\n  workflow_id: input.workflow_id || input.workflowId || '',\n  execution_id: input.execution_id || input.executionId || '',\n  status: input.status || (isError ? 'error' : 'success'),\n  is_error: isError,\n  data: input,\n};\nconst sanitized = JSON.parse(redact(payload));\nreturn [{\n  json: {\n    ...sanitized,\n    github_execution_path: `logs/executions/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_error_path: `logs/errors/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_content: JSON.stringify(sanitized, null, 2),\n    commit_message: `debug: github_logger - stored ${isError ? 'error' : 'execution'} log`\n  }\n}];\n"
+        }
+      },
+      {
+        "id": "save-execution-log",
+        "name": "Save Execution Log",
+        "type": "n8n-nodes-base.github",
+        "typeVersion": 1,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {
+          "resource": "file",
+          "owner": {
+            "__rl": true,
+            "value": "ziemaziema-center",
+            "mode": "list"
+          },
+          "repository": {
+            "__rl": true,
+            "value": "n8n-workflows",
+            "mode": "list"
+          },
+          "filePath": "={{$json.github_execution_path}}",
+          "fileContent": "={{$json.github_content}}",
+          "commitMessage": "={{$json.commit_message}}"
+        },
+        "credentials": "REDACTED",
+        "webhookId": "00d28814-5294-4ce1-851c-9c4bb2b6b17e"
+      },
+      {
+        "id": "if-error-log",
+        "name": "If Error Log",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          760,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.is_error}}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "save-error-log",
+        "name": "Save Error Log",
+        "type": "n8n-nodes-base.github",
+        "typeVersion": 1,
+        "position": [
+          1000,
+          -80
+        ],
+        "parameters": {
+          "resource": "file",
+          "owner": {
+            "__rl": true,
+            "value": "ziemaziema-center",
+            "mode": "list"
+          },
+          "repository": {
+            "__rl": true,
+            "value": "n8n-workflows",
+            "mode": "list"
+          },
+          "filePath": "={{$json.github_error_path}}",
+          "fileContent": "={{$json.github_content}}",
+          "commitMessage": "={{$json.commit_message}}"
+        },
+        "credentials": "REDACTED",
+        "webhookId": "cad4b512-6441-4bc6-8f6e-b629d527c07d"
+      }
+    ],
+    "connections": {
+      "GitHub Log Intake": {
+        "main": [
+          [
+            {
+              "node": "Prepare GitHub Log",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare GitHub Log": {
+        "main": [
+          [
+            {
+              "node": "Save Execution Log",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save Execution Log": {
+        "main": [
+          [
+            {
+              "node": "If Error Log",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If Error Log": {
+        "main": [
+          [
+            {
+              "node": "Save Error Log",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      }
+    },
+    "authors": "민호 김",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-26T08:09:06.651Z",
+        "id": 887,
+        "workflowId": "erhlCDNhT4gFxFdS",
+        "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+        "event": "activated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T08:09:06.722Z",
+        "id": 889,
+        "workflowId": "erhlCDNhT4gFxFdS",
+        "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+        "event": "activated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T08:09:06.628Z",
+        "id": 886,
+        "workflowId": "erhlCDNhT4gFxFdS",
+        "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+        "event": "deactivated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T08:09:06.700Z",
+        "id": 888,
+        "workflowId": "erhlCDNhT4gFxFdS",
+        "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+        "event": "deactivated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      }
+    ]
+  }
+}
