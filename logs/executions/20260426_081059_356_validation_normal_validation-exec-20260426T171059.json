@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-04-26T08:10:59.356Z",
+  "source": "n8n",
+  "workflow_name": "validation_normal",
+  "workflow_id": "validation",
+  "execution_id": "validation-exec-20260426T171059",
+  "status": "success",
+  "is_error": false,
+  "data": {
+    "workflow_name": "validation_normal",
+    "workflow_id": "validation",
+    "execution_id": "validation-exec-20260426T171059",
+    "status": "success",
+    "timestamp": "20260426T171059",
+    "test_id": "github-logger-normal-20260426T171059",
+    "message": "sanitized validation execution log"
+  }
+}
