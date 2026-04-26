@@ -1,0 +1,16 @@
+{
+  "workflow": "actual_07_auto_debugger_collector",
+  "mode": "event_driven",
+  "event_received": true,
+  "analyzed_execution": "validation-debug-20260426T171059",
+  "workflow_name": "validation_debug_workflow",
+  "node_name": "validation failed node",
+  "severity": "medium",
+  "status": "alerted",
+  "gpt_called": true,
+  "telegram_alert_sent": true,
+  "duplicate_alert_guard": true,
+  "publish_calls": 0,
+  "patch_calls": 0,
+  "token_redaction_confirmed": true
+}
