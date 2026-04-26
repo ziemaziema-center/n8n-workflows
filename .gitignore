@@ -1,0 +1,19 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local n8n execution/debug dumps
+tmp_*
+execution_*.json
+executions_*.json
+
+# Root-level one-off workflow backups.
+# Canonical dated backups live under backups/YYYY-MM-DD/ and stay trackable.
+backup_*.json
+backup_*.js
+clean_*_backup_*.json
+actual_*_backup_*.json
+
+# Local verification scratch files
+verify_*.txt
+verify_*.json
