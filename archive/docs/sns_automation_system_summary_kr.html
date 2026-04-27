@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>SNS 자동화 시스템 요약</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #e7e7e7;
+      color: #151515;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      line-height: 1.45;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto;
+      padding: 16mm 17mm;
+      background: #fff;
+      page-break-after: always;
+      overflow: hidden;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .header {
+      border-bottom: 2px solid #111;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 5px;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 10.5px;
+      color: #555;
+    }
+
+    h2 {
+      margin: 12px 0 6px;
+      font-size: 14px;
+      line-height: 1.25;
+      border-left: 4px solid #111;
+      padding-left: 7px;
+    }
+
+    h3 {
+      margin: 8px 0 4px;
+      font-size: 11.5px;
+    }
+
+    p {
+      margin: 0 0 6px;
+      font-size: 9.7px;
+    }
+
+    ul {
+      margin: 0 0 8px 16px;
+      padding: 0;
+    }
+
+    li {
+      margin: 0 0 3px;
+      font-size: 9.5px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+    }
+
+    .box {
+      border: 1px solid #cfcfcf;
+      border-radius: 6px;
+      padding: 8px 9px;
+      background: #fafafa;
+    }
+
+    .box h3 {
+      margin-top: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 4px 0 8px;
+      font-size: 8.7px;
+    }
+
+    th,
+    td {
+      border: 1px solid #d7d7d7;
+      padding: 4px 5px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f1f1;
+      font-weight: 700;
+    }
+
+    .note {
+      background: #f6f6f6;
+      border: 1px solid #d6d6d6;
+      padding: 7px 8px;
+      border-radius: 6px;
+      font-size: 9px;
+    }
+
+    .small {
+      font-size: 8.7px;
+      color: #555;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 1px 5px 2px;
+      border-radius: 4px;
+      background: #111;
+      color: #fff;
+      font-size: 8.5px;
+    }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <div class="header">
+      <h1>SNS 자동화 시스템 요약</h1>
+      <p class="subtitle">n8n 기반 Instagram 성장/수익화 자동화 파이프라인 운영 문서 · 2026-04-25 기준</p>
+    </div>
+
+    <h2>1. 이 시스템의 목적</h2>
+    <p>
+      이 프로젝트는 Instagram 계정을 빠르게 성장시키고, 조회수·저장·공유·DM 유입을 통해 수익화 기회를 만드는 자동화 시스템이다.
+      핵심은 “콘텐츠를 자동 생성하고, Telegram에서 사람이 승인한 것만 Instagram에 발행하는 구조”다. 완전 자동 발행이 아니라,
+      사람이 마지막 품질과 안전을 확인하는 approval 기반 운영 방식을 유지한다.
+    </p>
+    <p>
+      현재 시스템은 릴스 중심으로 안정화되어 있으며, 캐러셀 발행은 별도 브랜치로 확장 중이다. 콘텐츠 전략은 소비자 관점의 강한 훅,
+      불편한 질문, 저장 유도, DM 전환을 목표로 한다. 내부적으로는 B2C 중심 콘텐츠를 통해 B2B 해석과 문의를 유도하는 구조다.
+    </p>
+
+    <h2>2. 전체 구조</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>워크플로우</th>
+          <th>역할</th>
+          <th>현재 상태</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>clean_01_generator</strong></td>
+          <td>콘텐츠 생성, 이미지/릴 영상 생성, Telegram preview 전송, carousel payload/cache 준비</td>
+          <td><span class="status">운영</span> Telegram preview 정상</td>
+        </tr>
+        <tr>
+          <td><strong>clean_02_approval</strong></td>
+          <td>Telegram 버튼 callback 수신, Approve Reel/Carousel 분기, publisher webhook 호출</td>
+          <td><span class="status">운영</span> callback 정상 수신</td>
+        </tr>
+        <tr>
+          <td><strong>clean_03_publisher</strong></td>
+          <td>승인된 Reel을 Instagram Graph API로 발행, caption validator, one-shot gate, disarm 처리</td>
+          <td><span class="status">성공</span> Reel publish 검증됨</td>
+        </tr>
+        <tr>
+          <td><strong>clean_04_carousel_publisher</strong></td>
+          <td>carousel image child container 생성, parent container 생성, Instagram carousel publish</td>
+          <td><span class="status">진단중</span> 최종 publish에서 Meta 제한 발생</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. 콘텐츠 생성 기능</h2>
+    <div class="grid">
+      <div class="box">
+        <h3>Caption / Hook 생성</h3>
+        <ul>
+          <li>한국어 caption 생성</li>
+          <li>강한 첫 줄 훅, 손해·의심·억울함·궁금증 유도</li>
+          <li>B2C 소비자 관점 우선, B2B 신호는 숨은 구조로 유지</li>
+          <li>약 100단어 수준의 설명형 caption으로 품질 보강</li>
+          <li>Telegram preview와 Instagram caption 인코딩 깨짐 방지</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Media Prompt / 이미지 생성</h3>
+        <ul>
+          <li>릴스용 장면 이미지 생성</li>
+          <li>캐러셀용 이미지 프롬프트 생성</li>
+          <li>OpenAI 이미지 모델은 비용 절감을 위해 <strong>gpt-image-1-mini / medium</strong>으로 통일</li>
+          <li>b64_json 결과를 PNG 파일로 저장 후 public URL로 변환</li>
+          <li>이미지 생성 실패 시 fallback 이미지로 Telegram preview 유지</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>4. Reel 파이프라인</h2>
+    <p>
+      Reel 파이프라인은 현재 가장 안정적인 발행 경로다. generator가 8장 전후의 이미지 장면과 caption을 준비하고,
+      FFmpeg 서비스가 약 10초 내외의 mp4 릴 영상으로 변환한다. 영상은 public URL로 노출되고 Telegram preview에 영상으로 전송된다.
+      사용자가 <strong>Approve Reel</strong>을 누르면 approval workflow가 publisher를 호출하고, publisher는 one-shot gate를 통과한 1건만 Instagram에 발행한다.
+    </p>
+    <ul>
+      <li>Telegram video preview: 정상</li>
+      <li>Approve Reel 버튼: 정상</li>
+      <li>Instagram Reel publish: 성공 확인됨, 최근 성공 execution 예: <strong>4084</strong></li>
+      <li>caption UTF-8: Telegram 및 Instagram 최종 게시물에서 정상 확인</li>
+      <li>post 성공 후 gate disarm: 적용됨</li>
+    </ul>
+
+    <h2>5. Telegram 승인 UI</h2>
+    <p>
+      Telegram은 운영자가 콘텐츠를 확인하고 발행 여부를 결정하는 제어판이다. 새 preview 메시지는 하나만 보내도록
+      <strong>Collapse to Single Item</strong> 처리가 들어가 있으며, 중복 preview 방지를 목표로 한다.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>버튼</th>
+          <th>기능</th>
+          <th>주의점</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Approve Reel</td>
+          <td>기존 안정 Reel publisher 실행</td>
+          <td>승인 즉시 발행, 예약 발행 아님</td>
+        </tr>
+        <tr>
+          <td>Approve Carousel</td>
+          <td>별도 carousel publisher 실행</td>
+          <td>현재 Meta 요청 제한으로 최종 발행은 보류 상태</td>
+        </tr>
+        <tr>
+          <td>Approve (Legacy)</td>
+          <td>기존 메시지 호환용 Reel approve</td>
+          <td>과거 Telegram 메시지 보호 목적</td>
+        </tr>
+        <tr>
+          <td>Regen Text / Regen Media</td>
+          <td>텍스트 또는 미디어 재생성 흐름</td>
+          <td>approval/publisher와 분리</td>
+        </tr>
+        <tr>
+          <td>Delete</td>
+          <td>해당 preview 폐기</td>
+          <td>발행하지 않음</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="page">
+    <div class="header">
+      <h1>운영 기능과 제어 포인트</h1>
+      <p class="subtitle">승인 기반 발행, 안전장치, 비용 제어, 현재 리스크 정리</p>
+    </div>
+
+    <h2>6. Carousel 파이프라인</h2>
+    <p>
+      Carousel은 Reel과 별도 경로로 분리되어 있다. generator가 carousel slides와 image prompts를 만들고,
+      이미지 생성 결과를 public PNG URL로 저장한다. 이후 <strong>Approve Carousel</strong> 버튼을 누르면
+      clean_04_carousel_publisher가 이미지별 child container를 만들고, 이를 parent carousel container로 묶은 뒤 최종 publish를 시도한다.
+    </p>
+    <ul>
+      <li>carousel preview text: Telegram 메시지 내 <strong>[CAROUSEL]</strong> 블록으로 표시</li>
+      <li>carousel image URL 생성: 성공, public HTTP 200 확인</li>
+      <li>child container 생성: 성공</li>
+      <li>parent container 생성: 성공</li>
+      <li>최종 publish: Meta/Instagram 응답 <strong>Application request limit reached</strong>, code 4, subcode 2207051로 차단</li>
+    </ul>
+    <p class="note">
+      현재 carousel 실패는 단순 문법 문제가 아니라 Instagram 측 행동 제한 또는 요청 제한에 가깝다.
+      즉시 반복 시도하면 제한이 길어질 수 있어, 자동 재시도는 피하고 일정 시간 후 1회 단위로 검증하는 운영이 안전하다.
+    </p>
+
+    <h2>7. 안전장치</h2>
+    <div class="grid">
+      <div class="box">
+        <h3>승인 기반 발행</h3>
+        <ul>
+          <li>generator는 preview만 생성</li>
+          <li>Instagram publish는 Telegram approve 이후에만 시작</li>
+          <li>Approve Reel과 Approve Carousel은 분리</li>
+          <li>한 번의 승인으로 한 가지 게시물만 발행</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>One-shot Gate</h3>
+        <ul>
+          <li>publisher 실행 전 live publish 허용 여부 확인</li>
+          <li>승인 요청일 때만 gate arm</li>
+          <li>publish 시도 후 자동 disarm</li>
+          <li>의도치 않은 자동 발행 방지</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Caption Encoding Validator</h3>
+        <ul>
+          <li>caption에 <strong>??</strong>, 반복 물음표, replacement character가 있으면 publish 차단</li>
+          <li>한국어 깨짐이 Telegram 또는 Instagram에 도달하지 않도록 방어</li>
+          <li>Reel publisher 내부에 유지</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Daily Cap / Dedupe</h3>
+        <ul>
+          <li>하루 발행 수 제한 기본값 3</li>
+          <li>성공한 publish만 성공 로그에 기록</li>
+          <li>동일 action/test_id 중복 approve 방지</li>
+          <li>발행 폭주 방지 목적</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>8. 제어 가능한 기능</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>제어 항목</th>
+          <th>현재 방식</th>
+          <th>운영 의미</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>콘텐츠 생성 시간</td>
+          <td>Cron Trigger, 수동 generator 실행</td>
+          <td>콘텐츠 preview 생성 시점 제어</td>
+        </tr>
+        <tr>
+          <td>발행 여부</td>
+          <td>Telegram Approve 버튼</td>
+          <td>사람 승인 없이는 발행 안 됨</td>
+        </tr>
+        <tr>
+          <td>발행 타입</td>
+          <td>Approve Reel / Approve Carousel</td>
+          <td>Reel과 Carousel 독립 제어</td>
+        </tr>
+        <tr>
+          <td>일일 발행 수</td>
+          <td>daily_publish_limit</td>
+          <td>기본 3개, 과발행 방지</td>
+        </tr>
+        <tr>
+          <td>이미지 비용</td>
+          <td>gpt-image-1-mini + medium</td>
+          <td>OpenAI 이미지 생성 비용 절감</td>
+        </tr>
+        <tr>
+          <td>실패 처리</td>
+          <td>fallback image, validation block, no auto retry</td>
+          <td>오류가 publish 사고로 이어지지 않게 함</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>9. 현재 운영 상태</h2>
+    <ul>
+      <li><strong>정상:</strong> Telegram preview, Korean caption, Reel video generation, Reel publish, public image URL save flow</li>
+      <li><strong>정상:</strong> Approve Reel callback routing, clean_03 publisher, IG Reel final publish</li>
+      <li><strong>부분 정상:</strong> Carousel child/parent container 생성</li>
+      <li><strong>보류:</strong> Carousel final publish, Instagram Graph API 403 제한 응답 발생</li>
+      <li><strong>비용 최적화:</strong> 전체 이미지 생성 요청을 gpt-image-1-mini / medium으로 변경 완료</li>
+    </ul>
+
+    <h2>10. 앞으로의 운영 원칙</h2>
+    <p>
+      이 시스템은 “완전 자동으로 많이 올리는 장치”보다 “좋은 preview를 만들고, 사람이 고른 콘텐츠만 안전하게 올리는 성장 운영 장치”에 가깝다.
+      지금은 Reel을 중심으로 실제 게시 데이터를 쌓고, 저장·공유·DM 반응을 보면서 hook과 주제 메모리를 업데이트하는 단계가 가장 중요하다.
+    </p>
+    <ul>
+      <li>Reel은 운영 가능 상태이므로 하루 1~3개 이내로 승인 운영</li>
+      <li>Carousel은 Meta 제한이 풀린 뒤 단일 검증부터 재개</li>
+      <li>실패 시 자동 재시도 금지, execution ID와 node error 기준으로 진단</li>
+      <li>성과 데이터는 raw log가 아니라 짧은 memory rule로 압축해 다음 generation에 반영</li>
+      <li>새 기능 추가보다 안정 발행 3회 연속 성공과 반응 데이터 확보를 우선</li>
+    </ul>
+
+    <p class="note">
+      한 줄 결론: 현재 시스템은 Reel 중심 Instagram 자동화 운영에는 사용할 수 있는 상태이며,
+      Carousel은 publish 단계에서 플랫폼 제한을 만난 상태다. 핵심 자산은 이미 만들어져 있고,
+      가장 중요한 안전 구조인 “Telegram 승인 후 1건 발행” 원칙은 유지되고 있다.
+    </p>
+
+    <p class="small">
+      문서 기준: 2026-04-25, Asia/Seoul. 민감한 token/credential 값은 문서에 포함하지 않음.
+    </p>
+  </section>
+</body>
+</html>
