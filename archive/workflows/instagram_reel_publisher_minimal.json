@@ -1,5 +1,5 @@
 {
-  "name": "instagram_reel_publisher_minimal",
+  "name": "zzz_03_Instagram_Publisher_minimal",
   "nodes": [
     {
       "parameters": {},
@@ -7,7 +7,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 320]
+      "position": [
+        240,
+        320
+      ]
     },
     {
       "parameters": {
@@ -17,7 +20,10 @@
       "name": "Prepare Publish Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 320]
+      "position": [
+        480,
+        320
+      ]
     },
     {
       "parameters": {
@@ -52,7 +58,10 @@
       "name": "Create Media Container",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [760, 320]
+      "position": [
+        760,
+        320
+      ]
     },
     {
       "parameters": {
@@ -62,7 +71,10 @@
       "name": "Parse Create Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1040, 320]
+      "position": [
+        1040,
+        320
+      ]
     },
     {
       "parameters": {
@@ -120,7 +132,10 @@
       "name": "Switch Create Status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
-      "position": [1280, 320]
+      "position": [
+        1280,
+        320
+      ]
     },
     {
       "parameters": {
@@ -130,7 +145,10 @@
       "name": "Wait Before Retry",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1520, 520]
+      "position": [
+        1520,
+        520
+      ]
     },
     {
       "parameters": {
@@ -165,7 +183,10 @@
       "name": "Create Media Container Retry",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1760, 520]
+      "position": [
+        1760,
+        520
+      ]
     },
     {
       "parameters": {
@@ -175,7 +196,10 @@
       "name": "Parse Retry Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 520]
+      "position": [
+        2000,
+        520
+      ]
     },
     {
       "parameters": {
@@ -233,7 +257,10 @@
       "name": "Switch Retry Status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
-      "position": [2240, 520]
+      "position": [
+        2240,
+        520
+      ]
     },
     {
       "parameters": {
@@ -243,7 +270,10 @@
       "name": "Wait Before Publish",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1520, 320]
+      "position": [
+        1520,
+        320
+      ]
     },
     {
       "parameters": {
@@ -270,7 +300,10 @@
       "name": "Publish Reel",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1760, 320]
+      "position": [
+        1760,
+        320
+      ]
     },
     {
       "parameters": {
@@ -280,7 +313,10 @@
       "name": "Parse Publish Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 320]
+      "position": [
+        2000,
+        320
+      ]
     },
     {
       "parameters": {
@@ -290,7 +326,10 @@
       "name": "Build Failure Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2480, 520]
+      "position": [
+        2480,
+        520
+      ]
     }
   ],
   "connections": {

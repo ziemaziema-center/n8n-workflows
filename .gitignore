@@ -4,6 +4,7 @@ __pycache__/
 
 # Local n8n execution/debug dumps
 tmp_*
+tmp/
 execution_*.json
 executions_*.json
 

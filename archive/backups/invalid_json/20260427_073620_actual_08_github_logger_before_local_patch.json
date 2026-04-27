@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-26T08:06:26.155Z",
+  "updatedAt": "2026-04-26T08:09:06.589Z",
   "createdAt": "2026-04-26T08:06:26.155Z",
   "id": "erhlCDNhT4gFxFdS",
   "name": "actual_08_github_logger",
@@ -19,8 +19,9 @@
       "parameters": {
         "path": "github-log-intake",
         "httpMethod": "POST",
-        "responseMode": "lastNode",
-        "options": {}
+        "responseMode": "onReceived",
+        "options": {},
+        "responseData": "firstEntryJson"
       },
       "webhookId": "actual-08-github-log-intake"
     },
@@ -34,7 +35,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "\nconst input = $json.body && typeof $json.body === 'object' ? $json.body : $json;\nconst now = new Date();\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction stamp(d) {\n  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${String(d.getMilliseconds()).padStart(3, '0')}`;\n}\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'Bearer REDACTED');\n  s = s.replace(/(access_token=)[^&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{90,})/g, 'REDACTED');\n  return s;\n}\nconst isError = input.is_error === true || input.status === 'error' || !!input.error;\nconst ts = stamp(now);\nconst payload = {\n  captured_at: now.toISOString(),\n  source: input.source || 'n8n',\n  workflow_name: input.workflow_name || input.workflowName || '',\n  workflow_id: input.workflow_id || input.workflowId || '',\n  execution_id: input.execution_id || input.executionId || '',\n  status: input.status || (isError ? 'error' : 'success'),\n  is_error: isError,\n  data: input,\n};\nconst sanitized = JSON.parse(redact(payload));\nreturn [{\n  json: {\n    ...sanitized,\n    github_execution_path: `logs/executions/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_error_path: `logs/errors/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_content: JSON.stringify(sanitized, null, 2),\n    commit_message: `debug: github_logger - stored ${isError ? 'error' : 'execution'} log`\n  }\n}];\n"
+        "jsCode": "\nconst input = $json.body && typeof $json.body === 'object' ? $json.body : $json;\nconst now = new Date();\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction stamp(d) {\n  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${String(d.getMilliseconds()).padStart(3, '0')}`;\n}\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'REDACTED');\n  s = s.replace(/(access_token=REDACTED&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{90,})/g, 'REDACTED');\n  return s;\n}\nconst isError = input.is_error === true || input.status === 'error' || !!input.error;\nconst ts = stamp(now);\nconst payload = {\n  captured_at: now.toISOString(),\n  source: input.source || 'n8n',\n  workflow_name: input.workflow_name || input.workflowName || '',\n  workflow_id: input.workflow_id || input.workflowId || '',\n  execution_id: input.execution_id || input.executionId || '',\n  status: input.status || (isError ? 'error' : 'success'),\n  is_error: isError,\n  data: input,\n};\nconst sanitized = JSON.parse(redact(payload));\nreturn [{\n  json: {\n    ...sanitized,\n    github_execution_path: `logs/executions/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_error_path: `logs/errors/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_content: JSON.stringify(sanitized, null, 2),\n    commit_message: `debug: github_logger - stored ${isError ? 'error' : 'execution'} log`\n  }\n}];\n"
       }
     },
     {
@@ -62,12 +63,7 @@
         "fileContent": "={{$json.github_content}}",
         "commitMessage": "={{$json.commit_message}}"
       },
-      "credentials": {
-        "githubApi": {
-          "id": "O7eKphCyetHxJPQk",
-          "name": "GitHub account"
-        }
-      },
+      "credentials": "REDACTED",
       "webhookId": "00d28814-5294-4ce1-851c-9c4bb2b6b17e"
     },
     {
@@ -127,12 +123,7 @@
         "fileContent": "={{$json.github_content}}",
         "commitMessage": "={{$json.commit_message}}"
       },
-      "credentials": {
-        "githubApi": {
-          "id": "O7eKphCyetHxJPQk",
-          "name": "GitHub account"
-        }
-      },
+      "credentials": "REDACTED",
       "webhookId": "cad4b512-6441-4bc6-8f6e-b629d527c07d"
     }
   ],
@@ -195,9 +186,9 @@
   "staticData": {},
   "meta": null,
   "pinData": null,
-  "versionId": "cb05f562-ad2d-4712-882e-8cf81243a8d9",
-  "activeVersionId": "cb05f562-ad2d-4712-882e-8cf81243a8d9",
-  "versionCounter": 3,
+  "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+  "activeVersionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+  "versionCounter": 8,
   "triggerCount": 1,
   "shared": [
     {
@@ -220,9 +211,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-04-26T08:06:26.168Z",
-    "createdAt": "2026-04-26T08:06:26.168Z",
-    "versionId": "cb05f562-ad2d-4712-882e-8cf81243a8d9",
+    "updatedAt": "2026-04-26T08:09:06.590Z",
+    "createdAt": "2026-04-26T08:09:06.590Z",
+    "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
     "workflowId": "erhlCDNhT4gFxFdS",
     "nodes": [
       {
@@ -237,8 +228,9 @@
         "parameters": {
           "path": "github-log-intake",
           "httpMethod": "POST",
-          "responseMode": "lastNode",
-          "options": {}
+          "responseMode": "onReceived",
+          "options": {},
+          "responseData": "firstEntryJson"
         },
         "webhookId": "actual-08-github-log-intake"
       },
@@ -252,7 +244,7 @@
           0
         ],
         "parameters": {
-          "jsCode": "\nconst input = $json.body && typeof $json.body === 'object' ? $json.body : $json;\nconst now = new Date();\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction stamp(d) {\n  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${String(d.getMilliseconds()).padStart(3, '0')}`;\n}\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'Bearer REDACTED');\n  s = s.replace(/(access_token=)[^&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{90,})/g, 'REDACTED');\n  return s;\n}\nconst isError = input.is_error === true || input.status === 'error' || !!input.error;\nconst ts = stamp(now);\nconst payload = {\n  captured_at: now.toISOString(),\n  source: input.source || 'n8n',\n  workflow_name: input.workflow_name || input.workflowName || '',\n  workflow_id: input.workflow_id || input.workflowId || '',\n  execution_id: input.execution_id || input.executionId || '',\n  status: input.status || (isError ? 'error' : 'success'),\n  is_error: isError,\n  data: input,\n};\nconst sanitized = JSON.parse(redact(payload));\nreturn [{\n  json: {\n    ...sanitized,\n    github_execution_path: `logs/executions/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_error_path: `logs/errors/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_content: JSON.stringify(sanitized, null, 2),\n    commit_message: `debug: github_logger - stored ${isError ? 'error' : 'execution'} log`\n  }\n}];\n"
+          "jsCode": "\nconst input = $json.body && typeof $json.body === 'object' ? $json.body : $json;\nconst now = new Date();\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction stamp(d) {\n  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${String(d.getMilliseconds()).padStart(3, '0')}`;\n}\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'REDACTED');\n  s = s.replace(/(access_token=REDACTED&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{90,})/g, 'REDACTED');\n  return s;\n}\nconst isError = input.is_error === true || input.status === 'error' || !!input.error;\nconst ts = stamp(now);\nconst payload = {\n  captured_at: now.toISOString(),\n  source: input.source || 'n8n',\n  workflow_name: input.workflow_name || input.workflowName || '',\n  workflow_id: input.workflow_id || input.workflowId || '',\n  execution_id: input.execution_id || input.executionId || '',\n  status: input.status || (isError ? 'error' : 'success'),\n  is_error: isError,\n  data: input,\n};\nconst sanitized = JSON.parse(redact(payload));\nreturn [{\n  json: {\n    ...sanitized,\n    github_execution_path: `logs/executions/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_error_path: `logs/errors/${ts}_${sanitized.workflow_name || 'workflow'}_${sanitized.execution_id || 'execution'}.json`.replace(/[^A-Za-z0-9_./-]/g, '_'),\n    github_content: JSON.stringify(sanitized, null, 2),\n    commit_message: `debug: github_logger - stored ${isError ? 'error' : 'execution'} log`\n  }\n}];\n"
         }
       },
       {
@@ -280,12 +272,7 @@
           "fileContent": "={{$json.github_content}}",
           "commitMessage": "={{$json.commit_message}}"
         },
-        "credentials": {
-          "githubApi": {
-            "id": "O7eKphCyetHxJPQk",
-            "name": "GitHub account"
-          }
-        },
+        "credentials": "REDACTED",
         "webhookId": "00d28814-5294-4ce1-851c-9c4bb2b6b17e"
       },
       {
@@ -345,12 +332,7 @@
           "fileContent": "={{$json.github_content}}",
           "commitMessage": "={{$json.commit_message}}"
         },
-        "credentials": {
-          "githubApi": {
-            "id": "O7eKphCyetHxJPQk",
-            "name": "GitHub account"
-          }
-        },
+        "credentials": "REDACTED",
         "webhookId": "cad4b512-6441-4bc6-8f6e-b629d527c07d"
       }
     ],
@@ -407,11 +389,35 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-04-26T08:06:26.355Z",
-        "id": 881,
+        "createdAt": "2026-04-26T08:09:06.651Z",
+        "id": 887,
         "workflowId": "erhlCDNhT4gFxFdS",
-        "versionId": "cb05f562-ad2d-4712-882e-8cf81243a8d9",
+        "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
         "event": "activated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T08:09:06.722Z",
+        "id": 889,
+        "workflowId": "erhlCDNhT4gFxFdS",
+        "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+        "event": "activated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T08:09:06.628Z",
+        "id": 886,
+        "workflowId": "erhlCDNhT4gFxFdS",
+        "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+        "event": "deactivated",
+        "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+      },
+      {
+        "createdAt": "2026-04-26T08:09:06.700Z",
+        "id": 888,
+        "workflowId": "erhlCDNhT4gFxFdS",
+        "versionId": "6805088a-0e15-4ba8-a8e2-e8f1ed8aacd9",
+        "event": "deactivated",
         "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
       }
     ]
