@@ -1,0 +1,1265 @@
+[
+  {
+    "updatedAt": "2026-04-26T14:58:46.927Z",
+    "createdAt": "2026-04-20T12:50:30.139Z",
+    "id": "KPa5tncCc87z2ZsE",
+    "name": "clean_01_generator",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "clean-gen-trigger",
+        "name": "Webhook",
+        "parameters": {
+          "path": "clean_01_generator",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          240,
+          300
+        ],
+        "typeVersion": 2,
+        "webhookId": "1387cc4d-2faa-4e32-8a7b-ff91798bf1eb"
+      },
+      {
+        "id": "clean-gen-build",
+        "name": "Build Simulation Content",
+        "parameters": {
+          "jsCode": "const GLOBAL_STYLE = `Create a realistic Instagram Reel thumbnail image.\nScene: A moody, realistic Korean retail/store or consumer environment\nrelated to vaping market confusion OR emotional tension.\nStyle: dark gray background, warm indoor lighting, high contrast,\ncinematic, documentary style, slightly uncomfortable, realistic,\nnot polished.\nRules: no text, no logo, no brand, no advertisement feel,\nno clean product shot, no sexualized content,\nno attractive posing, no face-focused image.\nAdditional:\n- 70%: market / store / system confusion scenes\n- 30%: emotional tension scenes using hands, hesitation,\n  silhouette, or decision moment only\nGoal: Make the viewer pause, feel slightly uncomfortable,\nand want to know more.`;\nconst input = ($input.first() && $input.first().json) ? $input.first().json : {};\nconst store = $getWorkflowStaticData(\"global\");\nif (typeof store.dailyPreviewBatchIndex !== \"number\") store.dailyPreviewBatchIndex = 0;\nstore.dailyPreviewBatchIndex += 1;\n\nconst facts = Array.isArray(input.news_facts) && input.news_facts.length ? input.news_facts : [];\nconst fallback = {\n  fact: \"4월 24일부터 합성니코틴 액상형 전자담배도 ‘담배’로 묶였다.\",\n  jab: \"어제까진 애매하다더니 오늘부턴 금연구역 규제까지 같이 온다.\",\n  question: \"이게 질서 정리야, 아니면 늦게 온 뒷북이야?\",\n  link: \"https://www.korea.kr/news/policyNewsView.do?newsId=148959006\",\n  title: \"합성니코틴 액상형 전자담배 규제\",\n  source_mode: \"fallback_verified\"\n};\nconst getFact = (idx) => facts[idx % facts.length] || fallback;\n\nconst batchDate = new Date(new Date().toLocaleString(\"en-US\", { timeZone: \"Asia/Seoul\" }));\nconst dateKey = `${batchDate.getFullYear()}-${String(batchDate.getMonth()+1).padStart(2,'0')}-${String(batchDate.getDate()).padStart(2,'0')}`;\nconst executionSeed = `${Date.now().toString(36)}-${store.dailyPreviewBatchIndex}`;\nconst batchId = `${dateKey}-${executionSeed}`;\nconst recentIndex = Array.isArray(store.generated_content_index) ? store.generated_content_index : [];\nconst recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;\nconst recentMemory = recentIndex\n  .filter(r => new Date(r.created_at || 0).getTime() >= recentCutoff)\n  .slice(-20)\n  .map(r => ({ hook: String(r.hook_first_line || \"\").trim(), post_type: String(r.post_type || \"\"), angle: String(r.angle || \"\"), cta_style: String(r.cta_style || \"\") }));\nconst recent_hooks = recentMemory.map(r => r.hook).filter(Boolean);\nconst recent_angles = recentMemory.map(r => r.angle).filter(Boolean);\nconst recent_cta_styles = recentMemory.map(r => r.cta_style).filter(Boolean);\n\nconst slots = [\n  { post_type: \"feed\", label: \"FEED\", slot: \"feed_2100\", publish_time: \"21:00\", factIndex: 0, angle: \"deep_analysis\", hook_style: \"hidden_cost\", cta_style: \"forced_choice\" },\n  { post_type: \"reel\", label: \"REEL 1\", slot: \"reel_1200\", publish_time: \"12:00\", factIndex: 1, angle: \"loss_emotion\", hook_style: \"you_are_losing\", cta_style: \"save_or_get_burned\" },\n  { post_type: \"carousel\", label: \"CAROUSEL 1\", slot: \"carousel_1205\", publish_time: \"12:05\", linked_reel_slot: \"reel_1200\", factIndex: 1, angle: \"comparison\", hook_style: \"surface_vs_reality\", cta_style: \"which_side\" },\n  { post_type: \"reel\", label: \"REEL 2\", slot: \"reel_1800\", publish_time: \"18:00\", factIndex: 2, angle: \"absurd_comedy\", hook_style: \"this_is_ridiculous\", cta_style: \"tag_someone\" },\n  { post_type: \"carousel\", label: \"CAROUSEL 2\", slot: \"carousel_1805\", publish_time: \"18:05\", linked_reel_slot: \"reel_1800\", factIndex: 2, angle: \"checklist\", hook_style: \"check_before_buying\", cta_style: \"save_checklist\" },\n  { post_type: \"reel\", label: \"REEL 3\", slot: \"reel_2200\", publish_time: \"22:00\", factIndex: 3, angle: \"debate_trigger\", hook_style: \"agree_or_disagree\", cta_style: \"comment_side\" },\n  { post_type: \"carousel\", label: \"CAROUSEL 3\", slot: \"carousel_2205\", publish_time: \"22:05\", linked_reel_slot: \"reel_2200\", factIndex: 3, angle: \"hidden_structure\", hook_style: \"who_benefits\", cta_style: \"dm_if_you_see_it\" }\n];\n\nconst visualStyles = [\n  \"ABSURD_NEWSROOM\",\n  \"WALLET_MONSTER\",\n  \"CCTV_CHAOS\",\n  \"COURTROOM_CARTOON\",\n  \"STREET_INTERVIEW\",\n  \"FINE_STAMP_MONSTER\",\n  \"COMMENT_WAR_SPLITSCREEN\"\n];\nconst mediaPrompts = {\n  ABSURD_NEWSROOM: \"absurd Korean breaking-news comedy about vape regulation, adult-only, no readable text, no brands, confused vape device wearing a tiny suit at a news desk, giant fine stamp, cartoon regulation cloud, meme-like but cinematic\",\n  WALLET_MONSTER: \"hilarious wallet monster comedy about vape regulation, adult-only, no readable text, no logos, price tag monster eating a wallet, shopper panic, absurd Korean internet meme energy\",\n  CCTV_CHAOS: \"fake CCTV documentary chaos about vape regulation, adult-only, no readable text, gritty overhead store view, shelf maze, clerk shrugging, cartoon overlays\",\n  COURTROOM_CARTOON: \"surreal courtroom cartoon about vape regulation, adult-only, no readable text, vape bottle on witness stand, calendar April 24, angry wallet defendant\",\n  STREET_INTERVIEW: \"chaotic Korean street interview comedy about vape regulation, adult-only, no readable text, exaggerated shocked adult faces, yes or no debate energy\",\n  FINE_STAMP_MONSTER: \"absurd fine stamp monster chasing adult shopper, vape regulation news, no readable text, no logos, funny uncomfortable meme realism\",\n  DUALITY_POSTER: \"symbolic editorial poster about the duality of the world, adult-only, no readable text, no logos, outwardly clean safe regulation mask on the front, behind it hidden receipts, fines, confused consumers, split mirror composition, A on the surface but B underneath, cinematic high contrast\",\n  COMMENT_WAR_SPLITSCREEN: \"split screen comment war visual, adults debating vape regulation yes or no, cartoon speech bubbles without readable text, high contrast comedy\"\n};\n\n\n\n// PSYCHOLOGICAL DIVERSITY ENGINE v3\nconst psychHookTypes = [\n  { key: \"loss_trigger\", label: \"Loss Trigger\", open: \"이거 모르면 계속 돈 날립니다\" },\n  { key: \"identity_threat\", label: \"Identity Threat\", open: \"이 방식 쓰는 사람들, 거의 다 잘못 알고 있습니다\" },\n  { key: \"pattern_break\", label: \"Pattern Break\", open: \"다들 가격 보는데, 이게 먼저입니다\" },\n  { key: \"regret_projection\", label: \"Regret Projection\", open: \"이거 안 보면 다음 달에 후회합니다\" },\n  { key: \"hidden_knowledge\", label: \"Hidden Knowledge\", open: \"이건 업자들은 알고 소비자는 모릅니다\" },\n  { key: \"contrarian_truth\", label: \"Contrarian Truth\", open: \"싸다고 좋은 게 아니라, 이게 문제입니다\" },\n  { key: \"question_trap\", label: \"Question Trap\", open: \"왜 같은 걸 사도 돈이 더 나갈까요?\" },\n  { key: \"time_pressure\", label: \"Time Pressure\", open: \"지금 바뀌는 구조, 늦으면 바로 손해입니다\" }\n];\nconst psychAngles = [\"비용 착각\", \"선택 순서 오류\", \"규제 충격\", \"소비자 심리 착각\", \"매장 vs 소비자 정보 차이\", \"타이밍 실패\", \"반복 구매 패턴\"];\nconst psychToneMix = [\"cold_authority\", \"cold_authority\", \"cold_authority\", \"cold_authority\", \"warning\", \"warning\", \"warning\", \"subtle_accusation\", \"subtle_accusation\", \"curiosity\"];\nconst visualScenes = [\"매장\", \"집\", \"거리\", \"계산대\", \"손 클로즈업\"];\nconst visualEmotions = [\"당황\", \"짜증\", \"혼란\", \"의심\", \"후회\"];\nconst visualRenderStyles = [\"현실 사진\", \"과장된 상징\", \"만화 스타일\", \"광고 패러디 느낌\"];\nconst visualObjects = [\"제품\", \"가격표\", \"영수증\", \"손\", \"비교 장면\"];\n\nfunction pickRotated(list, idx, salt, previous) {\n  let offset = Math.abs(String(salt || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0));\n  let picked = list[(idx + offset) % list.length];\n  if (previous && (picked.key || picked) === previous) picked = list[(idx + offset + 1) % list.length];\n  return picked;\n}\n\nfunction visualCombo(idx, seed) {\n  const salt = Math.abs(String(seed || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0));\n  return {\n    scene: visualScenes[(idx + salt) % visualScenes.length],\n    emotion: visualEmotions[(idx * 2 + salt) % visualEmotions.length],\n    render_style: visualRenderStyles[(idx * 3 + salt) % visualRenderStyles.length],\n    object: visualObjects[(idx * 4 + salt) % visualObjects.length]\n  };\n}\n\nfunction compactFact(f) {\n  return String(f.fact || '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction buildPsychPost(f, slot, idx, seed) {\n  const hookType = pickRotated(psychHookTypes, idx, seed, store.last_psych_hook_type || \"\");\n  const dominantAngle = slot.psych_angle_override || pickRotated(psychAngles, idx, `${seed}_${slot.post_type}`, \"\");\n  const tone = pickRotated(psychToneMix, idx, `${seed}_${dominantAngle}`, \"\");\n  const visual = visualCombo(idx, `${seed}_${dominantAngle}_${hookType.key}`);\n  const factLine = compactFact(f);\n  const jab = String(f.jab || '').replace(/\\s+/g, ' ').trim();\n  const question = String(f.question || '').replace(/\\s+/g, ' ').trim();\n  const opener = `${hookType.open}. ${factLine}`;\n  const discomfort = `${dominantAngle}에서 제일 불편한 건 이겁니다. ${jab || '사람들은 제품을 고른다고 생각하지만 실제로는 정보 차이 안에서 움직입니다.'}`;\n  const realization = `아... 이거네. 문제는 취향이 아니라, 누가 먼저 구조를 알고 들어가느냐입니다.`;\n  const fear = `이걸 놓치면 다음 구매에서 돈, 시간, 선택권 중 하나는 조용히 새나갑니다.`;\n  const pressure = question && question.endsWith('?') ? question : `저장해두고 볼래요, 아니면 또 매장 앞에서 감으로 고를래요?`;\n  return {\n    hookType,\n    dominantAngle,\n    tone,\n    visual,\n    hookLine: opener,\n    caption: [opener, discomfort, realization, fear, pressure].join('\\n'),\n    mediaPrompt: `${visual.scene}, ${visual.emotion}, ${visual.render_style}, ${visual.object}, behavioral psychology tension, pattern disruption, adult consumer regret, funny but uncomfortable, scroll-stopping, no readable text, no logos, no minors, no smoking glamor, based on verified Korean news fact: ${factLine}`\n  };\n}\n\n\nconst angleOpeners = {\n  loss_emotion: (f) => `${f.fact} 이거 모르면 돈보다 먼저 판단력이 털린다.`,\n  absurd_comedy: (f) => `${f.fact} 근데 현장은 거의 코미디처럼 굴러간다.`,\n  debate_trigger: (f) => `${f.fact} 이건 보호냐, 뒷북 단속이냐부터 갈린다.`,\n  comparison: (f) => `${f.fact} 겉보기엔 정리, 실제론 선택지 축소다.`,\n  checklist: (f) => `${f.fact} 매장 가기 전에 이것부터 확인해라.`,\n  hidden_structure: (f) => `${f.fact} 누가 먼저 알고 움직였는지 봐야 한다.`,\n  deep_analysis: (f) => `${f.fact} 이 뉴스는 그냥 넘기면 손해다.`\n};\nconst angleClosers = {\n  loss_emotion: \"너 이거 그냥 넘길 거야, 아니면 다음 계산대 앞에서 덜 당할 거야?\",\n  absurd_comedy: \"이게 진짜 소비자 보호로 보여, 아니면 규제 코미디로 보여?\",\n  debate_trigger: \"너는 이거 찬성이야, 아니면 말만 보호인 뒷북이라고 봐?\",\n  comparison: \"겉말과 실제 현장 중에 너는 어느 쪽을 믿을 거야?\",\n  checklist: \"이 체크리스트 저장할래, 아니면 또 매장 앞에서 물어볼래?\",\n  hidden_structure: \"이 구조 보이면 댓글 달고, 안 보이면 그냥 지나가도 된다.\",\n  deep_analysis: \"너라면 이걸 소비자 보호라고 보냐, 아니면 늦게 온 단속 장치라고 보냐?\"\n};\nfunction applyAngleCaption(baseCaption, f, angle) {\n  const lines = String(baseCaption || '').split('\\n').filter(Boolean);\n  const opener = (angleOpeners[angle] || angleOpeners.loss_emotion)(f);\n  const closer = angleClosers[angle] || f.question;\n  if (lines.length) lines[0] = opener;\n  if (lines.length > 1) lines[lines.length - 1] = closer;\n  return lines.join('\\n');\n}\n\nconst reelCaption = (f) => [\n  f.fact,\n  f.jab,\n  `팩트만 보면 더 불편하다. 4월 24일 이후 합성니코틴 전담은 더 이상 애매한 회색지대가 아니다. 금연구역, 광고 제한, 건강경고, 판매 방식까지 한 번에 묶이면 제일 늦게 맞는 건 늘 소비자다. 매장은 바뀐 룰을 알고 움직이는데, 손님은 예전 감각으로 들어간다. 그 차이에서 돈이 새고, 과태료가 생기고, 이상한 추천도 먹힌다.`,\n  `여기서 웃긴 건 다들 “보호”라는 말만 반복한다는 거다. 보호라면 왜 사람들은 매장 앞에서야 알까. 보호라면 왜 가격표와 안내문은 바뀌는데 설명은 항상 늦을까. 이 채널에서 보는 건 제품 자랑이 아니라 그 뒤의 구조다. 겉으로는 건강 명분, 뒤로는 비용과 선택권의 재배치다.`,\n  `이걸 모르면 다음에 매장 가서도 똑같이 당한다. 표면에는 건강, 안전, 보호 같은 단어가 붙는다. 그런데 실제로는 가격표, 사용 가능 장소, 판매 문구, 추천 순서가 조용히 바뀐다. 사람들은 제품을 고른다고 생각하지만 사실 바뀐 규칙 안에서 남은 선택지를 고르는 거다. 이 차이를 아는 사람은 질문을 다르게 하고, 모르는 사람은 그냥 계산한다. 이거 그냥 규제 강화라고 넘길 거야, 아니면 네 지갑이랑 선택권이 어디서 털리는지 볼 거야?`\n].join(\"\\n\");\nconst carouselCaption = (f) => [\n  f.fact,\n  f.jab,\n  `겉으로는 규제 정리처럼 보인다. 그런데 이면을 보면 소비자가 제일 늦게 배우는 게임이다. 매장은 안내문을 바꾸고, 판매 가능 문구를 조절하고, 추천 순서를 바꾼다. 손님은 그냥 평소처럼 들어가서 “왜 갑자기 이게 안 돼?”를 묻는다. 이 차이가 돈이 된다.`,\n  `진짜 봐야 할 건 제품이 아니라 기준이다. 금연구역, 과태료, 광고 제한, 건강경고가 한 번에 붙으면 선택은 좁아지고 설명은 어려워진다. 겉으로는 안전한 제도처럼 보이지만, 뒤에서는 누가 먼저 알고 누가 늦게 아는지가 갈린다. 먼저 아는 쪽은 안내문을 바꾸고, 늦게 아는 쪽은 계산대 앞에서 당황한다. 누군가는 보호라고 말하겠지만, 누군가는 이걸 늦게 온 단속이라고 부를 거다.`,\n  f.question\n].join(\"\\n\");\nconst feedCaption = (f) => {\n  const paragraphs = [\n    `${f.fact} 이거 그냥 뉴스 제목 하나로 넘기면 손해다. 전자담배 규제는 이제 취향 문제가 아니라, 어디서 피우고, 어떻게 팔고, 어떤 문구를 붙일 수 있는지까지 한 번에 묶이는 문제로 바뀌고 있다. 예전처럼 “전담은 좀 다르지 않나” 하고 넘기면, 실제 현장에서는 금연구역, 과태료, 광고 문구, 매장 안내에서 바로 헷갈린다.`,\n    `핵심은 합성니코틴 액상형 전자담배가 기존 담배 규제 바깥에 있던 시간이 끝났다는 거다. 보도와 정책자료 기준으로 4월 24일부터 담배 정의가 니코틴 제품까지 넓어지고, 건강경고 표시, 광고 제한, 금연구역 사용 금지 같은 규칙이 같이 따라온다. 그러니까 이건 단순히 제품 이름이 바뀐 문제가 아니다. 소비자가 어디서 써도 되는지, 매장이 어떻게 설명해야 하는지, 온라인 판매가 어디까지 가능한지까지 연결된다.`,\n    `소비자 입장에서는 “작고 냄새 덜 나니까 괜찮겠지”라는 감각이 제일 위험하다. 규제가 바뀌면 단속은 감정이 아니라 기준으로 움직인다. 몰랐다는 말이 통할 수도 있지만, 돈은 보통 모르는 쪽에서 먼저 나간다. 특히 금연구역 과태료나 판매 제한 같은 건 나중에 검색해서 알면 늦다. 이미 계산대 앞이거나, 이미 피웠거나, 이미 잘못 안내받은 뒤일 수 있다.`,\n    `더 웃긴 건 이 변화가 갑자기 도덕 문제처럼 포장된다는 점이다. 누군가는 청소년 보호라고 말하고, 누군가는 뒤늦게 만든 땜질 규제라고 말한다. 둘 다 어느 정도 맞을 수 있다. 그런데 정작 중요한 건 소비자가 정확한 기준을 제일 늦게 안다는 거다. 정책은 발표되고, 매장은 바뀌고, 가격표와 안내 문구는 움직이는데, 사용자는 그냥 평소처럼 들어간다.`,\n    `그래서 지금 봐야 할 건 찬반보다 기준이다. 4월 24일 이후 합성니코틴 전담이 어떤 규제 안으로 들어갔는지, 금연구역과 광고 제한이 어떻게 붙는지, 매장에서 어떤 말이 달라지는지 확인해야 한다. 너라면 이걸 소비자 보호라고 보냐, 아니면 뒤늦게 만든 단속 장치라고 보냐?`\n  ];\n  return paragraphs.join(\"\\n\\n\");\n};\n\nconst output = slots.map((slot, idx) => {\n  const f = getFact(slot.factIndex);\n  const id = `${Date.now()}-${idx + 1}-${Math.random().toString(36).slice(2, 7)}`;\n  const style = slot.post_type === \"feed\" ? \"DUALITY_POSTER\" : visualStyles[idx % visualStyles.length];\n  const angleOffset = Math.abs(String(executionSeed || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % psychAngles.length;\n  const slotForPsych = { ...slot, psych_angle_override: psychAngles[(idx + angleOffset) % psychAngles.length] };\n  const psych = buildPsychPost(f, slotForPsych, idx, executionSeed);\n  const caption = psych.caption;\n  const variation_seed = `${dateKey}_${executionSeed}_${idx + 1}`;\n  const queueAction = `queue_${slot.post_type}`;\n  const buttons = [\n    [{ text: `Queue ${slot.label}`, callback_data: `${queueAction}|${id}` }],\n    [{ text: \"Delete\", callback_data: `delete_test|${id}` }]\n  ];\n  if (slot.post_type !== \"feed\") {\n    buttons.splice(1, 0, [{ text: \"Regen Text\", callback_data: `regen_text|${id}` }]);\n    buttons.splice(2, 0, [{ text: \"Regen Media\", callback_data: `regen_media|${id}` }]);\n  }\n  return {\n    json: {\n      simulation_mode: false,\n      mode: \"daily_preview_phase1\",\n      batch_id: batchId,\n      date_key: dateKey,\n      daily_preview_index: idx + 1,\n      daily_preview_total: 7,\n      post_type: slot.post_type,\n      content_slot: slot.slot,\n      linked_reel_slot: slot.linked_reel_slot || \"\",\n      planned_publish_time: slot.publish_time,\n      test_id: id,\n      topic: \"vape_news\",\n      topic_keyword: \"전자담배 규제\",\n      source: f.title || \"verified news\",\n      source_url: f.link || \"\",\n      source_mode: f.source_mode || \"latest_rss\",\n      variation_seed,\n      angle: psych.dominantAngle,\n      legacy_angle: slot.angle,\n      psych_angle: psych.dominantAngle,\n      psych_hook_type: psych.hookType.key,\n      psych_hook_label: psych.hookType.label,\n      psych_tone: psych.tone,\n      hook_style: psych.hookType.key,\n      cta_style: slot.cta_style,\n      recent_hooks,\n      recent_angles,\n      recent_cta_styles,\n      recent_memory_count: recentMemory.length,\n      avoid_memory_used: true,\n      hook: psych.hookLine,\n      body_lines: caption.split(\"\\n\").slice(1, 4),\n      tension_ending: caption.split(\"\\n\").slice(-1)[0],\n      hashtags: \"#전자담배 #합성니코틴 #담배규제 #금연구역\",\n      caption,\n      media_type: slot.post_type === \"reel\" ? \"funny_news_reel\" : slot.post_type === \"carousel\" ? \"funny_news_carousel\" : \"feed_text\",\n      media_prompt: `${psych.mediaPrompt}, ${mediaPrompts[style] || \"\"}\n\n${GLOBAL_STYLE}`,\n      visual_scene: psych.visual.scene,\n      visual_emotion: psych.visual.emotion,\n      visual_style: psych.visual.render_style,\n      visual_object: psych.visual.object,\n      media_template_key: style,\n      content_rules_version: \"v3_psychological_diversity_2026_04\",\n      queue_action: queueAction,\n      chat_id: \"7592247598\",\n      reply_markup: JSON.stringify({ inline_keyboard: buttons })\n    }\n  };\n});\nstore.last_psych_hook_type = output.length ? output[output.length - 1].json.psych_hook_type : store.last_psych_hook_type;\nreturn output;\n",
+          "mode": "runOnceForAllItems",
+          "notice": ""
+        },
+        "type": "n8n-nodes-base.code",
+        "position": [
+          480,
+          300
+        ],
+        "typeVersion": 2
+      },
+      {
+        "id": "clean-gen-send",
+        "name": "Telegram Send Photo",
+        "parameters": {
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "chat_id",
+                "value": "={{$json.chat_id}}"
+              },
+              {
+                "name": "caption",
+                "value": "={{$json.caption}}"
+              },
+              {
+                "name": "reply_markup",
+                "value": "={{$json.reply_markup}}"
+              },
+              {
+                "parameterType": "formBinaryData",
+                "name": "photo",
+                "inputDataFieldName": "photo"
+              }
+            ]
+          },
+          "method": "POST",
+          "options": {},
+          "contentType": "multipart-form-data",
+          "url": "REDACTED_URL"
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          720,
+          300
+        ],
+        "typeVersion": 4.4,
+        "disabled": true
+      },
+      {
+        "id": "clean-gen-generate-image",
+        "name": "Generate Vape Image",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          720,
+          220
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.openai.com/v1/images/generations",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"model\":\"gpt-image-1-mini\", \"quality\":\"medium\",\"size\":\"1024x1024\",\"prompt\":$json.media_prompt + \", single object, dark background, cinematic lighting, high contrast, symbolic conceptual poster style, no text\"} }}",
+          "options": {
+            "continueOnFail": true
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "clean-gen-prepare-photo",
+        "name": "Prepare Telegram Image Payload",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          960,
+          220
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const FALLBACK_URL = 'https://n8n.mykindredai.com/images/fallback.png';\nconst sourceItems = $items('Filter Feed Preview Items') || [];\nconst base = (sourceItems[$itemIndex] && sourceItems[$itemIndex].json) ? sourceItems[$itemIndex].json : {};\nconst j = $json || {};\nconst b64 = String(j?.data?.[0]?.b64_json || '').trim();\nconst hasError = Boolean(j.error || j.code || String(j.status || '').toLowerCase() === 'error');\nconst useFallback = hasError || !b64;\n\nlet binaryPhoto;\nlet imageUrl = '';\nif (useFallback) {\n  imageUrl = FALLBACK_URL;\n} else {\n  binaryPhoto = {\n    data: b64,\n    mimeType: 'image/png',\n    fileName: `feed_${base.test_id || Date.now()}.png`\n  };\n  imageUrl = String(j?.data?.[0]?.url || '').trim();\n}\n\ntry {\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://n8n.mykindredai.com/webhook/clean_02_approval',\n    body: {\n      action: 'cache_feed',\n      test_id: String(base.test_id || ''),\n      caption: String(base.caption || ''),\n      planned_publish_time: String(base.planned_publish_time || '21:00'),\n      content_slot: String(base.content_slot || 'feed_2100'),\n      source_url: String(base.source_url || ''),\n      hook: String(base.hook || ''),\n      image_url: imageUrl,\n      media_url: imageUrl,\n    },\n    json: true,\n    timeout: 15000,\n  });\n} catch (e) {\n  // Feed cache failure must not block Telegram preview.\n}\n\nconst json = {\n  ...base,\n  generated_image_model: 'gpt-image-1-mini',\n  media_generation_status: useFallback ? 'fallback_due_to_generation_error' : 'ok',\n  feed_image_source: useFallback ? 'fallback' : 'generated',\n  feed_fallback_used: useFallback,\n  feed_image_collection_status: useFallback ? 'fallback_filled' : 'success',\n  image_url: imageUrl,\n  media_url: imageUrl,\n  needs_manual_review: Boolean(base.needs_manual_review || useFallback),\n};\n\nif (useFallback) {\n  return { json };\n}\n\nreturn {\n  json,\n  binary: { photo: binaryPhoto }\n};"
+        }
+      },
+      {
+        "id": "clean-gen-cron-trigger",
+        "name": "Cron Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          240,
+          120
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "30 8 * * *"
+              }
+            ]
+          }
+        },
+        "disabled": false
+      },
+      {
+        "id": "clean-gen-reel-image",
+        "name": "Generate Reel Storyboard Image",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          720,
+          520
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.openai.com/v1/images/generations",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"model\":\"gpt-image-1-mini\", \"quality\":\"medium\",\"size\":\"1024x1536\",\"prompt\":$json.media_prompt + \", create a coherent 8-scene storyboard grid (2 columns x 4 rows), each panel showing a distinct real-life policy-tension buying moment in vape retail, documentary realism, no text\"} }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "clean-gen-reel-prepare",
+        "name": "Prepare Reel FFmpeg Assets",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          960,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst base = ($items('Build Simulation Content', 0, $itemIndex)?.[0]?.json) || {};\nconst b64 = $json?.data?.[0]?.b64_json;\nif (!b64) throw new Error('Generate Reel Storyboard Image did not return b64_json');\n\nconst safeId = String(base.test_id || Date.now()).replace(/[^a-zA-Z0-9_-]/g, '_');\nconst dir = `/tmp/reel_${safeId}`;\nfs.mkdirSync(dir, { recursive: true });\n\nconst storyboard = path.join(dir, 'storyboard.png');\nfs.writeFileSync(storyboard, Buffer.from(b64, 'base64'));\n\nconst hook = String(base.hook || '');\nconst midLine = String((base.body_lines && base.body_lines[1]) || '?? ?? ?? ??? ?? ??? ??? ???.');\nconst endLine = '??? ?? ???';\n\nconst sanitize = (s) => String(s || '')\n  .replace(/[\\\\']/g, '')\n  .replace(/[:\\[\\]]/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 52);\n\nconst shook = sanitize(hook);\nconst smid = sanitize(midLine);\nconst send = sanitize(endLine);\n\nconst ff1 = `ffmpeg -y -i ${dir}/storyboard.png -filter_complex \"[0:v]crop=iw/2:ih/4:0:0,scale=1080:1920[s1];[0:v]crop=iw/2:ih/4:iw/2:0,scale=1080:1920[s2];[0:v]crop=iw/2:ih/4:0:ih/4,scale=1080:1920[s3];[0:v]crop=iw/2:ih/4:iw/2:ih/4,scale=1080:1920[s4];[0:v]crop=iw/2:ih/4:0:ih/2,scale=1080:1920[s5];[0:v]crop=iw/2:ih/4:iw/2:ih/2,scale=1080:1920[s6];[0:v]crop=iw/2:ih/4:0:3*ih/4,scale=1080:1920[s7];[0:v]crop=iw/2:ih/4:iw/2:3*ih/4,scale=1080:1920[s8]\" -map \"[s1]\" -frames:v 1 ${dir}/scene01.jpg -map \"[s2]\" -frames:v 1 ${dir}/scene02.jpg -map \"[s3]\" -frames:v 1 ${dir}/scene03.jpg -map \"[s4]\" -frames:v 1 ${dir}/scene04.jpg -map \"[s5]\" -frames:v 1 ${dir}/scene05.jpg -map \"[s6]\" -frames:v 1 ${dir}/scene06.jpg -map \"[s7]\" -frames:v 1 ${dir}/scene07.jpg -map \"[s8]\" -frames:v 1 ${dir}/scene08.jpg`;\n\nconst ff2 = `ffmpeg -y -loop 1 -t 1.2 -i ${dir}/scene01.jpg -loop 1 -t 1.2 -i ${dir}/scene02.jpg -loop 1 -t 1.2 -i ${dir}/scene03.jpg -loop 1 -t 1.2 -i ${dir}/scene04.jpg -loop 1 -t 1.2 -i ${dir}/scene05.jpg -loop 1 -t 1.2 -i ${dir}/scene06.jpg -loop 1 -t 1.2 -i ${dir}/scene07.jpg -loop 1 -t 1.2 -i ${dir}/scene08.jpg -filter_complex \"[0:v][1:v][2:v][3:v][4:v][5:v][6:v][7:v]concat=n=8:v=1:a=0,format=yuv420p[v]\" -map \"[v]\" -r 30 -c:v libx264 -pix_fmt yuv420p ${dir}/reel_raw.mp4`;\n\nconst ff3 = `ffmpeg -y -i ${dir}/reel_raw.mp4 -vf \"drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='${shook}':fontcolor=white:fontsize=52:box=1:boxcolor=black@0.55:boxborderw=16:x=(w-text_w)/2:y=h*0.08:enable='between(t,0,1.4)',drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='${smid}':fontcolor=white:fontsize=44:box=1:boxcolor=black@0.55:boxborderw=14:x=(w-text_w)/2:y=h*0.78:enable='between(t,3.2,6.8)',drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='${send}':fontcolor=white:fontsize=56:box=1:boxcolor=black@0.6:boxborderw=16:x=(w-text_w)/2:y=h*0.48:enable='between(t,8.1,9.6)'\" -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest ${dir}/reel_sub.mp4`;\n\nreturn {\n  json: {\n    ...base,\n    reel_workdir: dir,\n    reel_storyboard_path: storyboard,\n    reel_video_path: `${dir}/reel_sub.mp4`,\n    reel_duration_sec: 9.6,\n    reel_scene_count: 8,\n    ffmpeg_command: `${ff1} && ${ff2} && ${ff3}`\n  }\n};"
+        },
+        "disabled": true
+      },
+      {
+        "id": "clean-gen-reel-ffmpeg",
+        "name": "Create Reel Video FFmpeg",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1200,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const { execSync } = require('child_process');\nconst cmd = String($json.ffmpeg_command || '').trim();\nif (!cmd) throw new Error('ffmpeg_command is empty');\ntry {\n  execSync(cmd, { stdio: 'pipe', maxBuffer: 1024 * 1024 * 50 });\n} catch (e) {\n  const stderr = e?.stderr ? e.stderr.toString() : '';\n  const stdout = e?.stdout ? e.stdout.toString() : '';\n  throw new Error(`FFmpeg failed: ${stderr || stdout || e.message}`);\n}\nreturn { json: { ...$json, ffmpeg_status: 'ok' } };"
+        },
+        "disabled": true
+      },
+      {
+        "id": "clean-gen-reel-load",
+        "name": "Load Reel Video Binary",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1440,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const fs = require('fs');\nconst base = ($items('Prepare Reel FFmpeg Assets', 0, $itemIndex)?.[0]?.json) || {};\nconst filePath = String(base.reel_video_path || '');\nif (!filePath || !fs.existsSync(filePath)) {\n  throw new Error('Reel video file not found after FFmpeg');\n}\nconst bin = fs.readFileSync(filePath).toString('base64');\nreturn {\n  json: {\n    ...base,\n    reel_video_ready: true\n  },\n  binary: {\n    video: {\n      data: bin,\n      mimeType: 'video/mp4',\n      fileName: `reel_${base.test_id || Date.now()}.mp4`\n    }\n  }\n};"
+        },
+        "disabled": true
+      },
+      {
+        "id": "clean-gen-send-video",
+        "name": "Telegram Send Video",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1680,
+          520
+        ],
+        "parameters": {
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "chat_id",
+                "value": "={{$json.chat_id}}"
+              },
+              {
+                "name": "caption",
+                "value": "={{ $json.caption + ($json.carousel && $json.carousel.slides && $json.carousel.slides.length > 0 ? \"\\n\\n[CAROUSEL]\\n\" + $json.carousel.slides.map((s, i) => (i + 1) + \". \" + s).join(\"\\n\") : \"\") }}"
+              },
+              {
+                "name": "reply_markup",
+                "value": "={{$json.reply_markup}}"
+              },
+              {
+                "parameterType": "formBinaryData",
+                "name": "video",
+                "inputDataFieldName": "video"
+              }
+            ]
+          },
+          "method": "POST",
+          "options": {},
+          "contentType": "multipart-form-data",
+          "url": "REDACTED_URL"
+        }
+      },
+      {
+        "id": "clean-gen-get-video-file",
+        "name": "Telegram Get Video File",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1920,
+          520
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "REDACTED_URL",
+          "options": {}
+        },
+        "disabled": true
+      },
+      {
+        "id": "clean-gen-cache-video-url",
+        "name": "Cache Reel Video URL Legacy Disabled",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2160,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const response = $json || {};\nconst filePath = response?.result?.file_path || '';\nif (!filePath) throw new Error('Telegram getFile did not return file_path');\nconst sendRes = ($items('Telegram Send Video', 0, $itemIndex)?.[0]?.json) || {};\nconst cb = sendRes?.result?.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data || '';\nconst testId = String(cb).split('|')[1] || '';\nif (!testId) throw new Error('Could not resolve test_id from callback_data');\nconst videoUrl = `https://api.telegram.org/file/botREDACTED_TOKEN/${filePath}`;\nconst store = $getWorkflowStaticData('global');\nif (!store.reel_video_urls || typeof store.reel_video_urls !== 'object') store.reel_video_urls = {};\nstore.reel_video_urls[testId] = videoUrl;\nstore.reel_video_cached_at = new Date().toISOString();\nreturn { json: { test_id: testId, video_url: videoUrl, cached: true } };"
+        },
+        "disabled": true
+      },
+      {
+        "id": "clean-gen-reel-scenes",
+        "name": "Build Reel Scene Prompts",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          720,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const inputs = $input.all().map(i => i.json || {});\nconst out = [];\n\n// Global style applied to every frame\nconst GLOBAL_STYLE = `Create a realistic Instagram Reel thumbnail image.\nScene: A moody, realistic Korean retail/store or consumer environment\nrelated to vaping market confusion OR emotional tension.\nStyle: dark gray background, warm indoor lighting, high contrast,\ncinematic, documentary style, slightly uncomfortable, realistic,\nnot polished.\nRules: no text, no logo, no brand, no advertisement feel,\nno clean product shot, no sexualized content,\nno attractive posing, no face-focused image.\nAdditional:\n- 70%: market / store / system confusion scenes\n- 30%: emotional tension scenes using hands, hesitation,\n  silhouette, or decision moment only\nGoal: Make the viewer pause, feel slightly uncomfortable,\nand want to know more.`;\n\n// 70% — Market / System / Warning scenes\nconst MARKET_SCENES = [\n  'cluttered vape shop backroom with scattered devices and open boxes, dim warm overhead light, tense disorganized atmosphere',\n  'convenience store shelf with mismatched vape products and faded handwritten price tags, claustrophobic framing',\n  'small shop desk buried under receipts, calculator, and vape packaging, financial confusion and pressure implied',\n  'warehouse storage room with overfull shelves and inventory sheets pinned to wall, dim ceiling light, systemic disorder',\n  'smudged glass display case with unevenly arranged vape products behind it, staff side-view, no eye contact',\n  'back office with stacked regulatory documents and a single vape device on the desk, bureaucratic tension',\n  'retail floor after closing, unsold stock scattered, single security light, abandoned and unresolved atmosphere',\n  'loading dock with half-opened vape product boxes, clipboard dropped on the floor, sudden disruption feel',\n  'checkout counter with empty display slots and a handwritten out-of-stock note, quiet retail anxiety',\n  'stockroom corner with conflicting product labels and boxes stacked haphazardly, hidden systemic problem',\n];\n\n// 30% — Emotional Tension scenes\nconst EMOTIONAL_SCENES = [\n  'close-up of hands hesitating over multiple vape options laid on a counter, warm indoor light, no face visible',\n  'hands holding a vape device in one hand and a crumpled receipt in the other, hesitation and regret implied, cinematic close-up',\n  'silhouette of a person paused at a shop entrance, backlit by warm interior light, decision moment frozen',\n  \"person's back facing a display shelf, shoulders slightly tense, half-turned away, no posing, no glamor\",\n  'hands placing a vape device down slowly on a worn surface, deliberate motion suggesting doubt',\n  'partial silhouette in a dim backroom doorway, half in shadow, observing from a distance, insider feel',\n];\n\nfor (const base of inputs) {\n  const keyword = String(base.topic_keyword || '전자담배 규제').trim();\n  const idx = Number(base.daily_preview_index || 0);\n\n  // 6 scenes per reel: 4 market (70%) + 2 emotional (30%)\n  // Scene 1 is the primary thumbnail candidate — highest tension market scene\n  const assignments = [\n    { type: 'market', offset: 0 },\n    { type: 'market', offset: 1 },\n    { type: 'market', offset: 2 },\n    { type: 'market', offset: 3 },\n    { type: 'emotional', offset: 0 },\n    { type: 'emotional', offset: 1 },\n  ];\n\n  assignments.forEach(({ type, offset }, sceneIdx) => {\n    const bank = type === 'market' ? MARKET_SCENES : EMOTIONAL_SCENES;\n    const sceneDesc = bank[(offset + idx) % bank.length];\n    const prompt = `${sceneDesc}, subject context: ${keyword}, feels like insider observation, makes viewer pause mid-scroll\n\n${GLOBAL_STYLE}`;\n    out.push({ json: { ...base, scene_index: sceneIdx + 1, scene_prompt: prompt } });\n  });\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "clean-gen-reel-scene-image",
+        "name": "Generate Reel Scene Image",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          960,
+          520
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.openai.com/v1/images/generations",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"model\":\"gpt-image-1-mini\", \"quality\":\"medium\",\"size\":\"1024x1536\",\"prompt\":$json.scene_prompt + \", vertical frame for reel, realistic photography style\"} }}",
+          "options": {}
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "clean-gen-reel-collect",
+        "name": "Collect Reel Images",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1200,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const FALLBACK_URL = 'https://n8n.mykindredai.com/images/fallback.png';\nconst MIN_IMAGES = 5;\n\nasync function fetchFallbackBase64() {\n  const buf = await this.helpers.httpRequest({\n    method: 'GET',\n    url: FALLBACK_URL,\n    encoding: 'arraybuffer',\n    timeout: 15000,\n  });\n  return Buffer.from(buf).toString('base64');\n}\n\nconst fallbackBase64 = await fetchFallbackBase64.call(this);\nconst all = $input.all().map(i => i.json || {});\nconst groups = new Map();\nfor (const item of all) {\n  const id = String(item.test_id || '');\n  if (!id) continue;\n  if (!groups.has(id)) groups.set(id, []);\n  groups.get(id).push(item);\n}\n\nconst out = [];\nfor (const [testId, scenes] of groups.entries()) {\n  scenes.sort((a,b) => Number(a.scene_index||0) - Number(b.scene_index||0));\n  const realImages = scenes.map(x => String(x?.data?.[0]?.b64_json || '')).filter(Boolean);\n  const fallbackCount = Math.max(0, MIN_IMAGES - realImages.length);\n  const images_base64 = realImages.concat(Array(fallbackCount).fill(fallbackBase64));\n\n  const base = { ...scenes[0] };\n  delete base.data;\n  out.push({\n    json: {\n      ...base,\n      reel_scene_count: images_base64.length,\n      reel_real_image_count: realImages.length,\n      reel_fallback_count: fallbackCount,\n      reel_fallback_url: fallbackCount > 0 ? FALLBACK_URL : '',\n      reel_image_collection_status: fallbackCount > 0 ? 'fallback_filled' : 'success',\n      reel_duration_sec: 9.6,\n      images_base64,\n      durations: Array(images_base64.length).fill(9.6 / images_base64.length)\n    }\n  });\n}\n\nif (!out.length) {\n  const base = ($items('Build Simulation Content', 0, 0)?.[0]?.json) || {};\n  const testId = String(base.test_id || `fallback-${Date.now()}`);\n  const images_base64 = Array(MIN_IMAGES).fill(fallbackBase64);\n  out.push({\n    json: {\n      ...base,\n      test_id: testId,\n      reel_scene_count: images_base64.length,\n      reel_real_image_count: 0,\n      reel_fallback_count: MIN_IMAGES,\n      reel_fallback_url: FALLBACK_URL,\n      reel_image_collection_status: 'fallback_all',\n      reel_duration_sec: 9.6,\n      images_base64,\n      durations: Array(images_base64.length).fill(9.6 / images_base64.length)\n    }\n  });\n}\n\nreturn out;"
+        }
+      },
+      {
+        "id": "clean-gen-reel-make",
+        "name": "Make Reel via FFmpeg Service",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1440,
+          520
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://43.201.227.194:8000/make-reel",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"images_base64\": $json.images_base64, \"durations\": $json.durations} }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "clean-gen-reel-preview-payload",
+        "name": "Prepare Reel Preview Payload",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1680,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const collectItems = $items('Collect Reel Images') || [];\nconst base = (collectItems[$itemIndex] && collectItems[$itemIndex].json) ? collectItems[$itemIndex].json : {};\nconst videoUrl = String($json.video_url || '');\nconst videoBase64 = String($json.video_base64 || '');\nif (!videoUrl) throw new Error('FFmpeg service did not return video_url');\nif (!videoBase64) throw new Error('FFmpeg service did not return video_base64');\nconst cleanBase = { ...base };\ndelete cleanBase.images_base64;\ndelete cleanBase.durations;\nreturn {\n  json: {\n    ...cleanBase,\n    video_url: videoUrl,\n    video_base64: videoBase64,\n    reel_service_ok: !!$json.ok,\n    reel_scene_count: base.reel_scene_count || 6,\n    reel_duration_sec: base.reel_duration_sec || 9.6\n  }\n};"
+        }
+      },
+      {
+        "id": "clean-gen-reel-cache",
+        "name": "Cache Reel Video URL",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1920,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const j = $json || {};\nconst testId = String(j.test_id || '');\nconst videoUrl = String(j.video_url || '');\nconst videoBase64 = String(j.video_base64 || '');\nif (!testId || !videoUrl) throw new Error('Missing test_id/video_url for reel cache');\nif (!videoBase64) throw new Error('Missing video_base64 for Telegram binary upload');\n\nconst store = $getWorkflowStaticData('global');\nif (!store.reel_video_urls || typeof store.reel_video_urls !== 'object') store.reel_video_urls = {};\nstore.reel_video_urls[testId] = videoUrl;\nstore.reel_video_cached_at = new Date().toISOString();\n\ntry {\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://n8n.mykindredai.com/webhook/clean_02_approval',\n    body: {\n      action: 'cache_reel',\n      test_id: testId,\n      video_url: videoUrl,\n      caption: String(j.caption || ''),\n      planned_publish_time: String(j.planned_publish_time || ''),\n      content_slot: String(j.content_slot || ''),\n      post_type: String(j.post_type || 'reel'),\n    },\n    json: true,\n    timeout: 15000,\n  });\n} catch (e) {\n  // Preview delivery must not be blocked by cache mirroring.\n}\n\nconst cleanJson = { ...j, reel_video_cached: true };\ndelete cleanJson.video_base64;\n\nreturn {\n  json: cleanJson,\n  binary: {\n    video: {\n      data: videoBase64,\n      mimeType: 'video/mp4',\n      fileName: `${testId}.mp4`\n    }\n  }\n};"
+        }
+      },
+      {
+        "id": "clean-gen-download-reel-video",
+        "name": "Download Reel Video Binary",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          2040,
+          520
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{$json.video_url}}",
+          "responseFormat": "file",
+          "outputPropertyName": "video",
+          "options": {}
+        },
+        "disabled": true
+      },
+      {
+        "id": "build-carousel-content-node",
+        "name": "Build Carousel Content",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          740,
+          160
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  const data = item.json || {};\n  const fact = String(data.hook || \"\").trim();\n  const jab = String((data.body_lines && data.body_lines[0]) || \"\").trim();\n  const question = String((data.body_lines && data.body_lines[1]) || data.tension_ending || \"\").trim();\n  const slides = [\n    fact,\n    jab,\n    \"이건 취향 문제가 아니라, 모르면 갑자기 당하는 쪽에 가깝다.\",\n    \"누군가는 보호라고 하고, 누군가는 뒷북이라고 할 거다.\",\n    question\n  ].filter(Boolean);\n  return { ...item, json: { ...data, carousel: { slides, caption: [fact, jab, question].filter(Boolean).join(\"\\\\n\") } } };\n});"
+        }
+      },
+      {
+        "id": "build-carousel-prompts-node",
+        "name": "Build Carousel Prompts",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1000,
+          -120
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const GLOBAL_STYLE = `Create a realistic Instagram Reel thumbnail image.\nScene: A moody, realistic Korean retail/store or consumer environment\nrelated to vaping market confusion OR emotional tension.\nStyle: dark gray background, warm indoor lighting, high contrast,\ncinematic, documentary style, slightly uncomfortable, realistic,\nnot polished.\nRules: no text, no logo, no brand, no advertisement feel,\nno clean product shot, no sexualized content,\nno attractive posing, no face-focused image.\nAdditional:\n- 70%: market / store / system confusion scenes\n- 30%: emotional tension scenes using hands, hesitation,\n  silhouette, or decision moment only\nGoal: Make the viewer pause, feel slightly uncomfortable,\nand want to know more.`;\nconst inputItems = $input.all();\nconst out = [];\nconst scenes = ['매장', '집', '거리', '계산대', '손 클로즈업'];\nconst emotions = ['당황', '짜증', '혼란', '의심', '후회'];\nconst renderStyles = ['현실 사진', '과장된 상징', '만화 스타일', '광고 패러디 느낌'];\nconst objects = ['제품', '가격표', '영수증', '손', '비교 장면'];\n\nfor (const item of inputItems) {\n  const data = item.json || {};\n  const carousel = data.carousel || {};\n  const slides = Array.isArray(carousel.slides) ? carousel.slides : [];\n  if (!slides.length) continue;\n  const offset = Number(data.daily_preview_index || 0);\n  const image_prompts = slides.map((slide, idx) => {\n    const scene = scenes[(idx + offset) % scenes.length];\n    const emotion = emotions[(idx * 2 + offset) % emotions.length];\n    const render = renderStyles[(idx * 3 + offset) % renderStyles.length];\n    const object = objects[(idx * 4 + offset) % objects.length];\n    return `${scene}, ${emotion}, ${render}, ${object}, psychological tension, FBI behavioral pattern disruption, decision bias, fear of regret, funny but uncomfortable adult consumer moment, each slide must feel visually different, inspired by: ${String(slide || '').trim()}, dark background, cinematic lighting, high contrast, no readable text, no logos, no minors, no smoking glamor\n\n${GLOBAL_STYLE}`;\n  });\n  const base = { ...data, carousel: { ...carousel, image_prompts } };\n  image_prompts.forEach((prompt, idx) => out.push({ json: { ...base, carousel_prompt: prompt, carousel_slide_index: idx + 1 } }));\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "generate-carousel-images-node",
+        "name": "Generate Carousel Images",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1240,
+          -120
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.openai.com/v1/images/generations",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"model\":\"gpt-image-1-mini\", \"quality\":\"medium\",\"size\":\"1024x1024\",\"prompt\":$json.carousel_prompt} }}",
+          "options": {
+            "continueOnFail": true
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "build-carousel-media-array-node",
+        "name": "Build Carousel Media Array",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1480,
+          -120
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const FALLBACK_URL = 'https://n8n.mykindredai.com/images/fallback.png';\nconst responses = $input.all().map(i => i.json || {});\nconst promptItems = $items('Build Carousel Prompts') || [];\nif (!promptItems.length) return [];\n\nconst out = [];\nconst groupStats = new Map();\n\nfor (let i = 0; i < promptItems.length; i++) {\n  const p = (promptItems[i] && promptItems[i].json) ? promptItems[i].json : {};\n  const r = responses[i] || {};\n  const position = Number(p.carousel_slide_index || 0);\n  if (!(position > 0)) continue;\n\n  const testIdRaw = String(p.test_id || Date.now());\n  const testId = testIdRaw.replace(/[^a-zA-Z0-9_-]/g, '_');\n  const sourceUrl = String(r?.data?.[0]?.url || r?.image_url || '').trim();\n  const b64 = String(r?.data?.[0]?.b64_json || '').trim();\n  const hasError = Boolean(r.error || r.code || String(r.status || '').toLowerCase() === 'error');\n  const sourceForSave = sourceUrl || (b64 ? `data:image/png;base64,${b64}` : '');\n\n  let image_url = '';\n  let usedFallback = false;\n\n  if (sourceForSave && !hasError) {\n    const rand = Math.random().toString(36).slice(2, 10);\n    const filename = `carousel_${testId}_${String(position).padStart(2, '0')}_${rand}.png`;\n    try {\n      const saveRes = await this.helpers.httpRequest({\n        method: 'POST',\n        url: 'http://43.201.227.194:8000/save-image',\n        body: { image_url: sourceForSave, filename },\n        json: true,\n        timeout: 30000,\n      });\n      image_url = String((saveRes && saveRes.permanent_url) || '').trim();\n    } catch (e) {\n      image_url = '';\n    }\n  }\n\n  if (!image_url) {\n    image_url = FALLBACK_URL;\n    usedFallback = true;\n  }\n\n  const stat = groupStats.get(testIdRaw) || { total: 0, fallback: 0 };\n  stat.total += 1;\n  if (usedFallback) stat.fallback += 1;\n  groupStats.set(testIdRaw, stat);\n\n  out.push({\n    json: {\n      ...p,\n      carousel: {\n        ...(p.carousel || {}),\n        media: [{ position, image_url }]\n      },\n      position,\n      image_url,\n      carousel_image_status: usedFallback ? 'fallback_due_to_generation_error' : 'success',\n      carousel_image_error: usedFallback ? String(r.error || r.message || 'missing_or_failed_image') : '',\n    }\n  });\n}\n\nreturn out.map(item => {\n  const testId = String(item.json.test_id || '');\n  const stat = groupStats.get(testId) || { total: 1, fallback: 0 };\n  return {\n    json: {\n      ...item.json,\n      carousel_image_count: stat.total,\n      carousel_fallback_count: stat.fallback,\n      carousel_image_collection_status: stat.fallback > 0 ? (stat.fallback === stat.total ? 'fallback_all' : 'fallback_filled') : 'success',\n    }\n  };\n});"
+        }
+      },
+      {
+        "id": "carousel-delay-node",
+        "name": "Carousel Delay",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          1720,
+          -120
+        ],
+        "parameters": {
+          "resume": "timeInterval",
+          "amount": 7,
+          "unit": "minutes"
+        },
+        "webhookId": "4460408b-ac07-4d8f-a621-b6d999ff5aec"
+      },
+      {
+        "id": "carousel-publisher-node",
+        "name": "Carousel Publisher",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1960,
+          -120
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"media_type\":\"CAROUSEL\", \"children\": (($json.carousel || {}).child_ids || []).join(','), \"caption\": (($json.carousel || {}).caption || $json.caption || ''), \"access_token\": \"REDACTED\"} }}",
+          "options": {
+            "continueOnFail": true
+          }
+        }
+      },
+      {
+        "id": "create-carousel-children-node",
+        "name": "Create Carousel Children",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1720,
+          -120
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"image_url\": $json.image_url, \"is_carousel_item\": true, \"access_token\": \"REDACTED\"} }}",
+          "options": {
+            "continueOnFail": true
+          }
+        }
+      },
+      {
+        "id": "collect-carousel-child-ids-node",
+        "name": "Collect Carousel Child IDs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1960,
+          -120
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const all = $input.all().map(i => i.json || {});\nif (!all.length) return [];\n\nconst ok = [];\nfor (const row of all) {\n  const position = Number(row.position || 0);\n  const image_url = String(row.image_url || '').trim();\n  const child_id = String(row.id || '').trim();\n  if (position > 0 && image_url && child_id) {\n    ok.push({ position, image_url, child_id, row });\n  }\n}\n\nif (!ok.length) {\n  // Branch-local safe skip: no carousel publish item emitted.\n  return [];\n}\n\nok.sort((a, b) => a.position - b.position);\nconst base = ok[0].row || {};\nconst existingCarousel = base.carousel || {};\n\nconst media = ok.map(x => ({ position: x.position, image_url: x.image_url, child_id: x.child_id }));\nconst child_ids = ok.map(x => x.child_id);\n\nreturn [{\n  json: {\n    ...base,\n    carousel: {\n      ...existingCarousel,\n      media,\n      child_ids\n    },\n    carousel_publish_ready: true\n  }\n}];"
+        }
+      },
+      {
+        "id": "prepare-carousel-approval-cache-node",
+        "name": "Prepare Carousel Approval Cache",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1720,
+          -260
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const all = $input.all().map(i => i.json || {});\nconst groups = new Map();\nfor (const item of all) {\n  const id = String(item.test_id || '').trim();\n  const image = String(item.image_url || '').trim();\n  if (!id || !image) continue;\n  if (!groups.has(id)) groups.set(id, []);\n  groups.get(id).push(item);\n}\nconst out = [];\nfor (const [testId, items] of groups.entries()) {\n  items.sort((a,b) => Number(a.position || 0) - Number(b.position || 0));\n  const first = items[0] || {};\n  const carousel = first.carousel && typeof first.carousel === 'object' ? first.carousel : {};\n  const media = items.map((m, idx) => ({ position: Number(m.position || idx + 1), image_url: String(m.image_url || '').trim() })).filter(m => m.image_url);\n  if (media.length < 2) continue;\n  out.push({\n    json: {\n      ...first,\n      action: 'cache_carousel',\n      test_id: testId,\n      carousel: { ...carousel, media },\n      carousel_media_count: media.length\n    }\n  });\n}\nconst store = $getWorkflowStaticData('global');\nstore.carousel_payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\nfor (const item of out) {\n  const { test_id: tid, carousel: car } = item.json;\n  if (tid && car && Array.isArray(car.media) && car.media.length >= 2) {\n    store.carousel_payloads[tid] = {\n      caption: String(car.caption || '').trim(),\n      media: car.media,\n      updated_at: new Date().toISOString(),\n    };\n  }\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "cache-carousel-approval-payload-node",
+        "name": "Cache Carousel Approval Payload",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1960,
+          -260
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://n8n.mykindredai.com/webhook/clean_02_approval",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"action\": $json.action, \"test_id\": $json.test_id, \"carousel\": $json.carousel} }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "clean-normalize-reel-image-output",
+        "name": "Normalize Reel Image Output",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1160,
+          520
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const items = $input.all();\nconst promptItems = $items('Build Reel Scene Prompts') || [];\n\nreturn items.map((item, idx) => {\n  const source = (promptItems[idx] && promptItems[idx].json) ? promptItems[idx].json : {};\n  const j = { ...source, ...(item.json || {}) };\n  const hasB64 = !!String(j?.data?.[0]?.b64_json || '').trim();\n  const hasUrl = !!String(j.image_url || j?.data?.[0]?.url || '').trim();\n  const failed = !!j.error || !!j.code || String(j.status || '').toLowerCase() === 'error' || (!hasB64 && !hasUrl);\n  const FALLBACK_URL = \"https://n8n.mykindredai.com/images/fallback.png\";\n\n  if (failed) {\n    return { json: { ...j, image_generation_status: \"fallback_due_to_generation_error\", image_generation_error: String(j.error || j.message || \"unknown\"), image_url: FALLBACK_URL } };\n  }\n\n  return { json: { ...j, image_generation_status: \"success\" } };\n});"
+        }
+      },
+      {
+        "id": "clean-collapse-to-single-item",
+        "name": "Collapse to Single Item",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2360,
+          420
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const items = $input.all();\nconst seen = new Set();\nconst out = [];\nfor (const item of items) {\n  const id = String(item.json?.test_id || '');\n  if (!id || seen.has(id)) continue;\n  seen.add(id);\n  out.push(item);\n}\nreturn out.slice(0, 3);"
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const first = $input.first();\nconst _input = (first && first.json) ? first.json : {};\nconst _body = (_input.body && typeof _input.body === 'object') ? _input.body : _input;\nif (String(_body.action || '').trim() === 'resend_carousel_cache') {\n  const testId = String(_body.test_id || '').trim();\n  if (testId) {\n    const store = $getWorkflowStaticData('global');\n    const payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n    const payload = payloads[testId];\n    if (payload && Array.isArray(payload.media) && payload.media.length >= 2) {\n      try {\n        await this.helpers.httpRequest({\n          method: 'POST',\n          url: 'https://n8n.mykindredai.com/webhook/clean_02_approval',\n          body: { action: 'cache_carousel', test_id: testId, carousel: payload },\n          json: true,\n          timeout: 15000,\n        });\n      } catch (_e) { /* resend failed silently */ }\n    }\n  }\n  return [];\n}\n\nconst queries = [\n  '합성니코틴 전자담배 규제',\n  '전자담배 금연구역 과태료',\n  '담배사업법 합성니코틴',\n  '전자담배 광고 제한'\n];\n\nconst candidates = [];\nfor (const q of queries) {\n  const url = 'https://news.google.com/rss/search?q=' + encodeURIComponent(q) + '&hl=ko&gl=KR&ceid=KR:ko';\n  try {\n    const xml = await this.helpers.httpRequest({ method: 'GET', url, timeout: 15000 });\n    const items = String(xml || '').match(/<item>[\\s\\S]*?<\\/item>/g) || [];\n    for (const raw of items.slice(0, 5)) {\n      const pick = (tag) => {\n        const m = raw.match(new RegExp('<' + tag + '>([\\\\s\\\\S]*?)<\\\\/' + tag + '>'));\n        return m ? m[1].replace(/^<!\\[CDATA\\[/, '').replace(/\\]\\]>$/, '').trim() : '';\n      };\n      const title = pick('title').replace(/&quot;/g, '\"').replace(/&amp;/g, '&').replace(/&#39;/g, \"'\");\n      const link = pick('link');\n      const pubDate = pick('pubDate');\n      if (title && link) candidates.push({ query: q, title, link, pubDate });\n    }\n  } catch (e) {\n    // Keep fallback path alive.\n  }\n}\n\nreturn [{ json: { news_candidates: candidates, news_fetched_at: new Date().toISOString() } }];"
+        },
+        "id": "dae0c6ea-cc59-42c4-a70c-294673d491b6",
+        "name": "Fetch Latest News",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          80,
+          160
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const input = $input.first()?.json || {};\nconst candidates = Array.isArray(input.news_candidates) ? input.news_candidates : [];\nconst allowed = /(korea\\.kr|pressian\\.com|donga\\.com|joins\\.com|joongang|seoul\\.co\\.kr|news\\.naver\\.com|yna\\.co\\.kr)/i;\nconst keywords = /(합성니코틴|전자담배|담배사업법|금연구역|과태료|광고 제한|건강경고|니코틴)/;\n\nconst scored = candidates\n  .filter(x => keywords.test(String(x.title || '')))\n  .map(x => {\n    let score = 0;\n    const t = String(x.title || '');\n    if (/4월\\s*24일|24일부터|10만원|37년|벌금|징역|금지|규제|과태료/.test(t)) score += 5;\n    if (/논란|금지|벌금|과태료|똑같이|동일/.test(t)) score += 3;\n    if (allowed.test(String(x.link || ''))) score += 2;\n    return { ...x, score };\n  })\n  .sort((a,b) => b.score - a.score);\n\nconst fallbackFacts = [\n  {\n    title: \"4월 24일부터 합성니코틴 액상형 전자담배도 담배로 규제\",\n    link: \"https://www.korea.kr/news/policyNewsView.do?newsId=148959006\",\n    fact: \"4월 24일부터 합성니코틴 액상형 전자담배도 ‘담배’로 묶였다.\",\n    jab: \"어제까진 애매하다더니 오늘부턴 금연구역 규제까지 같이 온다.\",\n    question: \"이게 질서 정리야, 아니면 늦게 온 뒷북이야?\"\n  },\n  {\n    title: \"액상 전담도 금연구역 과태료 10만원 대상\",\n    link: \"https://m.eye.seoul.co.kr/news/society/health-medical/2026/02/04/20260204008010\",\n    fact: \"4월 24일부터 금연구역 액상 전담 사용도 과태료 10만원 얘기가 나온다.\",\n    jab: \"기기는 작아졌는데 벌금 감각은 갑자기 일반담배랑 똑같아졌다.\",\n    question: \"이거 알고도 ‘그냥 전담인데?’라고 할 수 있어?\"\n  },\n  {\n    title: \"담배 정의 37년 만에 니코틴 제품까지 확대\",\n    link: \"https://koreajoongangdaily.joins.com/news/2026-02-03/national/socialAffairs/Revised-Tobacco-Business-Act-takes-effect-April-24-strengthens-regulations-on-ecigarettes/2515133\",\n    fact: \"담배 정의가 37년 만에 ‘연초의 잎’에서 ‘니코틴 제품’까지 넓어졌다.\",\n    jab: \"근데 소비자는 매장 앞에서야 갑자기 룰이 바뀐 걸 배운다.\",\n    question: \"이건 보호야, 아니면 소비자만 늦게 맞는 패치야?\"\n  }\n];\n\nconst newsFacts = [];\nfor (const s of scored.slice(0, 7)) {\n  const title = String(s.title || '').replace(/\\s+-\\s+[^-]+$/, '').trim();\n  let fact = title;\n  if (!/\\d|4월|24일|10만원|37년/.test(fact)) fact = '4월 24일 시행 기준, ' + fact;\n  newsFacts.push({\n    title,\n    link: s.link,\n    fact,\n    jab: /과태료|벌금|징역/.test(title)\n      ? \"이건 취향 문제가 아니라 모르면 바로 돈으로 맞는 룰이다.\"\n      : \"말은 규제 정리인데, 소비자는 매장 앞에서야 뒤늦게 배운다.\",\n    question: /금지|과태료|벌금/.test(title)\n      ? \"이 정도면 보호야, 아니면 과한 단속이야?\"\n      : \"이 변화, 납득돼 아니면 뒷북 같아?\",\n    source_mode: \"latest_rss\"\n  });\n}\n\nwhile (newsFacts.length < 7) {\n  const f = fallbackFacts[newsFacts.length % fallbackFacts.length];\n  newsFacts.push({ ...f, source_mode: \"fallback_verified\" });\n}\n\nreturn [{ json: { ...input, news_facts: newsFacts.slice(0, 7), fact_selected_at: new Date().toISOString() } }];"
+        },
+        "id": "78d22deb-522f-48c7-8692-aa4090a6b77f",
+        "name": "Select Fact Items",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          300,
+          160
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "return $input.all().filter(i => String(i.json?.post_type || '') === 'reel');"
+        },
+        "id": "18f5b9cd-c676-4ef9-af3c-95b68b190d19",
+        "name": "Filter Reel Preview Items",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          760,
+          20
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "return $input.all().filter(i => String(i.json?.post_type || '') === 'carousel');"
+        },
+        "id": "fe0f8dd5-0d1c-4714-b3f9-369df56bd923",
+        "name": "Filter Carousel Preview Items",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          760,
+          260
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "return $input.all()\n  .filter(i => String(i.json?.post_type || '') === 'feed')\n  .map(i => ({\n    json: {\n      ...i.json,\n      media_prompt: `${i.json.media_prompt || ''}, ${i.json.visual_scene || '계산대'}, ${i.json.visual_emotion || '의심'}, ${i.json.visual_style || '과장된 상징'}, ${i.json.visual_object || '영수증'}, 세상의 이중성, looks like A on the surface but reveals B underneath, split image, polished public face versus hidden cost, symbolic editorial image, no readable text, no logos`\n    }\n  }));"
+        },
+        "id": "4a144cf8-525d-4aab-b80e-bef99b50aef8",
+        "name": "Filter Feed Preview Items",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          760,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "chat_id",
+                "value": "={{$json.chat_id}}"
+              },
+              {
+                "name": "caption",
+                "value": "={{ '[FEED IMAGE | 세상의 이중성]\\n' + $json.hook + '\\n\\n전체 본문은 다음 메시지.' }}"
+              },
+              {
+                "parameterType": "formBinaryData",
+                "name": "photo",
+                "inputDataFieldName": "photo"
+              }
+            ]
+          },
+          "method": "POST",
+          "options": {},
+          "contentType": "multipart-form-data",
+          "url": "REDACTED_URL"
+        },
+        "id": "c854be89-5afa-4f7a-a091-29d2ffd17122",
+        "name": "Telegram Send Feed Message",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1020,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "chat_id",
+                "value": "={{$json.chat_id}}"
+              },
+              {
+                "name": "text",
+                "value": "={{ '[CAROUSEL | ' + $json.planned_publish_time + ']\\n' + $json.caption + '\\n\\n[CAROUSEL]\\n' + (($json.carousel && $json.carousel.slides) ? $json.carousel.slides.map((s, i) => (i + 1) + '. ' + s).join('\\n') : '') + '\\n\\n이미지: ' + ($json.carousel_media_count || 0) + '장' }}"
+              },
+              {
+                "name": "reply_markup",
+                "value": "={{$json.reply_markup}}"
+              }
+            ]
+          },
+          "method": "POST",
+          "options": {},
+          "contentType": "form-urlencoded",
+          "url": "REDACTED_URL"
+        },
+        "id": "a7674140-dc2b-4e53-864c-6b9b8f159918",
+        "name": "Telegram Send Carousel Message",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1980,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "chat_id",
+                "value": "={{$json.chat_id}}"
+              },
+              {
+                "name": "text",
+                "value": "={{ '[FEED | 21:00]\\n' + $json.caption + '\\n\\n출처: ' + ($json.source_url || 'verified source') }}"
+              },
+              {
+                "name": "reply_markup",
+                "value": "={{$json.reply_markup}}"
+              }
+            ]
+          },
+          "method": "POST",
+          "options": {},
+          "contentType": "form-urlencoded",
+          "url": "REDACTED_URL"
+        },
+        "id": "930197b8-7376-4889-89e4-8eff61ff2d71",
+        "name": "Telegram Send Feed Text",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1240,
+          500
+        ]
+      },
+      {
+        "id": "detect-duplicate-content",
+        "name": "Detect Duplicate Content",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          700,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const store = $getWorkflowStaticData('global');\nstore.generated_content_index = Array.isArray(store.generated_content_index) ? store.generated_content_index : [];\n\nconst now = new Date();\nconst cutoff = now.getTime() - 14 * 24 * 60 * 60 * 1000;\nconst previousLive = store.generated_content_index\n  .filter(r => new Date(r.created_at || 0).getTime() >= cutoff)\n  .filter(r => String(r.mode || 'live') === 'live')\n  .slice(-500);\n\nfunction normalize(value) {\n  return String(value || '')\n    .toLowerCase()\n    .replace(/[\\r\\n]+/g, ' ')\n    .replace(/[^\\u3131-\\u318E\\uAC00-\\uD7A3a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction simpleHash(str) {\n  str = String(str || '');\n  let hash = 0;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) - hash) + str.charCodeAt(i);\n    hash |= 0;\n  }\n  return String(Math.abs(hash));\n}\n\nfunction hash(value) {\n  return simpleHash(value);\n}\n\nfunction wordOverlap(a, b) {\n  const aw = new Set(normalize(a).split(' ').filter(Boolean));\n  const bw = new Set(normalize(b).split(' ').filter(Boolean));\n  if (!aw.size || !bw.size) return 0;\n  let inter = 0;\n  for (const w of aw) if (bw.has(w)) inter++;\n  return inter / Math.min(aw.size, bw.size);\n}\n\nfunction compute(j) {\n  const postType = String(j.post_type || '');\n  const hook = String(j.hook || '').split(/[.!?。\\\\n]/)[0] || String(j.hook || '');\n  const caption = String(j.caption || '');\n  const imagePrompt = String(j.media_prompt || j.carousel_prompt || '');\n  const normalized_caption = normalize(caption);\n  return {\n    normalized_caption,\n    content_hash: hash(normalized_caption),\n    hook_hash: hash(normalize(hook)),\n    caption_hash: hash(normalized_caption),\n    image_prompt_hash: hash(normalize(imagePrompt)),\n    postType,\n  };\n}\n\nfunction regenerateOnce(j, reason) {\n  const lines = String(j.caption || '').split('\\n').filter(Boolean);\n  const angle = String(j.angle || '');\n  const ctaByAngle = {\n    loss_emotion: '이거 저장 안 하면 다음에 똑같이 당할 가능성, 솔직히 없다고 봐?',\n    absurd_comedy: '이 상황 웃기다고 넘길래, 아니면 댓글로 한 번 따져볼래?',\n    debate_trigger: '너는 이거 질서라고 봐, 아니면 소비자한테 떠넘긴 숙제라고 봐?',\n    comparison: '겉으로 보이는 말이 맞아, 아니면 뒤에서 바뀐 기준이 더 진짜야?',\n    checklist: '이거 체크하고 갈래, 아니면 또 매장 앞에서 당황할래?',\n    hidden_structure: '누가 이 구조에서 먼저 움직였는지 이제 보이지 않아?',\n    deep_analysis: '이걸 알고도 그냥 규제 뉴스 하나로 넘길 수 있어?'\n  };\n  if (lines.length) lines[0] = `${lines[0]} 지금 문제는 여기서 끝이 아니라는 거다.`;\n  if (lines.length > 1) lines[lines.length - 1] = ctaByAngle[angle] || ctaByAngle.debate_trigger;\n  return {\n    ...j,\n    caption: lines.join('\\n'),\n    regenerate_attempted: true,\n    regenerate_reason: reason,\n  };\n}\n\nconst out = [];\nconst newRecords = [];\n\nfor (const item of $input.all()) {\n  let j = item.json || {};\n  const mode = String(j.mode || 'live');\n  const postType = String(j.post_type || '');\n  const angle = String(j.angle || '');\n  let h = compute(j);\n\n  let previousSameTypeDuplicate = previousLive.some(r => r.post_type === postType && r.content_hash === h.content_hash);\n  let sameTypeAngleHookDuplicate = previousLive.some(r => r.post_type === postType && r.angle === angle && r.hook_hash === h.hook_hash);\n  let hookDuplicate = previousLive.some(r => r.hook_hash === h.hook_hash);\n  let imagePromptDuplicate = Boolean(h.image_prompt_hash) && previousLive.some(r => r.image_prompt_hash === h.image_prompt_hash);\n  let maxOverlap = previousLive\n    .filter(r => r.post_type === postType)\n    .reduce((max, r) => Math.max(max, wordOverlap(h.normalized_caption, r.normalized_caption || '')), 0);\n  let similarityWarning = maxOverlap >= 0.7;\n\n  if ((similarityWarning || hookDuplicate) && !j.regenerate_attempted) {\n    j = regenerateOnce(j, similarityWarning ? 'similarity_warning' : 'hook_duplicate_warning');\n    h = compute(j);\n    previousSameTypeDuplicate = previousLive.some(r => r.post_type === postType && r.content_hash === h.content_hash);\n    sameTypeAngleHookDuplicate = previousLive.some(r => r.post_type === postType && r.angle === angle && r.hook_hash === h.hook_hash);\n    hookDuplicate = previousLive.some(r => r.hook_hash === h.hook_hash);\n    imagePromptDuplicate = Boolean(h.image_prompt_hash) && previousLive.some(r => r.image_prompt_hash === h.image_prompt_hash);\n    maxOverlap = previousLive\n      .filter(r => r.post_type === postType)\n      .reduce((max, r) => Math.max(max, wordOverlap(h.normalized_caption, r.normalized_caption || '')), 0);\n    similarityWarning = maxOverlap >= 0.7;\n  }\n\n  const duplicate_blocked = Boolean(previousSameTypeDuplicate || sameTypeAngleHookDuplicate || (j.regenerate_attempted && similarityWarning));\n  const blocked_reason = previousSameTypeDuplicate\n    ? 'previous_live_duplicate'\n    : sameTypeAngleHookDuplicate\n      ? 'same_post_type_angle_hook_duplicate'\n      : (j.regenerate_attempted && similarityWarning ? 'regenerate_failed_similarity' : '');\n\n  const warningReasons = [];\n  if (hookDuplicate && !duplicate_blocked) warningReasons.push('hook_duplicate');\n  if (similarityWarning && !duplicate_blocked) warningReasons.push('similarity_warning');\n  if (imagePromptDuplicate) warningReasons.push('image_prompt_duplicate');\n  if (j.feed_fallback_used || j.reel_fallback_count > 0 || j.carousel_fallback_count > 0) warningReasons.push('fallback_used');\n\n  const record = {\n    content_hash: h.content_hash,\n    hook_hash: h.hook_hash,\n    caption_hash: h.caption_hash,\n    normalized_caption: h.normalized_caption,\n    image_prompt_hash: h.image_prompt_hash,\n    image_url: String(j.image_url || ''),\n    image_source: String(j.image_source || j.feed_image_source || ''),\n    post_type: postType,\n    angle,\n    cta_style: String(j.cta_style || ''),\n    hook_first_line: String(j.hook || '').split(/[.!?。\\\\n]/)[0],\n    test_id: String(j.test_id || ''),\n    mode,\n    created_at: now.toISOString(),\n  };\n\n  if (!duplicate_blocked && mode === 'live') {\n    newRecords.push(record);\n  }\n\n  out.push({\n    json: {\n      ...j,\n      mode,\n      content_hash: h.content_hash,\n      hook_hash: h.hook_hash,\n      caption_hash: h.caption_hash,\n      normalized_caption: h.normalized_caption,\n      image_prompt_hash: h.image_prompt_hash,\n      duplicate_blocked,\n      blocked_reason,\n      hook_duplicate_warning: hookDuplicate && !duplicate_blocked,\n      similarity_warning: similarityWarning && !duplicate_blocked,\n      similarity_score: Number(maxOverlap.toFixed(3)),\n      image_duplicate_warning: Boolean(imagePromptDuplicate),\n      warning_reason: warningReasons.join(','),\n      needs_manual_review: Boolean(j.needs_manual_review || warningReasons.length),\n      queue_disabled_reason: mode === 'test' ? 'test_mode' : String(j.queue_disabled_reason || ''),\n    }\n  });\n}\n\nstore.generated_content_index = previousLive.concat(newRecords).slice(-500);\nreturn out;"
+        }
+      },
+      {
+        "id": "filter-duplicate-blocked-items",
+        "name": "Filter Duplicate Blocked Items",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          940,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst survivors = items.filter(i => i.json && i.json.duplicate_blocked !== true);\nconst blocked = items.filter(i => i.json && i.json.duplicate_blocked === true);\nconst manual = survivors.filter(i => i.json && i.json.needs_manual_review === true);\n\nconst counts = survivors.reduce((acc, i) => {\n  const type = String(i.json.post_type || 'unknown');\n  acc[type] = (acc[type] || 0) + 1;\n  return acc;\n}, {});\n\nconst store = $getWorkflowStaticData('global');\nstore.last_duplicate_block_summary = {\n  at: new Date().toISOString(),\n  total_candidates: items.length,\n  sent_candidates: survivors.length,\n  blocked_count: blocked.length,\n  manual_review_count: manual.length,\n  blocked_items: blocked.map(i => ({\n    test_id: String(i.json.test_id || ''),\n    post_type: String(i.json.post_type || ''),\n    blocked_reason: String(i.json.blocked_reason || 'content_hash_duplicate'),\n  })),\n  manual_review_items: manual.map(i => ({\n    test_id: String(i.json.test_id || ''),\n    post_type: String(i.json.post_type || ''),\n    warning_reason: String(i.json.warning_reason || 'manual_review'),\n  })),\n  survivor_counts: counts,\n};\n\nreturn survivors;"
+        }
+      },
+      {
+        "id": "telegram-duplicate-summary",
+        "name": "Telegram Duplicate Summary",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1260,
+          760
+        ],
+        "parameters": {
+          "jsCode": "const store = $getWorkflowStaticData('global');\nconst s = store.last_duplicate_block_summary || {};\nconst blocked = (s.blocked_items || [])\n  .map(x => `- ${x.post_type} / ${x.test_id} / ${x.blocked_reason || ''}`)\n  .join('\\n') || '없음';\nconst manual = (s.manual_review_items || [])\n  .map(x => `- ${x.post_type} / ${x.test_id} / ${x.warning_reason || ''}`)\n  .join('\\n') || '없음';\nconst text = [\n  '[PREVIEW SUMMARY]',\n  `오늘 생성 후보: ${s.total_candidates || 0}개`,\n  `Telegram 전송됨: ${s.sent_candidates || 0}개`,\n  `duplicate_blocked: ${s.blocked_count || 0}개`,\n  `needs_manual_review: ${s.manual_review_count || 0}개`,\n  '',\n  '[BLOCKED]',\n  blocked,\n  '',\n  '[MANUAL REVIEW]',\n  manual,\n].join('\\n');\n\nconst res = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://api.telegram.org/botREDACTED_TOKEN/sendMessage',\n  body: {\n    chat_id: String($json.chat_id || '7592247598'),\n    text,\n  },\n  json: true,\n  timeout: 15000,\n});\n\nreturn [{ json: { ...($json || {}), duplicate_summary_sent: true, duplicate_summary_message_id: res?.result?.message_id || null } }];"
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Fetch Latest News",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Simulation Content": {
+        "main": [
+          [
+            {
+              "node": "Detect Duplicate Content",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Vape Image": {
+        "main": [
+          [
+            {
+              "node": "Prepare Telegram Image Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Telegram Image Payload": {
+        "main": [
+          [
+            {
+              "node": "Telegram Send Feed Message",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Telegram Send Feed Text",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Telegram Send Photo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cron Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Latest News",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Reel Storyboard Image": {
+        "main": [
+          []
+        ]
+      },
+      "Prepare Reel FFmpeg Assets": {
+        "main": [
+          []
+        ]
+      },
+      "Create Reel Video FFmpeg": {
+        "main": [
+          []
+        ]
+      },
+      "Load Reel Video Binary": {
+        "main": [
+          []
+        ]
+      },
+      "Telegram Send Video": {
+        "main": [
+          []
+        ]
+      },
+      "Telegram Get Video File": {
+        "main": [
+          []
+        ]
+      },
+      "Build Reel Scene Prompts": {
+        "main": [
+          [
+            {
+              "node": "Generate Reel Scene Image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Reel Scene Image": {
+        "main": [
+          [
+            {
+              "node": "Normalize Reel Image Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect Reel Images": {
+        "main": [
+          [
+            {
+              "node": "Make Reel via FFmpeg Service",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Make Reel via FFmpeg Service": {
+        "main": [
+          [
+            {
+              "node": "Prepare Reel Preview Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Reel Preview Payload": {
+        "main": [
+          [
+            {
+              "node": "Cache Reel Video URL",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Cache Reel Video URL Legacy Disabled",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cache Reel Video URL": {
+        "main": [
+          [
+            {
+              "node": "Collapse to Single Item",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download Reel Video Binary": {
+        "main": [
+          []
+        ]
+      },
+      "Build Carousel Content": {
+        "main": [
+          [
+            {
+              "node": "Build Carousel Prompts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Carousel Prompts": {
+        "main": [
+          [
+            {
+              "node": "Generate Carousel Images",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Carousel Images": {
+        "main": [
+          [
+            {
+              "node": "Build Carousel Media Array",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Carousel Media Array": {
+        "main": [
+          [
+            {
+              "node": "Prepare Carousel Approval Cache",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Carousel Delay": {
+        "main": [
+          [
+            {
+              "node": "Carousel Publisher",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Carousel Children": {
+        "main": [
+          [
+            {
+              "node": "Collect Carousel Child IDs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect Carousel Child IDs": {
+        "main": [
+          [
+            {
+              "node": "Carousel Delay",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Carousel Approval Cache": {
+        "main": [
+          [
+            {
+              "node": "Cache Carousel Approval Payload",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Telegram Send Carousel Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Reel Image Output": {
+        "main": [
+          [
+            {
+              "node": "Collect Reel Images",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collapse to Single Item": {
+        "main": [
+          [
+            {
+              "node": "Telegram Send Video",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Latest News": {
+        "main": [
+          [
+            {
+              "node": "Select Fact Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Select Fact Items": {
+        "main": [
+          [
+            {
+              "node": "Build Simulation Content",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Reel Preview Items": {
+        "main": [
+          [
+            {
+              "node": "Build Reel Scene Prompts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Carousel Preview Items": {
+        "main": [
+          [
+            {
+              "node": "Build Carousel Content",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Feed Preview Items": {
+        "main": [
+          [
+            {
+              "node": "Generate Vape Image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Detect Duplicate Content": {
+        "main": [
+          [
+            {
+              "node": "Filter Duplicate Blocked Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Duplicate Blocked Items": {
+        "main": [
+          [
+            {
+              "node": "Filter Reel Preview Items",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Filter Carousel Preview Items",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Filter Feed Preview Items",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Telegram Duplicate Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false,
+      "executionOrder": "v1",
+      "saveExecutionProgress": true,
+      "saveDataSuccessExecution": "REDACTED",
+      "saveManualExecutions": "REDACTED",
+      "timezone": "Asia/Seoul",
+      "saveDataErrorExecution": "REDACTED",
+      "errorWorkflow": "potLIY8EREC9hXYl"
+    },
+    "staticData": {},
+    "meta": null,
+    "pinData": {},
+    "versionId": "35f94e79-3e15-4dac-970b-c2d289590d1f",
+    "activeVersionId": "35f94e79-3e15-4dac-970b-c2d289590d1f",
+    "versionCounter": 575,
+    "triggerCount": 2,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-04-20T12:50:30.142Z",
+        "createdAt": "2026-04-20T12:50:30.142Z",
+        "role": "workflow:owner",
+        "workflowId": "KPa5tncCc87z2ZsE",
+        "projectId": "M3e6xHUu7VezXSBg",
+        "project": {
+          "updatedAt": "2026-04-07T04:41:49.347Z",
+          "createdAt": "2026-04-05T09:30:33.360Z",
+          "id": "M3e6xHUu7VezXSBg",
+          "name": "민호 김 <ziemaziema@gmail.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "creatorId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

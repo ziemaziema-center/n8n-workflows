@@ -1,0 +1,343 @@
+[
+  {
+    "updatedAt": "2026-04-26T13:04:36.934Z",
+    "createdAt": "2026-04-20T12:50:30.400Z",
+    "id": "i6T6ke3ltKNQzaCl",
+    "name": "clean_02_approval",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "clean-appr-trigger",
+        "name": "Webhook",
+        "parameters": {
+          "path": "clean_02_approval",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          240,
+          300
+        ],
+        "typeVersion": 2,
+        "webhookId": "9f567fed-44d0-4417-a8be-a59a800aed38"
+      },
+      {
+        "id": "clean-appr-normalize",
+        "name": "Normalize Callback",
+        "parameters": {
+          "jsCode": "const first = $input.first();\nconst input = (first && first.json && typeof first.json === 'object') ? first.json : {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\n\nconst directAction = String(body.action || '').trim();\nif (directAction === 'cache_feed') {\n  const testId = String(body.test_id || '').trim();\n  const caption = String(body.caption || '').trim();\n  if (!testId || !caption) {\n    return [];\n  }\n  const store = $getWorkflowStaticData('global');\n  store.feed_payloads = (store.feed_payloads && typeof store.feed_payloads === 'object') ? store.feed_payloads : {};\n  store.feed_payloads[testId] = {\n    test_id: testId,\n    caption,\n    planned_publish_time: String(body.planned_publish_time || '21:00').trim(),\n    content_slot: String(body.content_slot || 'feed_2100').trim(),\n    source_url: String(body.source_url || '').trim(),\n    hook: String(body.hook || '').trim(),\n    image_url: String(body.image_url || body.media_url || '').trim(),\n    media_url: String(body.media_url || body.image_url || '').trim(),\n    updated_at: new Date().toISOString(),\n  };\n  return [];\n}\n\nif (directAction === 'cache_reel') {\n  const testId = String(body.test_id || '').trim();\n  const videoUrl = String(body.video_url || body.reel_video_url || body.media_url || body.reel_url || '').trim();\n  if (!testId || !/^https?:\\/\\//i.test(videoUrl)) {\n    return [];\n  }\n  const store = $getWorkflowStaticData('global');\n  store.reel_video_urls = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  store.reel_video_urls[testId] = videoUrl;\n  store.reel_payloads = (store.reel_payloads && typeof store.reel_payloads === 'object') ? store.reel_payloads : {};\n  store.reel_payloads[testId] = { test_id: testId, video_url: videoUrl, caption: String(body.caption || '').trim(), planned_publish_time: String(body.planned_publish_time || '').trim(), content_slot: String(body.content_slot || '').trim(), post_type: String(body.post_type || 'reel').trim(), updated_at: new Date().toISOString() };\n  store.reel_video_cached_at = new Date().toISOString();\n  return [];\n}\n\nif (directAction === 'cache_carousel') {\n  const testId = String(body.test_id || '').trim();\n  const carousel = (body.carousel && typeof body.carousel === 'object') ? body.carousel : null;\n  const media = Array.isArray(carousel?.media) ? carousel.media.filter((m) => String(m?.image_url || '').trim()) : [];\n  if (!testId || media.length < 2) {\n    return [];\n  }\n\n  // Preserve reel URL signal if provided in cache payload path.\n  const bodyReelUrlCandidates = [\n    body.video_url,\n    body.reel_video_url,\n    body.media_url,\n    body.reel_url,\n    body?.reel?.video_url,\n    body?.carousel?.reel_video_url,\n    body?.carousel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n  const cachedReelUrl = bodyReelUrlCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n\n  const store = $getWorkflowStaticData('global');\n  store.carousel_payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  store.carousel_payloads[testId] = {\n    caption: String(carousel.caption || '').trim(),\n    media: media.map((m, idx) => ({ position: Number(m.position || (idx + 1)), image_url: String(m.image_url || '').trim() })),\n    reel_video_url: cachedReelUrl,\n    updated_at: new Date().toISOString(),\n  };\n  return [];\n}\n\nconst callback = (body.callback_query && typeof body.callback_query === 'object') ? body.callback_query : null;\nif (!callback) {\n  return [];\n}\n\nconst callbackData = String(callback.data || body.callback_data || '').trim();\nconst [actionRaw, testIdRaw] = callbackData.split('|');\nconst action = String(actionRaw || '').trim();\nconst testId = String(testIdRaw || '').trim();\n\nconst isQueueAction = action === 'queue_feed' || action === 'queue_reel' || action === 'queue_carousel';\nconst isDeleteAction = action === 'delete_test' || action === 'delete';\n\nif (isQueueAction || isDeleteAction) {\n  if (!testId) {\n    throw new Error('Missing test_id in queue/delete callback');\n  }\n\n  const store = $getWorkflowStaticData('global');\n  store.daily_publish_queue = (store.daily_publish_queue && typeof store.daily_publish_queue === 'object') ? store.daily_publish_queue : {};\n  store.daily_deleted_items = (store.daily_deleted_items && typeof store.daily_deleted_items === 'object') ? store.daily_deleted_items : {};\n  store.clean_publish_guard = (store.clean_publish_guard && typeof store.clean_publish_guard === 'object') ? store.clean_publish_guard : {};\n\n  const nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\n  const todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\n  const dedupeKey = `${action}|${testId}`;\n  if (store.clean_publish_guard[dedupeKey]) {\n    return [];\n  }\n  const message = (callback.message && typeof callback.message === 'object') ? callback.message : ((body.message && typeof body.message === 'object') ? body.message : {});\n  const callbackCaption = String(message.caption || message.text || '');\n  const reelMap = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  const feedPayloads = (store.feed_payloads && typeof store.feed_payloads === 'object') ? store.feed_payloads : {};\n  const feedPayload = (feedPayloads[testId] && typeof feedPayloads[testId] === 'object') ? feedPayloads[testId] : null;\n  const reelPayloads = (store.reel_payloads && typeof store.reel_payloads === 'object') ? store.reel_payloads : {};\n  const reelPayload = (reelPayloads[testId] && typeof reelPayloads[testId] === 'object') ? reelPayloads[testId] : null;\n  const carouselMap = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  let carouselPayload = (carouselMap[testId] && typeof carouselMap[testId] === 'object') ? carouselMap[testId] : null;\n  if (!carouselPayload || !Array.isArray(carouselPayload.media) || carouselPayload.media.length < 2) {\n    try {\n      await this.helpers.httpRequest({\n        method: 'POST',\n        url: 'https://n8n.mykindredai.com/webhook/clean_01_generator',\n        body: { action: 'resend_carousel_cache', test_id: testId },\n        json: true,\n        timeout: 25000,\n      });\n      const refreshedStore = $getWorkflowStaticData('global');\n      const refreshedMap = (refreshedStore.carousel_payloads && typeof refreshedStore.carousel_payloads === 'object') ? refreshedStore.carousel_payloads : {};\n      const refreshed = (refreshedMap[testId] && typeof refreshedMap[testId] === 'object') ? refreshedMap[testId] : null;\n      if (refreshed && Array.isArray(refreshed.media) && refreshed.media.length >= 2) carouselPayload = refreshed;\n    } catch (_e) { /* fallback failed silently */ }\n  }\n  const videoUrl = String(reelMap[testId] || '').trim();\n  const feedImageUrl = String(feedPayload?.image_url || feedPayload?.media_url || '').trim();\n\n  const slotMatch = callbackCaption.match(/\\[(FEED|CAROUSEL)\\s*\\|\\s*([0-9:]+)\\]/i);\n  const plannedTimeFromMessage = slotMatch ? String(slotMatch[2] || '').trim() : '';\n  const typeFromAction = action.replace(/^queue_/, '');\n  const plannedTime = plannedTimeFromMessage || String(feedPayload?.planned_publish_time || '').trim() || String(reelPayload?.planned_publish_time || '').trim() || (\n    typeFromAction === 'feed' ? '21:00' :\n    typeFromAction === 'carousel' ? '' :\n    ''\n  );\n\n  if (isDeleteAction) {\n    store.daily_deleted_items[testId] = {\n      test_id: testId,\n      dateKey: todayKey,\n      deleted_at: new Date().toISOString(),\n      callback_data: callbackData,\n      status: 'deleted',\n    };\n    if (store.daily_publish_queue[testId]) {\n      store.daily_publish_queue[testId].status = 'deleted';\n      store.daily_publish_queue[testId].deleted_at = new Date().toISOString();\n    }\n    return [];\n  }\n\n  if (store.daily_deleted_items[testId]) {\n    return [];\n  }\n\n  if (typeFromAction === 'reel' && !/^https?:\\/\\//i.test(videoUrl)) {\n    throw new Error(`Queue reel blocked: missing cached reel video for ${testId}`);\n  }\n\n  if (typeFromAction === 'carousel') {\n    const media = Array.isArray(carouselPayload?.media) ? carouselPayload.media : [];\n    if (media.length < 2) {\n      delete store.clean_publish_guard[dedupeKey];\n      store.carousel_cache_alerts = Array.isArray(store.carousel_cache_alerts) ? store.carousel_cache_alerts : [];\n      store.carousel_cache_alerts.push({ test_id: testId, alerted_at: new Date().toISOString() });\n      const _chatId = String(callback?.message?.chat?.id || body?.message?.chat?.id || '').trim();\n      const _tgToken = String(store.tg_bot_token || '').trim();\n      if (_chatId && _tgToken) {\n        try {\n          await this.helpers.httpRequest({\n            method: 'POST',\n            url: `https://api.telegram.org/bot${_tgToken}/sendMessage`,\n            body: { chat_id: _chatId, text: `⚠️ Carousel 캐시 없음\\ntest_id: ${testId}\\n재승인 필요` },\n            json: true,\n            timeout: 5000,\n          });\n        } catch (_e) {}\n      }\n      return [];\n    }\n  }\n\n  store.daily_publish_queue[testId] = {\n    test_id: testId,\n    dateKey: todayKey,\n    post_type: typeFromAction,\n    route_action: action,\n    status: 'queued',\n    queued_at: new Date().toISOString(),\n    planned_publish_time: plannedTime,\n    caption: typeFromAction === 'carousel'\n      ? String(carouselPayload?.caption || callbackCaption || '').trim()\n      : (typeFromAction === 'reel' ? String(reelPayload?.caption || callbackCaption || '').trim() : String(feedPayload?.caption || callbackCaption || '').trim()),\n    video_url: typeFromAction === 'reel' ? videoUrl : '',\n    image_url: typeFromAction === 'feed' ? feedImageUrl : '',\n    media_url: typeFromAction === 'feed' ? feedImageUrl : '',\n    carousel: typeFromAction === 'carousel' ? {\n      caption: String(carouselPayload?.caption || callbackCaption || '').trim(),\n      media: Array.isArray(carouselPayload?.media) ? carouselPayload.media : [],\n    } : null,\n    source: 'telegram_queue_button',\n  };\n\n  store.clean_publish_guard[dedupeKey] = new Date().toISOString();\n  return [];\n}\n\n\nconst isReelApprove = action === 'approve_test' || action === 'approve' || action === 'approve_reel';\nconst isCarouselApprove = action === 'approve_carousel';\nif (!isReelApprove && !isCarouselApprove) {\n  return [];\n}\n\nif (!testId) {\n  throw new Error('Missing test_id in approve callback');\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.clean_publish_guard = (store.clean_publish_guard && typeof store.clean_publish_guard === 'object') ? store.clean_publish_guard : {};\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3);\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\n\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nstore.daily_publish_success_log = store.daily_publish_success_log.slice(-300);\nconst todaySuccessCount = store.daily_publish_success_log.filter((r) => String(r.dateKey || '') === todayKey).length;\nif (todaySuccessCount >= store.daily_publish_limit) {\n  throw new Error(`DAILY_LIMIT_REACHED limit=${store.daily_publish_limit} count=${todaySuccessCount}`);\n}\n\nconst dedupeKey = `${action}|${testId}`;\nif (store.clean_publish_guard[dedupeKey]) {\n  return [];\n}\nstore.clean_publish_guard[dedupeKey] = new Date().toISOString();\n\nconst message = (callback.message && typeof callback.message === 'object') ? callback.message : ((body.message && typeof body.message === 'object') ? body.message : {});\nconst callbackCaption = String(message.caption || message.text || '');\n\nif (isReelApprove) {\n  const payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\n  const payload = payloads[testId] && typeof payloads[testId] === 'object' ? payloads[testId] : null;\n\n  const videoMap = (store.reel_video_urls && typeof store.reel_video_urls === 'object') ? store.reel_video_urls : {};\n  const mappedVideoUrl = String(videoMap[testId] || '').trim();\n\n  // Fallback order:\n  // 1) staticData.global.reel_video_urls[test_id]\n  // 2) callback/body payload fields\n  // 3) cached carousel/static payload fields that may contain reel URL\n  const callbackCandidates = [\n    body.video_url,\n    body.reel_video_url,\n    body.media_url,\n    body.reel_url,\n    body?.reel?.video_url,\n    body?.carousel?.reel_video_url,\n    body?.carousel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n\n  const payloadCandidates = [\n    payload?.reel_video_url,\n    payload?.video_url,\n    payload?.media_url,\n    payload?.reel_url,\n    payload?.reel?.video_url,\n  ].map((v) => String(v || '').trim()).filter(Boolean);\n\n  const callbackVideoUrl = callbackCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n  const payloadVideoUrl = payloadCandidates.find((u) => /^https?:\\/\\//i.test(u)) || '';\n  const finalVideoUrl = mappedVideoUrl || callbackVideoUrl || payloadVideoUrl;\n\n  if (!finalVideoUrl) {\n    throw new Error(`Reel asset missing for approved test_id ${testId}; publish blocked`);\n  }\n\n  if (/samplelib\\.com|gtv-videos-bucket|ForBiggerJoyrides|ForBiggerEscapes/i.test(finalVideoUrl)) {\n    throw new Error('Generic sample video blocked for approve flow');\n  }\n\n  return [{\n    json: {\n      route_action: 'approve_reel',\n      callback_data: action,\n      test_id: testId,\n      caption: callbackCaption,\n      video_url: finalVideoUrl,\n      video_source: mappedVideoUrl ? 'reel_cache' : (callbackVideoUrl ? 'callback_payload' : 'carousel_payload'),\n      approved_via: 'telegram_callback',\n      arm_live_publish: true,\n      daily_publish_limit: store.daily_publish_limit,\n      daily_publish_count_today: todaySuccessCount,\n      dry_run: body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true',\n      test_mode: body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true',\n      diagnostic: body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true',\n    }\n  }];\n}\n\nconst payloads = (store.carousel_payloads && typeof store.carousel_payloads === 'object') ? store.carousel_payloads : {};\nlet payload = payloads[testId] && typeof payloads[testId] === 'object' ? payloads[testId] : null;\nlet media = Array.isArray(payload?.media) ? payload.media : [];\nif (!payload || media.length < 2) {\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://n8n.mykindredai.com/webhook/clean_01_generator',\n      body: { action: 'resend_carousel_cache', test_id: testId },\n      json: true,\n      timeout: 25000,\n    });\n    const refreshedStore2 = $getWorkflowStaticData('global');\n    const refreshedMap2 = (refreshedStore2.carousel_payloads && typeof refreshedStore2.carousel_payloads === 'object') ? refreshedStore2.carousel_payloads : {};\n    const refreshed2 = refreshedMap2[testId] && typeof refreshedMap2[testId] === 'object' ? refreshedMap2[testId] : null;\n    if (refreshed2 && Array.isArray(refreshed2.media) && refreshed2.media.length >= 2) { payload = refreshed2; media = refreshed2.media; }\n  } catch (_e2) { /* fallback failed silently */ }\n}\nif (!payload || media.length < 2) {\n  throw new Error(`Carousel media payload missing for approved test_id ${testId} (fallback also failed)`);\n}\n\nreturn [{\n  json: {\n    route_action: 'approve_carousel',\n    callback_data: action,\n    test_id: testId,\n    caption: String(payload.caption || callbackCaption || '').trim(),\n    carousel: {\n      caption: String(payload.caption || callbackCaption || '').trim(),\n      media,\n    },\n    approved_via: 'telegram_callback',\n    arm_live_publish: true,\n    daily_publish_limit: store.daily_publish_limit,\n    daily_publish_count_today: todaySuccessCount,\n    dry_run: body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true',\n    test_mode: body.test_mode === true || String(body.test_mode || '').toLowerCase() === 'true',\n    diagnostic: body.diagnostic === true || String(body.diagnostic || '').toLowerCase() === 'true',\n  }\n}];",
+          "mode": "runOnceForAllItems",
+          "notice": ""
+        },
+        "type": "n8n-nodes-base.code",
+        "position": [
+          500,
+          300
+        ],
+        "typeVersion": 2
+      },
+      {
+        "id": "clean-appr-http",
+        "name": "Trigger Publisher",
+        "parameters": {
+          "specifyBody": "json",
+          "sendBody": true,
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ {\"caption\": $json.caption, \"video_url\": $json.video_url, \"test_id\": $json.test_id, \"approved_via\": $json.approved_via, \"arm_live_publish\": true, \"daily_publish_limit\": $json.daily_publish_limit, \"dry_run\": $json.dry_run || false, \"test_mode\": $json.test_mode || false, \"diagnostic\": $json.diagnostic || false} }}",
+          "url": "https://n8n.mykindredai.com/webhook/clean_03_publisher"
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1000,
+          220
+        ],
+        "typeVersion": 4.4
+      },
+      {
+        "id": "route-by-action-clean02-node",
+        "name": "Route by Action",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3,
+        "position": [
+          760,
+          300
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.route_action}}",
+                      "rightValue": "approve_reel",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "approve_reel"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.route_action}}",
+                      "rightValue": "approve_carousel",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "approve_carousel"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "trigger-carousel-publisher-clean02-node",
+        "name": "Trigger Carousel Publisher",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          1000,
+          380
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://n8n.mykindredai.com/webhook/clean_04_carousel_publisher",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"test_id\": $json.test_id, \"caption\": $json.caption, \"carousel\": $json.carousel, \"approved_via\": $json.approved_via, \"arm_live_publish\": true, \"daily_publish_limit\": $json.daily_publish_limit, \"dry_run\": $json.dry_run || false, \"test_mode\": $json.test_mode || false, \"diagnostic\": $json.diagnostic || false} }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "record-publish-success-clean02-node",
+        "name": "Record Publish Success",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1240,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const j = $json || {};\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_limit = Number(store.daily_publish_limit ?? 3);\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\nconst nowSeoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst dateKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nconst mediaId = String(j.media_id || j.id || '').trim();\nconst status = String(j.publish_status || '').toLowerCase();\nconst success = Boolean(j.publishSuccess === true || j.publish_success === true || status === 'success' || mediaId);\nif (success) {\n  store.daily_publish_success_log.push({\n    dateKey,\n    timestamp: new Date().toISOString(),\n    test_id: String(j.test_id || ''),\n    route_action: String(j.route_action || ''),\n    media_id: mediaId,\n    executionId: String($execution.id || ''),\n  });\n  store.daily_publish_success_log = store.daily_publish_success_log.slice(-300);\n}\nreturn { json: { ...j, publish_success_recorded: success } };"
+        }
+      },
+      {
+        "id": "phase3a-dry-run-webhook",
+        "name": "Phase 3A Dry Run Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          760
+        ],
+        "parameters": {
+          "path": "clean_02_phase3a_dry_run",
+          "httpMethod": "POST",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "webhookId": "phase3a-dry-run-clean-02-approval"
+      },
+      {
+        "id": "phase3a-queue-scanner-dry-run",
+        "name": "Phase 3A Queue Scanner Dry Run",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          520,
+          760
+        ],
+        "parameters": {
+          "jsCode": "const first = $input.first();\nconst input = first && first.json && typeof first.json === 'object' ? first.json : {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\n\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_queue = store.daily_publish_queue && typeof store.daily_publish_queue === 'object' ? store.daily_publish_queue : {};\nstore.daily_deleted_items = store.daily_deleted_items && typeof store.daily_deleted_items === 'object' ? store.daily_deleted_items : {};\n\nconst diagnosticItems = Array.isArray(body.phase3a_diagnostic_items) ? body.phase3a_diagnostic_items : [];\nconst diagnosticDeleted = body.phase3a_diagnostic_deleted_items && typeof body.phase3a_diagnostic_deleted_items === 'object'\n  ? body.phase3a_diagnostic_deleted_items\n  : {};\nconst useDiagnosticInput = diagnosticItems.length > 0;\n\nconst queue = useDiagnosticInput\n  ? Object.fromEntries(diagnosticItems.map((item, idx) => [String(item.test_id || `diagnostic-${idx + 1}`), item]))\n  : store.daily_publish_queue;\nconst deletedItems = useDiagnosticInput ? diagnosticDeleted : store.daily_deleted_items;\n\nconst nowSeoul = body.now_override\n  ? new Date(String(body.now_override))\n  : new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth() + 1).padStart(2, '0')}-${String(nowSeoul.getDate()).padStart(2, '0')}`;\nconst nowMinutes = nowSeoul.getHours() * 60 + nowSeoul.getMinutes();\n\nfunction parseTimeMinutes(value) {\n  const s = String(value || '').trim();\n  const m = s.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (!m) return null;\n  const hh = Number(m[1]);\n  const mm = Number(m[2]);\n  if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;\n  return hh * 60 + mm;\n}\n\nconst summary = {\n  mode: useDiagnosticInput ? 'diagnostic_input' : 'staticData',\n  dry_run_only: true,\n  now_kst: nowSeoul.toISOString(),\n  today_key: todayKey,\n  actual_static_queue_count: Object.keys(store.daily_publish_queue || {}).length,\n  total_queue_count: 0,\n  due_count: 0,\n  would_publish_count: 0,\n  would_publish_reels: 0,\n  would_publish_carousels: 0,\n  would_publish_feeds: 0,\n  skipped_deleted_count: 0,\n  skipped_pending_or_missing_count: 0,\n  skipped_not_due_count: 0,\n  skipped_already_done_count: 0,\n  skipped_failed_or_blocked_count: 0,\n  items: [],\n};\n\nfor (const [testId, rawItem] of Object.entries(queue || {})) {\n  const item = rawItem && typeof rawItem === 'object' ? rawItem : {};\n  const postType = String(item.post_type || item.type || '').trim();\n  const status = String(item.status || '').trim();\n  const publishStatus = String(item.publish_status || '').trim().toLowerCase();\n  const plannedTime = String(item.planned_publish_time || '').trim();\n  const plannedMinutes = parseTimeMinutes(plannedTime);\n  const isDeleted = status === 'deleted' || Boolean(deletedItems[testId]);\n\n  const decision = {\n    test_id: String(item.test_id || testId),\n    post_type: postType,\n    status,\n    publish_status: publishStatus,\n    planned_publish_time: plannedTime,\n    decision: 'would_skip',\n    would_skip_reason: '',\n  };\n\n  summary.total_queue_count += 1;\n\n  if (isDeleted) {\n    decision.would_skip_reason = 'deleted';\n    summary.skipped_deleted_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (status !== 'queued' || !postType || plannedMinutes === null) {\n    decision.would_skip_reason = status !== 'queued' ? 'not_queued' : (!postType ? 'post_type_missing' : 'planned_publish_time_missing_or_invalid');\n    summary.skipped_pending_or_missing_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (publishStatus === 'published') {\n    decision.would_skip_reason = 'already_published';\n    summary.skipped_already_done_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (publishStatus === 'failed' || publishStatus === 'blocked') {\n    decision.would_skip_reason = `already_${publishStatus}`;\n    summary.skipped_failed_or_blocked_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  if (plannedMinutes > nowMinutes) {\n    decision.would_skip_reason = 'not_due_yet';\n    summary.skipped_not_due_count += 1;\n    summary.items.push(decision);\n    continue;\n  }\n\n  summary.due_count += 1;\n\n  if (postType === 'reel') {\n    if (!/^https?:\\/\\//i.test(String(item.video_url || ''))) {\n      decision.would_skip_reason = 'reel_asset_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_reels += 1;\n    }\n  } else if (postType === 'carousel') {\n    const media = Array.isArray(item.carousel?.media) ? item.carousel.media : [];\n    const hasPair = Boolean(item.paired_reel_test_id || item.paired_reel_slot || item.publish_after_reel_success);\n    if (!hasPair) {\n      decision.would_skip_reason = 'carousel_pairing_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else if (media.length < 2 || media.length > 10) {\n      decision.would_skip_reason = 'carousel_media_missing_or_invalid';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_carousels += 1;\n    }\n  } else if (postType === 'feed') {\n    if (!String(item.caption || '').trim()) {\n      decision.would_skip_reason = 'feed_caption_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else if (!/^https?:\\/\\//i.test(String(item.image_url || item.media_url || ''))) {\n      decision.would_skip_reason = 'feed_asset_missing';\n      summary.skipped_pending_or_missing_count += 1;\n    } else {\n      decision.decision = 'would_publish';\n      decision.would_skip_reason = '';\n      summary.would_publish_count += 1;\n      summary.would_publish_feeds += 1;\n    }\n  } else {\n    decision.would_skip_reason = 'unknown_post_type';\n    summary.skipped_pending_or_missing_count += 1;\n  }\n\n  summary.items.push(decision);\n}\n\nstore.last_scheduler_dry_run_at = new Date().toISOString();\nstore.last_scheduler_dry_run_summary = {\n  mode: summary.mode,\n  total_queue_count: summary.total_queue_count,\n  due_count: summary.due_count,\n  would_publish_count: summary.would_publish_count,\n  skipped_deleted_count: summary.skipped_deleted_count,\n  skipped_not_due_count: summary.skipped_not_due_count,\n};\n\nreturn [{ json: summary }];"
+        }
+      },
+      {
+        "id": "phase3c-scheduler-webhook",
+        "name": "Phase 3C Scheduler Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          1040
+        ],
+        "parameters": {
+          "path": "clean_02_phase3c_scheduler",
+          "httpMethod": "POST",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "webhookId": "phase3c-scheduler-clean-02-approval"
+      },
+      {
+        "id": "phase3c-scheduler-execute",
+        "name": "Phase 3C Scheduler Execute",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          540,
+          1040
+        ],
+        "parameters": {
+          "jsCode": "\nconst IG_USER_ID = '17841436538210981';\nconst REDACTED_TOKEN\";\nconst GRAPH = 'https://graph.facebook.com/v23.0';\nconst first = $input.first();\nconst input = first && first.json && typeof first.json === 'object' ? first.json : {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst store = $getWorkflowStaticData('global');\nstore.daily_publish_queue = store.daily_publish_queue && typeof store.daily_publish_queue === 'object' ? store.daily_publish_queue : {};\nstore.daily_deleted_items = store.daily_deleted_items && typeof store.daily_deleted_items === 'object' ? store.daily_deleted_items : {};\nstore.published_content_hashes = Array.isArray(store.published_content_hashes) ? store.published_content_hashes : [];\n\nconst nowSeoul = body.now_override ? new Date(String(body.now_override)) : new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));\nconst nowMinutes = nowSeoul.getHours() * 60 + nowSeoul.getMinutes();\nconst todayKey = `${nowSeoul.getFullYear()}-${String(nowSeoul.getMonth()+1).padStart(2,'0')}-${String(nowSeoul.getDate()).padStart(2,'0')}`;\n\nfunction parseTimeMinutes(value) {\n  const s = String(value || '').trim();\n  const m = s.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (!m) return null;\n  const hh = Number(m[1]);\n  const mm = Number(m[2]);\n  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;\n  return hh * 60 + mm;\n}\n\nfunction block(item, reason) {\n  item.publish_status = 'blocked';\n  item.blocked_reason = reason;\n  item.blocked_at = new Date().toISOString();\n  return { test_id: item.test_id, post_type: item.post_type, decision: 'blocked', reason };\n}\n\nfunction finalContentGuard(item) {\n  if (item.duplicate_blocked === true) return 'content_duplicate_or_similar';\n  if (item.needs_manual_review === true) return 'content_duplicate_or_similar';\n  if (String(item.publish_status || '').toLowerCase() === 'published') return 'already_published';\n  if (['failed','blocked'].includes(String(item.publish_status || '').toLowerCase())) return `already_${item.publish_status}`;\n  const ch = String(item.content_hash || '').trim();\n  if (ch && store.published_content_hashes.some(r => r.post_type === item.post_type && r.content_hash === ch && r.test_id !== item.test_id)) {\n    return 'content_duplicate_or_similar';\n  }\n  return '';\n}\n\nasync function publishFeed(item) {\n  const imageUrl = String(item.image_url || item.media_url || '').trim();\n  const caption = String(item.caption || '').trim();\n  if (!imageUrl || !caption) throw new Error('missing_feed_asset');\n\n  function getStatus(resp) {\n    return Number(resp?.statusCode || resp?.status || 200);\n  }\n  function getBody(resp) {\n    return resp && Object.prototype.hasOwnProperty.call(resp, 'body') ? resp.body : resp;\n  }\n  function throwGraph(stage, resp) {\n    const status = getStatus(resp);\n    const body = getBody(resp);\n    const err = new Error(`${stage}_failed_${status}`);\n    err.graphBody = body;\n    err.httpStatus = status;\n    throw err;\n  }\n\n  const createResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${GRAPH}/${IG_USER_ID}/media`,\n    body: { image_url: imageUrl, caption, access_token: ACCESS_TOKEN },\n    json: true,\n    timeout: 60000,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true,\n  });\n  if (getStatus(createResp) >= 400) throwGraph('feed_container_create', createResp);\n  const create = getBody(createResp);\n  const creationId = String(create?.id || '').trim();\n  if (!creationId) throw new Error('feed_container_missing_id');\n  await new Promise(resolve => setTimeout(resolve, 3000));\n\n  const publishResp = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${GRAPH}/${IG_USER_ID}/media_publish`,\n    body: { creation_id: creationId, access_token: ACCESS_TOKEN },\n    json: true,\n    timeout: 60000,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true,\n  });\n  if (getStatus(publishResp) >= 400) throwGraph('feed_media_publish', publishResp);\n  const published = getBody(publishResp);\n  const mediaId = String(published?.id || '').trim();\n  if (!mediaId) throw new Error('feed_publish_missing_media_id');\n  return { media_id: mediaId, creation_id: creationId };\n}\nconst summary = {\n  dry_run: false,\n  scheduler: 'phase3c',\n  now_kst: nowSeoul.toISOString(),\n  total_queue_count: Object.keys(store.daily_publish_queue).length,\n  published: [],\n  blocked: [],\n  skipped: [],\n  errors: [],\n};\n\nconst entries = Object.entries(store.daily_publish_queue)\n  .map(([key, item]) => [key, item && typeof item === 'object' ? item : {}])\n  .sort((a,b) => String(a[1].planned_publish_time || '').localeCompare(String(b[1].planned_publish_time || '')));\n\nfor (const [key, item] of entries) {\n  item.test_id = String(item.test_id || key);\n  const status = String(item.status || '').toLowerCase();\n  const postType = String(item.post_type || '').toLowerCase();\n  const planned = parseTimeMinutes(item.planned_publish_time);\n  if (store.daily_deleted_items[item.test_id] || status === 'deleted') {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: 'deleted' });\n    continue;\n  }\n  if (status !== 'queued') {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: 'not_queued' });\n    continue;\n  }\n  if (planned === null || planned > nowMinutes) {\n    summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: planned === null ? 'planned_publish_time_missing_or_invalid' : 'not_due_yet' });\n    continue;\n  }\n\n  const guardReason = finalContentGuard(item);\n  if (guardReason) {\n    if (guardReason.startsWith('already_')) {\n      summary.skipped.push({ test_id: item.test_id, post_type: postType, reason: guardReason });\n    } else {\n      summary.blocked.push(block(item, guardReason));\n    }\n    continue;\n  }\n\n  if (postType === 'carousel') {\n    summary.blocked.push(block(item, 'carousel_rate_limit_pending'));\n    continue;\n  }\n\n  try {\n    if (postType === 'reel') {\n      if (!/^https?:\\/\\//i.test(String(item.video_url || ''))) throw new Error('missing_reel_asset');\n      const res = await this.helpers.httpRequest({\n        method: 'POST',\n        url: 'https://n8n.mykindredai.com/webhook/clean_03_publisher',\n        body: {\n          caption: String(item.caption || ''),\n          video_url: String(item.video_url || ''),\n          test_id: item.test_id,\n          approved_via: 'phase3c_scheduler',\n          arm_live_publish: true,\n          daily_publish_limit: Number(item.daily_publish_limit || store.daily_publish_limit || 3),\n        },\n        json: true,\n        timeout: 120000,\n      });\n      item.publish_status = 'triggered';\n      item.triggered_at = new Date().toISOString();\n      item.publisher_workflow = 'clean_03_publisher';\n      item.publisher_execution_confirmed = false;\n      item.publisher_response = typeof res === 'object' ? res : { response: String(res || '') };\n      summary.triggered = Array.isArray(summary.triggered) ? summary.triggered : [];\n      summary.triggered.push({ test_id: item.test_id, post_type: postType, publisher: 'clean_03_publisher' });\n    } else if (postType === 'feed') {\n      const feed = await publishFeed.call(this, item);\n      item.publish_status = 'published';\n      item.published_at = new Date().toISOString();\n      item.media_id = feed.media_id;\n      item.creation_id = feed.creation_id;\n      item.publisher_workflow = 'phase3c_feed_inline';\n      summary.published.push({ test_id: item.test_id, post_type: postType, media_id: feed.media_id });\n    } else {\n      summary.blocked.push(block(item, 'unknown_post_type'));\n      continue;\n    }\n    if (item.content_hash) {\n      store.published_content_hashes.push({ test_id: item.test_id, post_type: postType, content_hash: item.content_hash, published_at: new Date().toISOString() });\n      store.published_content_hashes = store.published_content_hashes.slice(-500);\n    }\n  } catch (e) {\n    const response = e && e.response ? e.response : {};\n    const rawCandidate = e.graphBody || response.body || response.data || e.body || e.data || e.description || (e.cause && (e.cause.body || e.cause.data || e.cause.message)) || '';\n    let rawText = '';\n    if (typeof rawCandidate === 'string') {\n      rawText = rawCandidate;\n    } else if (rawCandidate && typeof rawCandidate === 'object') {\n      try { rawText = JSON.stringify(rawCandidate); } catch (_) { rawText = String(rawCandidate); }\n    }\n    if (!rawText) rawText = String(e.message || e || '');\n    rawText = rawText.split(ACCESS_TOKEN).join('REDACTED');\n    rawText = rawText.replace(/access_token=REDACTED&\\\\s]+)/gi, 'access_token=REDACTED');\n    let responseBody = {};\n    try { responseBody = JSON.parse(rawText); } catch (_) { responseBody = {}; }\n    const graphError = responseBody && responseBody.error ? responseBody.error : {};\n    item.publish_status = 'failed';\n    item.failed_reason = String(e.message || e);\n    item.failed_at = new Date().toISOString();\n    item.graph_error_message = String(graphError.message || responseBody.message || rawText).slice(0, 1000);\n    item.graph_error_code = graphError.code !== undefined ? graphError.code : '';\n    item.graph_error_subcode = graphError.error_subcode !== undefined ? graphError.error_subcode : '';\n    item.graph_error_type = String(graphError.type || '');\n    item.graph_error_http_status = e.httpStatus || response.statusCode || response.status || '';\n    item.graph_error_raw_sanitized = rawText.slice(0, 2000);\n    item.graph_error_body_present = !!rawText;\n    summary.errors.push({\n      test_id: item.test_id,\n      post_type: postType,\n      error: item.failed_reason,\n      graph_error_message: item.graph_error_message,\n      graph_error_code: item.graph_error_code,\n      graph_error_subcode: item.graph_error_subcode\n    });\n  }\n}\n\ntry {\n  const text = [\n    '[PHASE 3C SCHEDULER]',\n    `published: ${summary.published.length}`,\n    `triggered: ${(summary.triggered || []).length}`,\n    `blocked: ${summary.blocked.length}`,\n    `skipped: ${summary.skipped.length}`,\n    `errors: ${summary.errors.length}`,\n    '',\n    '[PUBLISHED]',\n    summary.published.map(x => `- ${x.post_type} / ${x.test_id} / ${x.media_id || x.publisher || ''}`).join('\\n') || '없음',\n    '',\n    '[TRIGGERED]',\n    (summary.triggered || []).map(x => `- ${x.post_type} / ${x.test_id} / ${x.publisher || ''}`).join('\\n') || '없음',\n    '',\n    '[BLOCKED]',\n    summary.blocked.map(x => `- ${x.post_type} / ${x.test_id} / ${x.reason}`).join('\\n') || '없음',\n    '',\n    '[ERRORS]',\n    summary.errors.map(x => `- ${x.post_type} / ${x.test_id} / ${x.error}`).join('\\n') || '없음',\n  ].join('\\n');\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.telegram.org/botREDACTED_TOKEN/sendMessage',\n    body: { chat_id: '7592247598', text },\n    json: true,\n    timeout: 15000,\n  });\n} catch (e) {\n  summary.telegram_summary_error = String(e.message || e);\n}\n\nstore.last_phase3c_scheduler_summary = summary;\nreturn [{ json: summary }];\n"
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Normalize Callback",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Callback": {
+        "main": [
+          [
+            {
+              "node": "Route by Action",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route by Action": {
+        "main": [
+          [
+            {
+              "node": "Trigger Publisher",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Trigger Carousel Publisher",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger Publisher": {
+        "main": [
+          [
+            {
+              "node": "Record Publish Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger Carousel Publisher": {
+        "main": [
+          [
+            {
+              "node": "Record Publish Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Phase 3A Dry Run Webhook": {
+        "main": [
+          [
+            {
+              "node": "Phase 3A Queue Scanner Dry Run",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Phase 3C Scheduler Webhook": {
+        "main": [
+          [
+            {
+              "node": "Phase 3C Scheduler Execute",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false,
+      "executionOrder": "v1",
+      "saveExecutionProgress": true,
+      "saveDataSuccessExecution": "REDACTED",
+      "saveManualExecutions": "REDACTED",
+      "timezone": "Asia/Seoul",
+      "saveDataErrorExecution": "REDACTED",
+      "errorWorkflow": "potLIY8EREC9hXYl"
+    },
+    "staticData": {},
+    "meta": null,
+    "pinData": {},
+    "versionId": "57918a13-25a3-45ad-82d8-1931188994cc",
+    "activeVersionId": "57918a13-25a3-45ad-82d8-1931188994cc",
+    "versionCounter": 366,
+    "triggerCount": 3,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-04-20T12:50:30.402Z",
+        "createdAt": "2026-04-20T12:50:30.402Z",
+        "role": "workflow:owner",
+        "workflowId": "i6T6ke3ltKNQzaCl",
+        "projectId": "M3e6xHUu7VezXSBg",
+        "project": {
+          "updatedAt": "2026-04-07T04:41:49.347Z",
+          "createdAt": "2026-04-05T09:30:33.360Z",
+          "id": "M3e6xHUu7VezXSBg",
+          "name": "민호 김 <ziemaziema@gmail.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "creatorId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]
