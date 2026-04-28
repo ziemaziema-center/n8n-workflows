@@ -1,0 +1,339 @@
+﻿{
+    "updatedAt":  "2026-04-27T05:49:18.068Z",
+    "createdAt":  "2026-04-27T05:24:01.944Z",
+    "id":  "l0MzQFEKI47K4TI2",
+    "name":  "actual_08_auto_debugger_runtime",
+    "description":  null,
+    "active":  false,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "id":  "manual-trigger",
+                      "name":  "Manual Trigger",
+                      "type":  "n8n-nodes-base.manualTrigger",
+                      "typeVersion":  1,
+                      "position":  [
+                                       0,
+                                       220
+                                   ],
+                      "parameters":  {
+
+                                     }
+                  },
+                  {
+                      "id":  "every-10-minutes",
+                      "name":  "Every 10 Minutes",
+                      "type":  "n8n-nodes-base.scheduleTrigger",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       0,
+                                       0
+                                   ],
+                      "parameters":  {
+                                         "rule":  {
+                                                      "interval":  [
+                                                                       {
+                                                                           "field":  "minutes",
+                                                                           "minutesInterval":  10
+                                                                       }
+                                                                   ]
+                                                  }
+                                     }
+                  },
+                  {
+                      "id":  "manual-test-payload",
+                      "name":  "Manual Test Payload",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       240,
+                                       220
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "\nreturn [{\n  json: {\n    manual_test: true,\n    workflowName: \u0027validation_debug_workflow\u0027,\n    executionId: \u0027manual-step3-test-\u0027 + new Date().toISOString().replace(/[^0-9TZ]/g, \u0027\u0027),\n    failed_node: \u0027Normalize Callback\u0027,\n    error: {\n      name: \u0027TypeError\u0027,\n      message: \"Cannot read properties of undefined (reading \u0027carousel_media\u0027)\\n    at Normalize Callback\"\n    },\n    message: \"Cannot read properties of undefined (reading \u0027carousel_media\u0027)\"\n  }\n}];\n"
+                                     }
+                  },
+                  {
+                      "id":  "get-failed-executions",
+                      "name":  "Get Failed Executions",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       480,
+                                       80
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "\nconst input = ($input.first() \u0026\u0026 $input.first().json) || {};\nif (input.manual_test) {\n  return [{ json: { ...input, source: \u0027manual_test\u0027 } }];\n}\n\nconst env = typeof $env === \u0027object\u0027 ? $env : {};\nconst base = String(env.N8N_BASE_URL || env.N8N_EDITOR_BASE_URL || env.WEBHOOK_URL || \u0027http://localhost:5678\u0027).replace(/\\/$/, \u0027\u0027);\nconst apiKey = String(env.N8N_API_KEY || env.N8N_API_TOKEN || env.N8N_PERSONAL_API_KEY || \u0027\u0027);\nif (!apiKey) {\n  return [];\n}\n\nconst list = await this.helpers.httpRequest({\n  method: \u0027GET\u0027,\n  url: base + \u0027/api/v1/executions?status=error\u0026limit=20\u0027,\n  headers: { \u0027X-N8N-API-KEY\u0027: apiKey },\n  json: true,\n  timeout: 30000,\n});\n\nconst executions = Array.isArray(list.data) ? list.data : [];\nconst out = [];\nfor (const e of executions.slice(0, 20)) {\n  const id = String(e.id || \u0027\u0027);\n  if (!id) continue;\n  try {\n    const detail = await this.helpers.httpRequest({\n      method: \u0027GET\u0027,\n      url: base + \u0027/api/v1/executions/\u0027 + encodeURIComponent(id) + \u0027?includeData=true\u0027,\n      headers: { \u0027X-N8N-API-KEY\u0027: apiKey },\n      json: true,\n      timeout: 30000,\n    });\n    out.push({ json: { source: \u0027n8n_api\u0027, execution_summary: e, execution_detail: detail } });\n  } catch (error) {\n    out.push({ json: { source: \u0027n8n_api_fetch_failed\u0027, execution_summary: e, executionId: id, error: { name: error.name || \u0027FetchError\u0027, message: error.message || \u0027failed to fetch execution detail\u0027 } } });\n  }\n}\nreturn out;\n"
+                                     }
+                  },
+                  {
+                      "id":  "filter-new-failures",
+                      "name":  "Filter New Failures",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       720,
+                                       80
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "\nconst store = $getWorkflowStaticData(\u0027global\u0027);\nstore.runtime_seen_execution_ids = store.runtime_seen_execution_ids \u0026\u0026 typeof store.runtime_seen_execution_ids === \u0027object\u0027 ? store.runtime_seen_execution_ids : {};\nconst now = new Date();\nconst cutoff = now.getTime() - 72 * 60 * 60 * 1000;\nfor (const [id, seenAt] of Object.entries(store.runtime_seen_execution_ids)) {\n  if (Date.parse(seenAt || 0) \u003c cutoff) delete store.runtime_seen_execution_ids[id];\n}\n\nfunction pickExecutionId(item) {\n  return String(item.executionId || item.execution_id || item.execution?.id || item.execution_summary?.id || item.execution_detail?.id || item.id || \u0027\u0027);\n}\nfunction pickWorkflowName(item) {\n  const detail = item.execution_detail || {};\n  return String(item.workflowName || item.workflow_name || item.workflow?.name || detail.workflowData?.name || detail.workflow?.name || \u0027\u0027);\n}\n\nconst out = [];\nfor (const item of $input.all()) {\n  const json = item.json || {};\n  const id = pickExecutionId(json);\n  const workflowName = pickWorkflowName(json).toLowerCase();\n  if (!id) continue;\n  if (/auto_debugger|actual_07_auto_debugger_collector|actual_08_auto_debugger_runtime/.test(workflowName)) continue;\n  if (json.manual_test) {\n    out.push({ json });\n    continue;\n  }\n  if (store.runtime_seen_execution_ids[id]) continue;\n  store.runtime_seen_execution_ids[id] = now.toISOString();\n  out.push({ json });\n}\nreturn out;\n"
+                                     }
+                  },
+                  {
+                      "id":  "extract-minimal-error-data",
+                      "name":  "Extract Minimal Error Data",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       960,
+                                       80
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "\nfunction isObject(value) {\n  return value !== null \u0026\u0026 typeof value === \u0027object\u0027 \u0026\u0026 !Array.isArray(value);\n}\nfunction firstPresent(...values) {\n  for (const value of values) {\n    if (value === undefined || value === null) continue;\n    if (typeof value === \u0027string\u0027 \u0026\u0026 value.trim() === \u0027\u0027) continue;\n    return value;\n  }\n  return \u0027\u0027;\n}\nfunction redact(value) {\n  let s = typeof value === \u0027string\u0027 ? value : JSON.stringify(value ?? \u0027\u0027);\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, \u0027Bearer REDACTED\u0027);\n  s = s.replace(/(\"?(?:access[_-]?token|api[_-]?key|authorization|password|secret|credential|token|client[_-]?secret|refresh[_-]?token)\"?\\s*[:=]\\s*\"?)[^\"\\s,}\u0026]+/gi, \u0027$1REDACTED\u0027);\n  s = s.replace(/([?\u0026](?:access_token|api_key|key|token|secret)=)[^\u0026\\s]+/gi, \u0027$1REDACTED\u0027);\n  s = s.replace(/\\b[A-Za-z0-9_\\-]{80,}\\b/g, \u0027REDACTED_LONG_VALUE\u0027);\n  return s;\n}\nfunction workflowNameFromId(id) {\n  const map = {\n    KPa5tncCc87z2ZsE: \u0027clean_01_generator\u0027,\n    i6T6ke3ltKNQzaCl: \u0027clean_02_approval\u0027,\n    TiD7fxWCuAX9mpt6: \u0027clean_03_publisher\u0027,\n    w9e3wiyca6qZUS4r: \u0027clean_04_carousel_publisher\u0027,\n    potLIY8EREC9hXYl: \u0027actual_07_auto_debugger_collector\u0027\n  };\n  return map[id] || \u0027\u0027;\n}\n\nreturn $input.all().map((item) =\u003e {\n  const raw = item.json || {};\n  if (raw.manual_test) {\n    return { json: raw };\n  }\n  const detail = isObject(raw.execution_detail) ? raw.execution_detail : raw;\n  const summary = isObject(raw.execution_summary) ? raw.execution_summary : {};\n  const data = isObject(detail.data) ? detail.data : {};\n  const resultData = isObject(data.resultData) ? data.resultData : {};\n  const error = isObject(resultData.error) ? resultData.error : (isObject(detail.error) ? detail.error : (isObject(raw.error) ? raw.error : {}));\n  const workflowId = String(firstPresent(detail.workflowId, summary.workflowId, raw.workflow_id, raw.workflowId, \u0027\u0027));\n  const workflowName = redact(String(firstPresent(detail.workflowData?.name, detail.workflow?.name, raw.workflowName, raw.workflow_name, workflowNameFromId(workflowId), workflowId, \u0027unknown\u0027)));\n  const executionId = redact(String(firstPresent(detail.id, summary.id, raw.executionId, raw.execution_id, raw.id, \u0027unknown\u0027)));\n  const failedNode = redact(String(firstPresent(resultData.lastNodeExecuted, detail.lastNodeExecuted, error.node?.name, raw.failed_node, raw.node, \u0027unknown\u0027)));\n  const message = redact(String(firstPresent(error.message, error.description, raw.message, raw.error_message, \u0027unknown error\u0027)));\n  return {\n    json: {\n      workflowName,\n      workflow_id: workflowId,\n      executionId,\n      failed_node: failedNode,\n      error: {\n        name: redact(String(firstPresent(error.name, error.type, error.code, \u0027\u0027))),\n        message,\n        description: redact(String(firstPresent(error.description, \u0027\u0027))),\n        node: error.node \u0026\u0026 error.node.name ? { name: redact(String(error.node.name)) } : undefined\n      },\n      data: {\n        resultData: {\n          lastNodeExecuted: failedNode,\n          error: {\n            name: redact(String(firstPresent(error.name, error.type, error.code, \u0027\u0027))),\n            message\n          }\n        }\n      },\n      source: raw.source || \u0027n8n_api\u0027\n    }\n  };\n});\n"
+                                     }
+                  },
+                  {
+                      "id":  "log-compressor",
+                      "name":  "Log Compressor",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1200,
+                                       80
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "\nconst sourceItems = $input.all();\nconst inputs = sourceItems.length ? sourceItems : [{ json: {} }];\n\nfunction isObject(value) {\n  return value !== null \u0026\u0026 typeof value === \u0027object\u0027 \u0026\u0026 !Array.isArray(value);\n}\n\nfunction firstPresent(...values) {\n  for (const value of values) {\n    if (value === undefined || value === null) continue;\n    if (typeof value === \u0027string\u0027 \u0026\u0026 value.trim() === \u0027\u0027) continue;\n    return value;\n  }\n  return \u0027\u0027;\n}\n\nfunction nameOf(value) {\n  if (isObject(value)) return firstPresent(value.name, value.displayName, value.nodeName, value.id, value.workflowName, \u0027\u0027);\n  return value;\n}\n\nfunction redact(value) {\n  let s = typeof value === \u0027string\u0027 ? value : JSON.stringify(value ?? \u0027\u0027);\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, \u0027Bearer REDACTED\u0027);\n  s = s.replace(/(\"?(?:access[_-]?token|api[_-]?key|authorization|password|secret|credential|client[_-]?secret|refresh[_-]?token)\"?\\s*[:=]\\s*\"?)[^\"\\s,}\u0026]+/gi, \u0027$1REDACTED\u0027);\n  s = s.replace(/([?\u0026](?:access_token|api_key|key|token|secret)=)[^\u0026\\s]+/gi, \u0027$1REDACTED\u0027);\n  s = s.replace(/\\bsk-[A-Za-z0-9_\\-]{20,}\\b/g, \u0027REDACTED\u0027);\n  s = s.replace(/\\bsk-proj-[A-Za-z0-9_\\-]+\\b/g, \u0027REDACTED\u0027);\n  s = s.replace(/\\b[0-9]{8,12}:[A-Za-z0-9_\\-]{25,}\\b/g, \u0027REDACTED\u0027);\n  s = s.replace(/https?:\\/\\/[^\\s\"\u0027\u003c\u003e]+/gi, (url) =\u003e {\n    try {\n      const u = new URL(url);\n      if (/webhook|access_token|api_key|token|secret|key=/i.test(url)) return u.origin + \u0027/REDACTED_URL\u0027;\n      return u.origin + \u0027/...\u0027;\n    } catch (_) {\n      return \u0027REDACTED_URL\u0027;\n    }\n  });\n  s = s.replace(/\\b[A-Za-z0-9_\\-]{80,}\\b/g, \u0027REDACTED_LONG_VALUE\u0027);\n  return s;\n}\n\nfunction compactText(value, max = 180) {\n  let s = redact(value);\n  s = s.replace(/\\r/g, \u0027\\n\u0027);\n  s = s.split(/\\n\\s*at\\s+|\\n\\s*stack\\s*:|\\n\\s*Stack trace\\s*:/i)[0];\n  s = s.replace(/\\s+/g, \u0027 \u0027).trim();\n  if (!s) return \u0027\u0027;\n  return s.length \u003e max ? s.slice(0, max - 3) + \u0027...\u0027 : s;\n}\n\nfunction pickErrorSource(raw, body, data, execution, resultData) {\n  return firstPresent(\n    execution.error,\n    resultData.error,\n    data.error,\n    raw.error,\n    body.error,\n    raw.cause,\n    body.cause,\n    {}\n  );\n}\n\nfunction detectPattern(context) {\n  const c = context.toLowerCase();\n  const statusMatch = c.match(/\\b(?:http\\s*)?(400|401|403|404|429|500)\\b/);\n  const status = statusMatch ? statusMatch[1] : \u0027\u0027;\n\n  if (status === \u0027429\u0027 || /rate limit|too many requests|application request limit/.test(c)) {\n    return [\u0027rate_limit\u0027, \u0027External API rate limit or temporary action block.\u0027, \u0027Wait/backoff and inspect request volume before retrying.\u0027];\n  }\n  if (status === \u0027401\u0027 || /unauthorized|invalid token|expired token|oauth|credential/.test(c)) {\n    return [\u0027credential_auth\u0027, \u0027Credential, token, or permission failure.\u0027, \u0027Verify credentials/permissions; do not patch logic first.\u0027];\n  }\n  if (status === \u0027403\u0027 || /forbidden|permission denied/.test(c)) {\n    if (/robots\\.txt|robots txt|blocked by robots/.test(c)) return [\u0027robots_blocked\u0027, \u0027Source blocks automated fetch by robots policy.\u0027, \u0027Use an allowed source or upstream media URL.\u0027];\n    return [\u0027credential_auth\u0027, \u0027Forbidden by API or missing permission.\u0027, \u0027Check token scopes, account access, and API permissions.\u0027];\n  }\n  if (/robots\\.txt|robots txt|blocked by robots/.test(c)) return [\u0027robots_blocked\u0027, \u0027Source blocks automated fetch by robots policy.\u0027, \u0027Use an allowed source or upstream media URL.\u0027];\n  if (/media[_\\s-]?url|fetch.*media|image url|video url|download.*image|download.*video|source_url/.test(c)) {\n    return [\u0027media_fetch_failure\u0027, \u0027Media URL could not be fetched or validated.\u0027, \u0027Inspect media URL availability, headers, and fetch node input.\u0027];\n  }\n  if (/instagram|graph api|ig graph|facebook graph|media container|carousel container|ig publish/.test(c)) {\n    return [\u0027instagram_graph_api\u0027, \u0027Instagram Graph API rejected the request.\u0027, \u0027Inspect IG node parameters and Graph API response code.\u0027];\n  }\n  if (/telegram|sendmessage|sendphoto|bot api/.test(c)) {\n    return [\u0027telegram_send_failure\u0027, \u0027Telegram API rejected the send request.\u0027, \u0027Inspect Telegram node payload, chat id, caption length, and media URL.\u0027];\n  }\n  if (/google sheets|spreadsheet|sheet.*append|append.*sheet|sheet.*update|update.*sheet/.test(c)) {\n    return [\u0027google_sheets_write_failure\u0027, \u0027Google Sheets append/update failed.\u0027, \u0027Inspect sheet id, tab name, range, and row schema.\u0027];\n  }\n  if (/missing|required|undefined|null|cannot read properties of undefined|is not defined|no item|empty input/.test(c)) {\n    return [\u0027missing_field\u0027, \u0027Required input field is missing or undefined.\u0027, \u0027Inspect previous node output and add a narrow guard/default in the failed node.\u0027];\n  }\n  if (/json parse|parse json|unexpected token|invalid json|unterminated string/.test(c)) {\n    return [\u0027json_parse_error\u0027, \u0027Invalid JSON or malformed structured text.\u0027, \u0027Inspect the parser input and add strict JSON normalization at the failed node.\u0027];\n  }\n  if (/encoding|utf-?8|unicode|malformed|euc-kr|base64/.test(c)) {\n    return [\u0027encoding_issue\u0027, \u0027Text or binary encoding mismatch.\u0027, \u0027Inspect encoding conversion and normalize before the failed node.\u0027];\n  }\n  if (status === \u0027400\u0027 || /bad request|invalid parameter|invalid param|unsupported post request/.test(c)) {\n    return [\u0027invalid_parameter\u0027, \u0027API request has invalid or incompatible parameters.\u0027, \u0027Inspect failed node request body and required parameter mapping.\u0027];\n  }\n  if (/timeout|timed out|etimedout|esockettimedout|deadline|gateway timeout/.test(c)) {\n    return [\u0027timeout\u0027, \u0027External request timed out.\u0027, \u0027Check endpoint health and add timeout/retry policy only after confirming safety.\u0027];\n  }\n  if (status === \u0027404\u0027 || /not found/.test(c)) {\n    return [\u0027not_found\u0027, \u0027Referenced resource or endpoint was not found.\u0027, \u0027Verify resource id, URL, and upstream node mapping.\u0027];\n  }\n  if (status === \u0027500\u0027 || /internal server error/.test(c)) {\n    return [\u0027http_500\u0027, \u0027Upstream service returned a server error.\u0027, \u0027Check upstream status and retry only after confirming idempotency.\u0027];\n  }\n  return [\u0027unknown_error\u0027, \u0027Insufficient signal for a specific root cause.\u0027, \u0027Collect full failed node input/output before patching.\u0027];\n}\n\nfunction severityFor(type, workflow, node, message) {\n  const c = (workflow + \u0027 \u0027 + node + \u0027 \u0027 + message).toLowerCase();\n  if (/publisher|publish|instagram|graph api|approval|queue/.test(c) \u0026\u0026 [\u0027instagram_graph_api\u0027, \u0027credential_auth\u0027, \u0027missing_field\u0027, \u0027invalid_parameter\u0027].includes(type)) return \u0027high\u0027;\n  if ([\u0027credential_auth\u0027, \u0027google_sheets_write_failure\u0027, \u0027telegram_send_failure\u0027, \u0027media_fetch_failure\u0027].includes(type)) return \u0027high\u0027;\n  if ([\u0027rate_limit\u0027, \u0027timeout\u0027, \u0027http_500\u0027, \u0027json_parse_error\u0027, \u0027invalid_parameter\u0027, \u0027missing_field\u0027].includes(type)) return \u0027medium\u0027;\n  if ([\u0027not_found\u0027, \u0027robots_blocked\u0027].includes(type)) return \u0027medium\u0027;\n  return \u0027low\u0027;\n}\n\nfunction codexReady(type, workflow, node, message) {\n  const hasNode = Boolean(node \u0026\u0026 node !== \u0027unknown\u0027);\n  const hasMessage = Boolean(message \u0026\u0026 message !== \u0027unknown error\u0027);\n  const unsafeExternal = [\u0027credential_auth\u0027, \u0027rate_limit\u0027, \u0027robots_blocked\u0027, \u0027timeout\u0027, \u0027http_500\u0027, \u0027unknown_error\u0027];\n  if (!hasNode || !hasMessage || unsafeExternal.includes(type)) return false;\n  return [\u0027missing_field\u0027, \u0027json_parse_error\u0027, \u0027encoding_issue\u0027, \u0027invalid_parameter\u0027, \u0027google_sheets_write_failure\u0027, \u0027telegram_send_failure\u0027, \u0027instagram_graph_api\u0027, \u0027media_fetch_failure\u0027, \u0027not_found\u0027].includes(type);\n}\n\nfunction compress(rawInput) {\n  const raw = isObject(rawInput) ? rawInput : {};\n  const body = isObject(raw.body) ? raw.body : raw;\n  const dataValue = firstPresent(raw.data, body.data);\n  const data = isObject(dataValue) ? dataValue : {};\n  const executionValue = firstPresent(raw.execution, body.execution, data.execution);\n  const execution = isObject(executionValue) ? executionValue : {};\n  const resultDataValue = firstPresent(data.resultData, execution.resultData);\n  const resultData = isObject(resultDataValue) ? resultDataValue : {};\n  const errorSource = pickErrorSource(raw, body, data, execution, resultData);\n  const error = isObject(errorSource) ? errorSource : {};\n  const errorText = typeof errorSource === \u0027string\u0027 ? errorSource : \u0027\u0027;\n\n  const workflow = compactText(nameOf(firstPresent(\n    raw.workflowName,\n    body.workflowName,\n    raw.workflow_name,\n    body.workflow_name,\n    raw.workflow,\n    body.workflow,\n    data.workflowName,\n    data.workflow,\n    execution.workflow,\n    execution.workflowData\n  )), 80) || \u0027unknown\u0027;\n\n  const executionId = compactText(firstPresent(\n    raw.execution_id,\n    body.execution_id,\n    raw.executionId,\n    body.executionId,\n    execution.id,\n    data.executionId,\n    data.execution_id,\n    raw.id,\n    body.id\n  ), 80) || \u0027unknown\u0027;\n\n  const failedNode = compactText(nameOf(firstPresent(\n    raw.failed_node,\n    body.failed_node,\n    raw.failedNode,\n    body.failedNode,\n    raw.node,\n    body.node,\n    error.node,\n    raw.lastNodeExecuted,\n    body.lastNodeExecuted,\n    execution.lastNodeExecuted,\n    resultData.lastNodeExecuted,\n    data.lastNodeExecuted\n  )), 90) || \u0027unknown\u0027;\n\n  const message = compactText(firstPresent(\n    raw.error_message,\n    body.error_message,\n    raw.errorMessage,\n    body.errorMessage,\n    error.message,\n    error.description,\n    errorText,\n    raw.message,\n    body.message,\n    data.message,\n    resultData.message\n  ), 220) || \u0027unknown error\u0027;\n\n  const explicitType = compactText(firstPresent(raw.error_type, body.error_type, raw.errorType, body.errorType, error.name, error.type, error.code), 80);\n  const detected = detectPattern(workflow + \u0027 \u0027 + failedNode + \u0027 \u0027 + explicitType + \u0027 \u0027 + message);\n  const patternType = detected[0];\n  const rootCause = detected[1];\n  const fixDirection = detected[2];\n  const errorType = explicitType || patternType;\n  const severity = severityFor(patternType, workflow, failedNode, message);\n\n  return {\n    workflow,\n    execution_id: executionId,\n    failed_node: failedNode,\n    error_type: errorType,\n    error_message_short: message,\n    root_cause_guess: rootCause,\n    fix_direction: fixDirection,\n    severity,\n    codex_ready: codexReady(patternType, workflow, failedNode, message),\n    compressed_at: new Date().toISOString(),\n    raw_error_redacted: true\n  };\n}\n\nreturn inputs.map((item) =\u003e ({ json: compress(item.json || {}) }));\n"
+                                     }
+                  },
+                  {
+                      "id":  "build-codex-safe-prompt",
+                      "name":  "Build Codex Safe Prompt",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1440,
+                                       80
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "\nconst sourceItems = $input.all();\nconst inputs = sourceItems.length ? sourceItems : [{ json: {} }];\n\nfunction redact(value) {\n  let s = typeof value === \u0027string\u0027 ? value : JSON.stringify(value ?? \u0027\u0027);\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, \u0027Bearer REDACTED\u0027);\n  s = s.replace(/(\"?(?:access[_-]?token|api[_-]?key|authorization|password|secret|credential|token|client[_-]?secret|refresh[_-]?token)\"?\\s*[:=]\\s*\"?)[^\"\\s,}\u0026]+/gi, \u0027$1REDACTED\u0027);\n  s = s.replace(/([?\u0026](?:access_token|api_key|key|token|secret)=)[^\u0026\\s]+/gi, \u0027$1REDACTED\u0027);\n  s = s.replace(/\\bsk-[A-Za-z0-9_\\-]{20,}\\b/g, \u0027REDACTED\u0027);\n  s = s.replace(/\\bsk-proj-[A-Za-z0-9_\\-]+\\b/g, \u0027REDACTED\u0027);\n  s = s.replace(/\\b[0-9]{8,12}:[A-Za-z0-9_\\-]{25,}\\b/g, \u0027REDACTED\u0027);\n  s = s.replace(/https?:\\/\\/[^\\s\"\u0027\u003c\u003e]+/gi, (url) =\u003e {\n    try {\n      const u = new URL(url);\n      if (/webhook|access_token|api_key|token|secret|key=/i.test(url)) return u.origin + \u0027/REDACTED_URL\u0027;\n      return u.origin + \u0027/...\u0027;\n    } catch (_) {\n      return \u0027REDACTED_URL\u0027;\n    }\n  });\n  s = s.replace(/\\b[A-Za-z0-9_\\-]{80,}\\b/g, \u0027REDACTED_LONG_VALUE\u0027);\n  return s;\n}\n\nfunction asBool(value) {\n  return value === true || value === \u0027true\u0027;\n}\n\nfunction compactLog(input) {\n  return {\n    workflow: redact(String(input.workflow || \u0027\u0027)),\n    execution_id: redact(String(input.execution_id || \u0027\u0027)),\n    failed_node: redact(String(input.failed_node || \u0027\u0027)),\n    error_type: redact(String(input.error_type || \u0027\u0027)),\n    error_message_short: redact(String(input.error_message_short || \u0027\u0027)),\n    root_cause_guess: redact(String(input.root_cause_guess || \u0027\u0027)),\n    fix_direction: redact(String(input.fix_direction || \u0027\u0027)),\n    severity: redact(String(input.severity || \u0027\u0027)),\n    codex_ready: asBool(input.codex_ready)\n  };\n}\n\nfunction buildPrompt(log) {\n  const ready = log.codex_ready === true;\n  const decision = ready\n    ? [\n        \u0027If codex_ready is true:\u0027,\n        \u0027- inspect only the named workflow and failed node\u0027,\n        \u0027- propose or apply one minimal fix\u0027,\n        \u0027- do not refactor\u0027,\n        \u0027- do not optimize\u0027,\n        \u0027- stop after one issue\u0027\n      ].join(\u0027\\n\u0027)\n    : [\n        \u0027If codex_ready is false:\u0027,\n        \u0027- Do not modify anything.\u0027,\n        \u0027- Explain what context is missing.\u0027,\n        \u0027- Stop.\u0027\n      ].join(\u0027\\n\u0027);\n\n  return [\n    \u0027[ROLE]\u0027,\n    \u0027You are Codex in SAFE PATCH MODE.\u0027,\n    \u0027\u0027,\n    \u0027[INPUT]\u0027,\n    JSON.stringify(log, null, 2),\n    \u0027\u0027,\n    \u0027[DECISION RULE]\u0027,\n    decision,\n    \u0027\u0027,\n    \u0027[CONSTRAINTS]\u0027,\n    \u0027- one issue only\u0027,\n    \u0027- one node only\u0027,\n    \u0027- no unrelated files\u0027,\n    \u0027- no credentials/webhook changes\u0027,\n    \u0027- no full-log request unless necessary\u0027,\n    \u0027\u0027,\n    \u0027[OUTPUT]\u0027,\n    \u0027[TYPE]\u0027,\n    \u0027[PLAN]\u0027,\n    \u0027[CHANGE OR PROPOSAL]\u0027,\n    \u0027[RISK]\u0027,\n    \u0027[STOP]\u0027\n  ].join(\u0027\\n\u0027);\n}\n\nreturn inputs.map((item) =\u003e {\n  const compressed = compactLog(item.json || {});\n  return {\n    json: {\n      ...compressed,\n      codex_safe_prompt: redact(buildPrompt(compressed)),\n      prompt_mode: compressed.codex_ready ? \u0027safe_patch_one_node\u0027 : \u0027analysis_only_no_patch\u0027,\n      prompt_generated_at: new Date().toISOString()\n    }\n  };\n});\n"
+                                     }
+                  },
+                  {
+                      "id":  "store-debug-log",
+                      "name":  "Store Debug Log",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1680,
+                                       80
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "\nconst store = $getWorkflowStaticData(\u0027global\u0027);\nstore.runtime_debug_log = Array.isArray(store.runtime_debug_log) ? store.runtime_debug_log : [];\nconst now = new Date().toISOString();\nconst out = [];\nfor (const item of $input.all()) {\n  const json = item.json || {};\n  const logEntry = {\n    timestamp: now,\n    execution_id: String(json.execution_id || \u0027\u0027),\n    workflow: String(json.workflow || \u0027\u0027),\n    failed_node: String(json.failed_node || \u0027\u0027),\n    severity: String(json.severity || \u0027\u0027),\n    codex_ready: json.codex_ready === true,\n    prompt_mode: String(json.prompt_mode || \u0027\u0027),\n    error_type: String(json.error_type || \u0027\u0027),\n    root_cause_guess: String(json.root_cause_guess || \u0027\u0027)\n  };\n  store.runtime_debug_log.push(logEntry);\n  out.push({ json: { ...json, debug_log_stored: true, debug_log_timestamp: now } });\n}\nstore.runtime_debug_log = store.runtime_debug_log.slice(-300);\nreturn out;\n"
+                                     }
+                  },
+                  {
+                      "id":  "end-no-auto-patch",
+                      "name":  "END - No Auto Patch",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2160,
+                                       80
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "\nreturn $input.all().map((item) =\u003e ({ json: { ...item.json, runtime_status: \u0027stopped_no_auto_patch\u0027 } }));\n"
+                                     }
+                  },
+                  {
+                      "id":  "telegram-send-debug-alert",
+                      "name":  "Telegram Send Debug Alert - Kindred Debug Guard",
+                      "type":  "n8n-nodes-base.telegram",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       1920,
+                                       80
+                                   ],
+                      "parameters":  {
+                                         "resource":  "message",
+                                         "operation":  "sendMessage",
+                                         "chatId":  "7592247598",
+                                         "text":  "={{[\n\u0027?? DEBUG ALERT\u0027,\n\u0027\u0027,\n\u0027Workflow: \u0027 + ($json.workflow || \u0027unknown\u0027),\n\u0027Node: \u0027 + ($json.failed_node || \u0027unknown\u0027),\n\u0027Error: \u0027 + String($json.error_message_short || \u0027unknown error\u0027).slice(0, 500),\n\u0027Severity: \u0027 + ($json.severity || \u0027unknown\u0027),\n\u0027\u0027,\n\u0027Action:\u0027,\n\u0027Review and decide whether to run Codex fix.\u0027,\n\u0027\u0027,\n\u0027Codex prompt:\u0027,\nString($json.codex_safe_prompt || \u0027\u0027).slice(0, 1200)\n].join(\u0027\\n\u0027)}}",
+                                         "replyMarkup":  "inlineKeyboard",
+                                         "inlineKeyboard":  {
+                                                                "rows":  [
+                                                                             {
+                                                                                 "row":  {
+                                                                                             "buttons":  [
+                                                                                                             {
+                                                                                                                 "text":  "? Review",
+                                                                                                                 "additionalFields":  {
+                                                                                                                                          "callback_data":  "={{\u0027debug_review:\u0027 + String($json.execution_id || \u0027\u0027).slice(0, 40)}}"
+                                                                                                                                      }
+                                                                                                             },
+                                                                                                             {
+                                                                                                                 "text":  "?? Copy Prompt",
+                                                                                                                 "additionalFields":  {
+                                                                                                                                          "callback_data":  "={{\u0027debug_copy_prompt:\u0027 + String($json.execution_id || \u0027\u0027).slice(0, 32)}}"
+                                                                                                                                      }
+                                                                                                             },
+                                                                                                             {
+                                                                                                                 "text":  "? Ignore",
+                                                                                                                 "additionalFields":  {
+                                                                                                                                          "callback_data":  "={{\u0027debug_ignore:\u0027 + String($json.execution_id || \u0027\u0027).slice(0, 40)}}"
+                                                                                                                                      }
+                                                                                                             }
+                                                                                                         ]
+                                                                                         }
+                                                                             }
+                                                                         ]
+                                                            },
+                                         "additionalFields":  {
+                                                                  "disable_notification":  false,
+                                                                  "appendAttribution":  false
+                                                              }
+                                     },
+                      "credentials":  {
+                                          "telegramApi":  {
+                                                              "id":  "X3jUp9xdGAhVMGyx",
+                                                              "name":  "Telegram account"
+                                                          }
+                                      },
+                      "continueOnFail":  true,
+                      "webhookId":  "1b52d1c8-d62b-44d1-9ff8-d9b899fe9322"
+                  }
+              ],
+    "connections":  {
+                        "Every 10 Minutes":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Get Failed Executions",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Manual Trigger":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "Manual Test Payload",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                                        ]
+                                           },
+                        "Manual Test Payload":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Get Failed Executions",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Get Failed Executions":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Filter New Failures",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  },
+                        "Filter New Failures":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Extract Minimal Error Data",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Extract Minimal Error Data":  {
+                                                           "main":  [
+                                                                        [
+                                                                            {
+                                                                                "node":  "Log Compressor",
+                                                                                "type":  "main",
+                                                                                "index":  0
+                                                                            }
+                                                                        ]
+                                                                    ]
+                                                       },
+                        "Log Compressor":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "Build Codex Safe Prompt",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                                        ]
+                                           },
+                        "Build Codex Safe Prompt":  {
+                                                        "main":  [
+                                                                     [
+                                                                         {
+                                                                             "node":  "Store Debug Log",
+                                                                             "type":  "main",
+                                                                             "index":  0
+                                                                         }
+                                                                     ]
+                                                                 ]
+                                                    },
+                        "Store Debug Log":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Telegram Send Debug Alert - Kindred Debug Guard",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Telegram Send Debug Alert - Kindred Debug Guard":  {
+                                                                                "main":  [
+                                                                                             [
+                                                                                                 {
+                                                                                                     "node":  "END - No Auto Patch",
+                                                                                                     "type":  "main",
+                                                                                                     "index":  0
+                                                                                                 }
+                                                                                             ]
+                                                                                         ]
+                                                                            }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "saveDataSuccessExecution":  "none",
+                     "saveDataErrorExecution":  "all",
+                     "saveExecutionProgress":  false,
+                     "timezone":  "Asia/Seoul",
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "availableInMCP":  false
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  {
+
+                },
+    "versionId":  "242eaf35-b36c-430e-b896-22ea160c7477",
+    "activeVersionId":  null,
+    "versionCounter":  2,
+    "triggerCount":  0,
+    "tags":  [
+
+             ],
+    "activeVersion":  null
+}
