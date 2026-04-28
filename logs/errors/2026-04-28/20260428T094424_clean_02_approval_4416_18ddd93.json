@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-04-28T09:44:24.043Z",
+  "log_type": "debug_report",
+  "source": "n8n",
+  "workflow_name": "clean_02_approval",
+  "workflow_id": "i6T6ke3ltKNQzaCl",
+  "execution_id": "4416",
+  "status": "alerted",
+  "is_error": true,
+  "error_hash": "18ddd93",
+  "data": {
+    "log_type": "debug_report",
+    "workflow_name": "clean_02_approval",
+    "workflow_id": "i6T6ke3ltKNQzaCl",
+    "execution_id": "4416",
+    "failed_node": "Telegram Send Regen Preview",
+    "error_message": "Bad request - please check your parameters",
+    "error_hash": "18ddd93",
+    "severity": "critical",
+    "timestamp": "2026-04-28T09:44:18.659Z",
+    "suggested_fix": "Review and correct the parameters being passed to the Telegram API in the 'Telegram Send Regen Preview' node.",
+    "root_cause": "The 'Telegram Send Regen Preview' node is encountering a 'Bad request' error due to incorrect parameters being sent to the Telegram API.",
+    "status": "alerted",
+    "is_error": true,
+    "dry_run": false,
+    "diagnostic": false
+  }
+}
