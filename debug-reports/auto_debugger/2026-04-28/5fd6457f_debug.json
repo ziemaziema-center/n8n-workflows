@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-04-28T07:22:15.052Z",
+  "log_type": "debug_report",
+  "source": "n8n",
+  "workflow_name": "clean_02_approval",
+  "workflow_id": "i6T6ke3ltKNQzaCl",
+  "execution_id": "4396",
+  "status": "alerted",
+  "is_error": true,
+  "error_hash": "5fd6457f",
+  "data": {
+    "log_type": "debug_report",
+    "workflow_name": "clean_02_approval",
+    "workflow_id": "i6T6ke3ltKNQzaCl",
+    "execution_id": "4396",
+    "failed_node": "Normalize Callback",
+    "error_message": "missing carousel media for 1777357016354-5-2f2i6 (fallback also failed) [line 406]",
+    "error_hash": "5fd6457f",
+    "severity": "critical",
+    "timestamp": "2026-04-28T07:22:08.641Z",
+    "suggested_fix": "Investigate the source of the carousel media for the ID '1777357016354-5-2f2i6' and ensure that the media is available. If necessary, update the workflow to handle missing media more gracefully.",
+    "root_cause": "The 'Normalize Callback' node is failing due to missing carousel media for the specified ID, and the fallback mechanism has also failed.",
+    "status": "alerted",
+    "is_error": true,
+    "dry_run": false,
+    "diagnostic": false
+  }
+}
