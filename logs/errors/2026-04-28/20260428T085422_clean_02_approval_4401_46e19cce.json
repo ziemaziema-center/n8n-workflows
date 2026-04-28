@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-04-28T08:54:22.515Z",
+  "log_type": "debug_report",
+  "source": "n8n",
+  "workflow_name": "clean_02_approval",
+  "workflow_id": "i6T6ke3ltKNQzaCl",
+  "execution_id": "4401",
+  "status": "alerted",
+  "is_error": true,
+  "error_hash": "46e19cce",
+  "data": {
+    "log_type": "debug_report",
+    "workflow_name": "clean_02_approval",
+    "workflow_id": "i6T6ke3ltKNQzaCl",
+    "execution_id": "4401",
+    "failed_node": "Normalize Callback",
+    "error_message": "Carousel media payload missing for approved test_id live_missing_1777366455864 (fallback also failed) [line 553]",
+    "error_hash": "46e19cce",
+    "severity": "critical",
+    "timestamp": "2026-04-28T08:54:17.089Z",
+    "suggested_fix": "Ensure that the carousel media payload is provided for the specified test_id or modify the workflow to handle the absence of this payload gracefully.",
+    "root_cause": "The 'Normalize Callback' node is failing due to a missing carousel media payload for the approved test_id 'live_missing_1777366455864'. The fallback mechanism also failed.",
+    "status": "alerted",
+    "is_error": true,
+    "dry_run": false,
+    "diagnostic": false
+  }
+}
