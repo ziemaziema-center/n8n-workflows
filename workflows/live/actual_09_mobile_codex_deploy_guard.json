@@ -90,7 +90,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const commit = $json || {};\nconst sha = String(commit.sha || '').trim();\nif (!sha) return [{ json: { should_continue: false, status: 'blocked', reason: 'missing_commit_sha' } }];\nconst store = $getWorkflowStaticData('global');\nstore.mobile_codex_deploy_guard = store.mobile_codex_deploy_guard && typeof store.mobile_codex_deploy_guard === 'object' ? store.mobile_codex_deploy_guard : {};\nconst state = store.mobile_codex_deploy_guard;\nif (state.last_seen_sha === sha || state.pending_sha === sha || state.deployed_sha === sha) {\n  return [{ json: { should_continue: false, status: 'skipped', reason: 'commit_already_seen', sha } }];\n}\nreturn [{ json: { should_continue: true, status: 'new_commit', sha, repo: String($env.DEPLOY_GUARD_REPO || 'ziemaziema-center/n8n-workflows'), branch: String($env.DEPLOY_GUARD_BRANCH || 'master') } }];"
+        "jsCode": "const commit = $json || {};\nconst sha = String(commit.sha || '').trim();\nif (!sha) return [{ json: { should_continue: false, status: 'blocked', reason: 'missing_commit_sha' } }];\nconst store = $getWorkflowStaticData('global');\nstore.mobile_codex_deploy_guard = store.mobile_codex_deploy_guard && typeof store.mobile_codex_deploy_guard === 'object' ? store.mobile_codex_deploy_guard : {};\nconst state = store.mobile_codex_deploy_guard;\nstate.processed_commit_shas = Array.isArray(state.processed_commit_shas) ? state.processed_commit_shas : [];\nconst processed = state.lastProcessedCommit === sha || state.last_processed_commit === sha || state.processed_commit_shas.includes(sha) || state.pending_sha === sha || state.deployed_sha === sha;\nif (processed) {\n  return [{ json: { should_continue: false, status: 'skipped', reason: 'commit_already_processed', sha } }];\n}\nreturn [{ json: { should_continue: true, status: 'new_commit', sha, repo: String($env.DEPLOY_GUARD_REPO || 'ziemaziema-center/n8n-workflows'), branch: String($env.DEPLOY_GUARD_BRANCH || 'master') } }];"
       },
       "id": "mobile-guard-detect-new-commit",
       "name": "Detect New Commit",
@@ -374,6 +374,32 @@
         -560,
         360
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $node['Create Pending Approval'].json || {};\nconst sha = String(source.sha || '').trim();\nif (!sha) throw new Error('Missing sha to mark processed after approval request');\nconst store = $getWorkflowStaticData('global');\nstore.mobile_codex_deploy_guard = store.mobile_codex_deploy_guard && typeof store.mobile_codex_deploy_guard === 'object' ? store.mobile_codex_deploy_guard : {};\nconst state = store.mobile_codex_deploy_guard;\nstate.processed_commit_shas = Array.isArray(state.processed_commit_shas) ? state.processed_commit_shas : [];\nif (!state.processed_commit_shas.includes(sha)) state.processed_commit_shas.push(sha);\nstate.processed_commit_shas = state.processed_commit_shas.slice(-100);\nstate.lastProcessedCommit = sha;\nstate.last_processed_commit = sha;\nstate.last_processed_commit_at = new Date().toISOString();\nstate.last_processed_commit_result = 'approval_request_sent';\nreturn [{ json: { commit_processed: true, result: 'approval_request_sent', sha } }];"
+      },
+      "id": "mobile-guard-mark-approval-processed",
+      "name": "Mark Approval Commit Processed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $node['Build Blocked Report'].json || {};\nconst sha = String(source.sha || '').trim();\nif (!sha) throw new Error('Missing sha to mark processed after blocked report');\nconst store = $getWorkflowStaticData('global');\nstore.mobile_codex_deploy_guard = store.mobile_codex_deploy_guard && typeof store.mobile_codex_deploy_guard === 'object' ? store.mobile_codex_deploy_guard : {};\nconst state = store.mobile_codex_deploy_guard;\nstate.processed_commit_shas = Array.isArray(state.processed_commit_shas) ? state.processed_commit_shas : [];\nif (!state.processed_commit_shas.includes(sha)) state.processed_commit_shas.push(sha);\nstate.processed_commit_shas = state.processed_commit_shas.slice(-100);\nstate.lastProcessedCommit = sha;\nstate.last_processed_commit = sha;\nstate.last_processed_commit_at = new Date().toISOString();\nstate.last_processed_commit_result = 'blocked_report_sent';\nreturn [{ json: { commit_processed: true, result: 'blocked_report_sent', sha } }];"
+      },
+      "id": "mobile-guard-mark-blocked-processed",
+      "name": "Mark Blocked Commit Processed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -80
+      ]
     }
   ],
   "pinData": {},
@@ -556,6 +582,38 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Send Telegram Approval Request": {
+      "main": [
+        [
+          {
+            "node": "Mark Approval Commit Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Blocked Report": {
+      "main": [
+        [
+          {
+            "node": "Mark Blocked Commit Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Approval Commit Processed": {
+      "main": [
+        []
+      ]
+    },
+    "Mark Blocked Commit Processed": {
+      "main": [
+        []
       ]
     }
   },
