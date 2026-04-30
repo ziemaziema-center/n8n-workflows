@@ -1,0 +1,574 @@
+{
+  "name": "actual_09_mobile_codex_deploy_guard",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "mobile-guard-cron",
+      "name": "Cron - Poll GitHub master",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1040,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "path": "mobile-codex-deploy-approval",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "mobile-guard-approval-webhook",
+      "name": "Approval Callback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        360
+      ],
+      "webhookId": "mobile-codex-deploy-approval-placeholder"
+    },
+    {
+      "parameters": {
+        "jsCode": "const repo = String($env.DEPLOY_GUARD_REPO || 'ziemaziema-center/n8n-workflows').trim();\nconst branch = String($env.DEPLOY_GUARD_BRANCH || 'master').trim();\nconst allowedPrefix = 'workflows/live/';\nconst telegramChatId = String($env.DEPLOY_GUARD_TELEGRAM_CHAT_ID || '').trim();\nconst telegramTokenPresent = !!String($env.DEPLOY_GUARD_TELEGRAM_BOT_TOKEN || '').trim();\nreturn [{ json: { repo, branch, allowed_prefix: allowedPrefix, telegram_chat_id_present: !!telegramChatId, telegram_token_present: telegramTokenPresent } }];"
+      },
+      "id": "mobile-guard-build-config",
+      "name": "Build Guard Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{$json.repo}}/commits/{{$json.branch}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.DEPLOY_GUARD_GITHUB_TOKEN}}"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-mobile-codex-deploy-guard"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "mobile-guard-get-latest-commit",
+      "name": "Get Latest master Commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -600,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const commit = $json || {};\nconst sha = String(commit.sha || '').trim();\nif (!sha) return [{ json: { should_continue: false, status: 'blocked', reason: 'missing_commit_sha' } }];\nconst store = $getWorkflowStaticData('global');\nstore.mobile_codex_deploy_guard = store.mobile_codex_deploy_guard && typeof store.mobile_codex_deploy_guard === 'object' ? store.mobile_codex_deploy_guard : {};\nconst state = store.mobile_codex_deploy_guard;\nif (state.last_seen_sha === sha || state.pending_sha === sha || state.deployed_sha === sha) {\n  return [{ json: { should_continue: false, status: 'skipped', reason: 'commit_already_seen', sha } }];\n}\nreturn [{ json: { should_continue: true, status: 'new_commit', sha, repo: String($env.DEPLOY_GUARD_REPO || 'ziemaziema-center/n8n-workflows'), branch: String($env.DEPLOY_GUARD_BRANCH || 'master') } }];"
+      },
+      "id": "mobile-guard-detect-new-commit",
+      "name": "Detect New Commit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.should_continue}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "mobile-guard-if-new-commit",
+      "name": "IF New Commit",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{$json.repo}}/commits/{{$json.sha}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.DEPLOY_GUARD_GITHUB_TOKEN}}"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-mobile-codex-deploy-guard"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "mobile-guard-get-commit-files",
+      "name": "Get Commit Changed Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const commit = $json || {};\nconst sha = String(commit.sha || '').trim();\nconst files = Array.isArray(commit.files) ? commit.files : [];\nconst changed = files.map(f => ({ filename: String(f.filename || '').trim(), status: String(f.status || '').trim(), raw_url: String(f.raw_url || '').trim(), patch: String(f.patch || '') })).filter(f => f.filename);\nconst live = changed.filter(f => /^workflows\\/live\\/[^/]+\\.json$/.test(f.filename));\nconst disallowed = changed.filter(f => !/^workflows\\/live\\/[^/]+\\.json$/.test(f.filename));\nconst publisherFiles = live.filter(f => /clean_03_publisher\\.json$|clean_04_carousel_publisher\\.json$/.test(f.filename));\nconst reasons = [];\nif (!changed.length) reasons.push('no_changed_files');\nif (disallowed.length) reasons.push('non_live_workflow_files_changed');\nif (live.length !== 1) reasons.push('v1_requires_exactly_one_live_workflow_file');\nif (publisherFiles.length) reasons.push('publisher_workflows_blocked_in_v1');\nconst allowed = reasons.length === 0;\nconst target = live[0] || {};\nreturn [{ json: { sha, allowed, reasons, changed_files: changed.map(f => f.filename), target_file: target.filename || '', target_raw_url: target.raw_url || '' } }];"
+      },
+      "id": "mobile-guard-filter-allowed-files",
+      "name": "Filter Allowed Workflow Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.allowed}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "mobile-guard-if-allowed-files",
+      "name": "IF Allowed Files",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        520,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.target_raw_url}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.DEPLOY_GUARD_GITHUB_TOKEN}}"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-mobile-codex-deploy-guard"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "mobile-guard-fetch-json",
+      "name": "Fetch Changed Workflow JSON",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = typeof $json === 'string' ? $json : String($json.data || $json.body || JSON.stringify($json));\nlet parsed;\nconst reasons = [];\ntry { parsed = JSON.parse(raw); } catch (e) { reasons.push('invalid_json'); parsed = {}; }\nif (!parsed.name || !Array.isArray(parsed.nodes) || !parsed.connections || typeof parsed.connections !== 'object') reasons.push('invalid_n8n_workflow_shape');\nconst text = raw;\nconst secretPatterns = [\n  /xox[baprs]-[A-Za-z0-9-]+/,\n  /gh[pousr]_[A-Za-z0-9_]{20,}/,\n  /EAAC[A-Za-z0-9]{20,}/,\n  /[0-9]{8,}:[A-Za-z0-9_-]{30,}/,\n  /sk-[A-Za-z0-9_-]{20,}/,\n  /access_token\\s*[=:]\\s*['\\\"][^'\\\"]+['\\\"]/i,\n  /api[_-]?key\\s*[=:]\\s*['\\\"][^'\\\"]+['\\\"]/i\n];\nif (secretPatterns.some(rx => rx.test(text))) reasons.push('secret_like_pattern_found');\nif (parsed.active === true) reasons.push('active_true_blocked_in_v1');\nconst ok = reasons.length === 0;\nreturn [{ json: { safety_passed: ok, reasons, workflow_name: String(parsed.name || ''), node_count: Array.isArray(parsed.nodes) ? parsed.nodes.length : 0, sha: $node['Filter Allowed Workflow Changes'].json.sha, target_file: $node['Filter Allowed Workflow Changes'].json.target_file } }];"
+      },
+      "id": "mobile-guard-validate-json",
+      "name": "Validate JSON and Secret Scan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.safety_passed}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "mobile-guard-if-safety-passed",
+      "name": "IF Safety Passed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json || {};\nconst approvalId = `${j.sha}|${j.target_file}`;\nconst store = $getWorkflowStaticData('global');\nstore.mobile_codex_deploy_guard = store.mobile_codex_deploy_guard && typeof store.mobile_codex_deploy_guard === 'object' ? store.mobile_codex_deploy_guard : {};\nstore.mobile_codex_deploy_guard.pending_sha = j.sha;\nstore.mobile_codex_deploy_guard.pending_approval_id = approvalId;\nstore.mobile_codex_deploy_guard.pending_file = j.target_file;\nstore.mobile_codex_deploy_guard.pending_at = new Date().toISOString();\nconst text = [\n  '[MOBILE CODEX DEPLOY GUARD]',\n  'Approval required before any n8n deploy.',\n  `commit: ${j.sha}`,\n  `file: ${j.target_file}`,\n  `workflow: ${j.workflow_name}`,\n  `nodes: ${j.node_count}`,\n  '',\n  'V1 stops here after this Telegram request. No deploy runs from Cron.'\n].join('\\n');\nconst reply_markup = {\n  inline_keyboard: [\n    [{ text: 'Approve Deploy', callback_data: `approve_deploy|${approvalId}` }],\n    [{ text: 'Reject', callback_data: `reject_deploy|${approvalId}` }]\n  ]\n};\nreturn [{ json: { ...j, approval_id: approvalId, telegram_text: text, telegram_reply_markup: reply_markup } }];"
+      },
+      "id": "mobile-guard-create-pending",
+      "name": "Create Pending Approval",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{'https://api.telegram.org/bot' + $env.DEPLOY_GUARD_TELEGRAM_BOT_TOKEN + '/sendMessage'}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{$env.DEPLOY_GUARD_TELEGRAM_CHAT_ID}}"
+            },
+            {
+              "name": "text",
+              "value": "={{$json.telegram_text}}"
+            },
+            {
+              "name": "reply_markup",
+              "value": "={{JSON.stringify($json.telegram_reply_markup)}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "mobile-guard-send-approval",
+      "name": "Send Telegram Approval Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json || {};\nconst text = [\n  '[MOBILE CODEX DEPLOY GUARD BLOCKED]',\n  `commit: ${j.sha || 'unknown'}`,\n  `target: ${j.target_file || 'none'}`,\n  `reasons: ${(j.reasons || []).join(', ') || 'unknown'}`,\n  '',\n  'No deployment attempted.'\n].join('\\n');\nreturn [{ json: { ...j, telegram_text: text } }];"
+      },
+      "id": "mobile-guard-build-blocked-report",
+      "name": "Build Blocked Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{'https://api.telegram.org/bot' + $env.DEPLOY_GUARD_TELEGRAM_BOT_TOKEN + '/sendMessage'}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{$env.DEPLOY_GUARD_TELEGRAM_CHAT_ID}}"
+            },
+            {
+              "name": "text",
+              "value": "={{$json.telegram_text}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "mobile-guard-send-blocked-report",
+      "name": "Send Blocked Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first()?.json || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst callback = body.callback_query && typeof body.callback_query === 'object' ? body.callback_query : {};\nconst data = String(callback.data || body.data || '').trim();\nconst [action, approvalId] = data.split('|');\nconst store = $getWorkflowStaticData('global');\nstore.mobile_codex_deploy_guard = store.mobile_codex_deploy_guard && typeof store.mobile_codex_deploy_guard === 'object' ? store.mobile_codex_deploy_guard : {};\nconst state = store.mobile_codex_deploy_guard;\nconst valid = approvalId && approvalId === state.pending_approval_id;\nstate.last_callback_at = new Date().toISOString();\nstate.last_callback_action = action || '';\nstate.last_callback_valid = !!valid;\nif (valid && action === 'reject_deploy') {\n  state.rejected_sha = state.pending_sha;\n  state.pending_sha = '';\n  state.pending_approval_id = '';\n}\nif (valid && action === 'approve_deploy') {\n  state.approved_sha = state.pending_sha;\n  state.approved_file = state.pending_file;\n  state.approved_at = new Date().toISOString();\n}\nreturn [{ json: { ok: true, deploy_triggered: false, approval_valid: !!valid, action: action || '', message: 'V1 records approval only. No n8n deployment node exists in this workflow.' } }];"
+      },
+      "id": "mobile-guard-record-callback",
+      "name": "Record Approval Callback Only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "mobile-guard-return-callback",
+      "name": "Return Callback Ack",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -560,
+        360
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron - Poll GitHub master": {
+      "main": [
+        [
+          {
+            "node": "Build Guard Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Guard Config": {
+      "main": [
+        [
+          {
+            "node": "Get Latest master Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest master Commit": {
+      "main": [
+        [
+          {
+            "node": "Detect New Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect New Commit": {
+      "main": [
+        [
+          {
+            "node": "IF New Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF New Commit": {
+      "main": [
+        [
+          {
+            "node": "Get Commit Changed Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Get Commit Changed Files": {
+      "main": [
+        [
+          {
+            "node": "Filter Allowed Workflow Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Allowed Workflow Changes": {
+      "main": [
+        [
+          {
+            "node": "IF Allowed Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Allowed Files": {
+      "main": [
+        [
+          {
+            "node": "Fetch Changed Workflow JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Blocked Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Changed Workflow JSON": {
+      "main": [
+        [
+          {
+            "node": "Validate JSON and Secret Scan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate JSON and Secret Scan": {
+      "main": [
+        [
+          {
+            "node": "IF Safety Passed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Safety Passed": {
+      "main": [
+        [
+          {
+            "node": "Create Pending Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Blocked Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Pending Approval": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Approval Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Blocked Report": {
+      "main": [
+        [
+          {
+            "node": "Send Blocked Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Callback Webhook": {
+      "main": [
+        [
+          {
+            "node": "Record Approval Callback Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Approval Callback Only": {
+      "main": [
+        [
+          {
+            "node": "Return Callback Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "mobile-codex-deploy-guard-v1-local-only",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "localOnly": true,
+    "deploymentMode": "approval-request-only"
+  },
+  "id": "actual09-mobile-codex-deploy-guard-local",
+  "tags": []
+}

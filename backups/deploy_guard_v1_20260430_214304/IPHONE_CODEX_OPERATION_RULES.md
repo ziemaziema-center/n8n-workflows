@@ -50,8 +50,6 @@ Future deployment automation must use this guard sequence:
 8. Run a smoke test appropriate to the workflow.
 9. Report success or failure to Telegram and repository logs.
 
-Runbook: `meta/DEPLOY_GUARD_RUNBOOK.md`
-
 Deployment guard must block automatically if:
 
 - Changed files include credentials or server config.
