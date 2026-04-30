@@ -193,10 +193,14 @@
     },
     {
       "parameters": {
-        "url": "={{$json.target_raw_url}}",
+        "url": "=https://api.github.com/repos/{{$env.DEPLOY_GUARD_REPO || 'ziemaziema-center/n8n-workflows'}}/contents/{{$json.target_file}}?ref={{$json.sha}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.raw+json"
+            },
             {
               "name": "Authorization",
               "value": "=Bearer {{$env.DEPLOY_GUARD_GITHUB_TOKEN}}"
