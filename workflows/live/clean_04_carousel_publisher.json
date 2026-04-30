@@ -78,8 +78,24 @@
         "method": "POST",
         "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { image_url: $json.image_url, is_carousel_item: true, access_token: \"REDACTED\" } }}",
+        "contentType": "form-urlencoded",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{$json.image_url}}"
+            },
+            {
+              "name": "is_carousel_item",
+              "value": "true"
+            },
+            {
+              "name": "access_token",
+              "value": "REDACTED"
+            }
+          ]
+        },
         "options": {}
       }
     },
@@ -170,7 +186,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const first = $input.first();\nconst j = first && first.json ? first.json : {};\nconst isDryRun = j.test_mode === true || j.dry_run === true || j.diagnostic === true;\nif (isDryRun) {\n  // Halt: no IG API calls will be made\n  return [];\n}\nreturn [{ json: j }];"
+        "jsCode": "const first = $input.first();\nconst j = first && first.json ? first.json : {};\nconst isDryRun = j.test_mode === true || j.dry_run === true || j.diagnostic === true;\nconst store = $getWorkflowStaticData('global');\nconst nowMs = Date.now();\nconst nowIso = new Date(nowMs).toISOString();\nconst throttleMs = 60 * 60 * 1000;\nconst throttleMinutes = 60;\n\nfunction toMs(value) {\n  if (!value) return 0;\n  const t = new Date(String(value)).getTime();\n  return Number.isFinite(t) ? t : 0;\n}\n\nfunction recentEntry(entry) {\n  const t = toMs(entry?.attempted_at || entry?.published_at || entry?.triggered_at || entry?.created_at || entry?.at || entry);\n  return t > 0 && (nowMs - t) < throttleMs;\n}\n\nstore.carousel_publish_attempt_log = Array.isArray(store.carousel_publish_attempt_log) ? store.carousel_publish_attempt_log : [];\nstore.daily_publish_success_log = Array.isArray(store.daily_publish_success_log) ? store.daily_publish_success_log : [];\n\nif (isDryRun) {\n  store.last_carousel_publish_gate = {\n    status: 'dry_run',\n    test_id: String(j.test_id || ''),\n    checked_at: nowIso,\n    publish_triggered: false,\n  };\n  return [{ json: { status: 'dry_run', test_id: String(j.test_id || ''), publish_triggered: false } }];\n}\n\nconst recentAttempt = store.carousel_publish_attempt_log.find(recentEntry);\nconst recentSuccess = store.daily_publish_success_log.find(recentEntry);\nconst recentLegacy = [\n  store.last_carousel_publish_attempt_at,\n  store.last_carousel_publish_at,\n  store.last_publish_attempt_at,\n  store.last_publish_success_at,\n].find((value) => recentEntry(value));\nconst recent = recentAttempt || recentSuccess || recentLegacy;\n\nif (recent) {\n  store.last_carousel_publish_gate = {\n    status: 'throttled',\n    test_id: String(j.test_id || ''),\n    checked_at: nowIso,\n    throttle_window_minutes: throttleMinutes,\n    recent_publish_at: String(recent?.attempted_at || recent?.published_at || recent?.triggered_at || recent?.created_at || recent?.at || recentLegacy || ''),\n    publish_triggered: false,\n  };\n  return [{\n    json: {\n      status: 'throttled',\n      route_action: String(j.route_action || 'approve_carousel'),\n      test_id: String(j.test_id || ''),\n      throttle_window_minutes: throttleMinutes,\n      publish_triggered: false,\n    }\n  }];\n}\n\nconst attempt = {\n  test_id: String(j.test_id || ''),\n  route_action: String(j.route_action || 'approve_carousel'),\n  attempted_at: nowIso,\n  status: 'attempt_started',\n};\nstore.carousel_publish_attempt_log.push(attempt);\nstore.carousel_publish_attempt_log = store.carousel_publish_attempt_log.slice(-100);\nstore.last_carousel_publish_attempt_at = nowIso;\nstore.last_carousel_publish_gate = {\n  status: 'allowed',\n  test_id: attempt.test_id,\n  checked_at: nowIso,\n  throttle_window_minutes: throttleMinutes,\n  publish_triggered: true,\n};\n\nreturn [{ json: { ...j, publish_throttle_checked: true, publish_attempt_logged_at: nowIso, throttle_window_minutes: throttleMinutes } }];"
       }
     }
   ],
@@ -384,8 +400,24 @@
           "method": "POST",
           "url": "https://graph.facebook.com/v23.0/17841436538210981/media",
           "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "={{ { image_url: $json.image_url, is_carousel_item: true, access_token: \"REDACTED\" } }}",
+          "contentType": "form-urlencoded",
+          "specifyBody": "keypair",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "image_url",
+                "value": "={{$json.image_url}}"
+              },
+              {
+                "name": "is_carousel_item",
+                "value": "true"
+              },
+              {
+                "name": "access_token",
+                "value": "REDACTED"
+              }
+            ]
+          },
           "options": {}
         }
       },

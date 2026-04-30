@@ -20,7 +20,7 @@ Cause:
 
 Local patch applied:
 
-- Refreshed local `workflows/actual_08_github_logger.json` from live export.
+- Refreshed local `workflows/live/actual_08_github_logger.json` from live export.
 - Changed webhook response behavior to return the last node JSON item.
 - Added `Return Logger Ack` code node.
 - Connected all terminal branches to `Return Logger Ack`.

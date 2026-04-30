@@ -8,8 +8,8 @@ Scope: local backup/export integrity only. No live workflow import, activation, 
 
 | File | Classification | Action |
 | --- | --- | --- |
-| `workflows/clean_01_generator.json` | B: corrupted local export | Previous invalid copy archived; refreshed from live n8n export and validated. |
-| `workflows/clean_02_approval.json` | B: corrupted local export | Previous invalid copy archived; refreshed from live n8n export and validated. |
+| `workflows/live/clean_01_generator.json` | B: corrupted local export | Previous invalid copy archived; refreshed from live n8n export and validated. |
+| `workflows/live/clean_02_approval.json` | B: corrupted local export | Previous invalid copy archived; refreshed from live n8n export and validated. |
 | `backups/2026-04-26/clean_01_generator_backup.json` | B: corrupted backup export | Invalid original archived; valid fixed copy created as `clean_01_generator_backup.json.fixed.json`. |
 | `backups/2026-04-26/clean_02_approval_backup.json` | B: corrupted backup export | Invalid original archived; valid fixed copy created as `clean_02_approval_backup.json.fixed.json`. |
 | `workflow_01_live_final_stabilized.json` | B: corrupted legacy/root export | Archived under `backups/invalid_json/`; not regenerated because it is not a canonical workflow export. |
@@ -34,7 +34,7 @@ Protected workflows not modified:
 ## Validation
 
 - All JSON files under `workflows/` parse successfully.
-- `workflows/clean_01_generator.json` parses successfully.
-- `workflows/clean_02_approval.json` parses successfully.
+- `workflows/live/clean_01_generator.json` parses successfully.
+- `workflows/live/clean_02_approval.json` parses successfully.
 - `backups/2026-04-26/clean_01_generator_backup.json.fixed.json` parses successfully.
 - `backups/2026-04-26/clean_02_approval_backup.json.fixed.json` parses successfully.

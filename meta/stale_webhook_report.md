@@ -17,7 +17,7 @@ Local references found:
 Assessment:
 
 - This appears to be a legacy/stale Telegram callback path from the old approval handler exports.
-- It is not referenced in the refreshed canonical `workflows/clean_01_generator.json` or `workflows/clean_02_approval.json`.
+- It is not referenced in the refreshed canonical `workflows/live/clean_01_generator.json` or `workflows/live/clean_02_approval.json`.
 - No deletion was performed.
 
 Action:

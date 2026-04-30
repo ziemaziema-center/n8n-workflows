@@ -326,7 +326,7 @@ def main():
     patch_actual_07()
     manifest = {
         "generated_at": datetime.now().isoformat(),
-        "exported": exported + ["workflows/actual_07_auto_debugger_collector.json", "workflows/actual_08_github_logger.json"],
+        "exported": exported + ["workflows/live/actual_07_auto_debugger_collector.json", "workflows/live/actual_08_github_logger.json"],
         "backups": backups + [
             f"backups/{datetime.now().strftime('%Y-%m-%d')}/actual_07_auto_debugger_collector_backup.json"
         ],

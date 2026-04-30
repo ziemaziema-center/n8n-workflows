@@ -55,8 +55,8 @@ False-positive/config-field-only files: 57
 - workflow_DGMQEgFXqzeS3sJ5.json
 - workflow_giWKQwX7x2fasi1h.json
 - workflow_IY3f5KcJDMDgWRJk.json
-- workflows/clean_01_generator.json
-- workflows/clean_02_approval.json
+- workflows/live/clean_01_generator.json
+- workflows/live/clean_02_approval.json
 
 ## Placeholder / Redacted References
 - backups/2026-04-26/actual_07_auto_debugger_collector_backup.json
@@ -92,10 +92,10 @@ False-positive/config-field-only files: 57
 - repair_sheet_setup_subworkflow.ps1
 - setup_github_backup_logging_system.py
 - update_n8n_workflows.ps1
-- workflows/actual_07_auto_debugger_collector.json
-- workflows/actual_08_github_logger.json
-- workflows/clean_03_publisher.json
-- workflows/clean_04_carousel_publisher.json
+- workflows/live/actual_07_auto_debugger_collector.json
+- workflows/live/actual_08_github_logger.json
+- workflows/live/clean_03_publisher.json
+- workflows/live/clean_04_carousel_publisher.json
 
 ## False Positive / Field Names Only
 - add_execute_trigger_to_generator.py

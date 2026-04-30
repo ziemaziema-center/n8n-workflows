@@ -55,7 +55,7 @@
         100
       ],
       "parameters": {
-        "jsCode": "\nconst N8N_BASE = 'http://43.201.227.194:5678';\nconst N8N_API_KEY = \"REDACTED\";\nconst OPENAI_API_KEY = \"REDACTED\";\nconst TELEGRAM_TOKEN = \"REDACTED\";\nconst TELEGRAM_CHAT_ID = '7592247598';\nconst WORKFLOW_NAME_MAP = {\n  'KPa5tncCc87z2ZsE': 'clean_01_generator',\n  'i6T6ke3ltKNQzaCl': 'clean_02_approval',\n  'TiD7fxWCuAX9mpt6': 'clean_03_publisher',\n  'w9e3wiyca6qZUS4r': 'clean_04_carousel_publisher'\n};\n\nconst input = ($input.first() && $input.first().json) || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst store = $getWorkflowStaticData('global');\nstore.debug_log = Array.isArray(store.debug_log) ? store.debug_log : [];\nstore.debug_alert_memory = store.debug_alert_memory && typeof store.debug_alert_memory === 'object' ? store.debug_alert_memory : {};\n\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'REDACTED');\n  s = s.replace(/(access_token=REDACTED&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{80,})/g, 'REDACTED');\n  s = s.replace(/(password|credential|api[_-]?key|token)\\s*[:=]\\s*[^,\\s}]+/gi, '$1=REDACTED');\n  return s;\n}\nfunction normalize(s) {\n  return redact(String(s || '')).toLowerCase().replace(/\\s+/g, ' ').trim().slice(0, 500);\n}\nfunction hash(s) {\n  let h = 2166136261;\n  const str = String(s || '');\n  for (let i = 0; i < str.length; i++) {\n    h ^= str.charCodeAt(i);\n    h = Math.imul(h, 16777619);\n  }\n  return (h >>> 0).toString(16);\n}\nfunction parseJson(text) {\n  const raw = String(text || '').trim().replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  try { return JSON.parse(raw); } catch (_) { return null; }\n}\nfunction localSeverity(message, nodeName, workflowName) {\n  const m = String(message || '').toLowerCase();\n  const n = String(nodeName || '').toLowerCase();\n  if (m.includes('application request limit reached') || m.includes('2207051') || m.includes('code=4')) return 'low';\n  if (workflowName.includes('publisher') || n.includes('publish') || n.includes('scheduler')) return 'critical';\n  if (workflowName.includes('approval') || n.includes('queue') || n.includes('normalize callback')) return 'critical';\n  if (workflowName.includes('generator') && (n.includes('telegram') || n.includes('image') || n.includes('content'))) return 'high';\n  if (m.includes('fallback') || m.includes('duplicate')) return 'medium';\n  return 'medium';\n}\nfunction buildEvent() {\n  const errorTriggerWorkflow = input.workflow || body.workflow || {};\n  const errorTriggerExecution = input.execution || body.execution || {};\n  const errorObj = errorTriggerExecution.error || input.error || body.error || {};\n  const workflowId = String(body.workflow_id || errorTriggerWorkflow.id || input.workflow_id || '').trim();\n  const workflowName = redact(String(body.workflow_name || errorTriggerWorkflow.name || WORKFLOW_NAME_MAP[workflowId] || workflowId || 'unknown'));\n  const executionId = redact(String(body.execution_id || errorTriggerExecution.id || input.execution_id || 'unknown'));\n  const nodeName = redact(String(body.failed_node || errorTriggerExecution.lastNodeExecuted || errorObj.node?.name || input.failed_node || 'unknown'));\n  const errorMessage = redact(String(body.error_message || errorObj.message || errorObj.description || input.error_message || 'unknown error'));\n  const requestedSeverity = String(body.severity || input.severity || '').toLowerCase();\n  const severity = ['critical','high','medium','low'].includes(requestedSeverity) ? requestedSeverity : localSeverity(errorMessage, nodeName, workflowName);\n  return {\n    detected_at: new Date().toISOString(),\n    workflow_name: workflowName,\n    workflow_id: workflowId,\n    execution_id: executionId,\n    node_name: nodeName,\n    error_message: errorMessage,\n    error_type: redact(String(errorObj.name || errorObj.type || body.error_type || '')),\n    severity\n  };\n}\nasync function analyzeWithGpt(errorItem) {\n  if (errorItem.severity === 'low') {\n    return {\n      severity: 'low',\n      root_cause: 'Low-severity or external temporary failure. GPT skipped by policy.',\n      minimal_fix: 'Log only. Do not retry publish/API call.',\n      nodes_to_modify: [],\n      nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n      codex_prompt: '[NO CODEX FIX REQUIRED] Low severity logged only.'\n    };\n  }\n  const system = 'Return only valid JSON with keys: severity, root_cause, minimal_fix, nodes_to_modify, nodes_not_to_touch, codex_prompt. Never include credentials or tokens. Never recommend automatic patching.';\n  const user = `Analyze this n8n failure event and generate a safe Codex prompt.\\n${JSON.stringify(errorItem, null, 2)}\\nRules: no auto patch, no retry, no publish, backup before any later fix, redact secrets.`;\n  try {\n    const res = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.openai.com/v1/chat/completions',\n      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },\n      body: {\n        model: 'gpt-4o-mini',\n        response_format: { type: 'json_object' },\n        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],\n        temperature: 0.1\n      },\n      json: true,\n      timeout: 60000,\n    });\n    const parsed = parseJson(res?.choices?.[0]?.message?.content || '');\n    if (parsed) return parsed;\n  } catch (e) {}\n  return {\n    severity: errorItem.severity,\n    root_cause: `Failed at ${errorItem.node_name}: ${errorItem.error_message}`,\n    minimal_fix: 'Inspect the failed node and patch only the smallest proven break point.',\n    nodes_to_modify: [errorItem.workflow_name + ' / ' + errorItem.node_name],\n    nodes_not_to_touch: ['unrelated workflows', 'credentials', 'publisher paths unless directly proven'],\n    codex_prompt: `[HQ / CODEX DIAGNOSE ONLY]\\nFind exact root cause for execution ${errorItem.execution_id} in ${errorItem.workflow_name} at node ${errorItem.node_name}. Do not modify. Do not publish. Do not expose tokens.`\n  };\n}\nfunction cleanAnalysis(x, errorItem) {\n  const out = x && typeof x === 'object' ? x : {};\n  out.severity = ['critical','high','medium','low'].includes(out.severity) ? out.severity : errorItem.severity;\n  out.root_cause = redact(out.root_cause || '');\n  out.minimal_fix = redact(out.minimal_fix || '');\n  out.nodes_to_modify = Array.isArray(out.nodes_to_modify) ? out.nodes_to_modify.map(redact) : [];\n  out.nodes_not_to_touch = Array.isArray(out.nodes_not_to_touch) ? out.nodes_not_to_touch.map(redact) : [];\n  out.codex_prompt = redact(out.codex_prompt || '');\n  return out;\n}\n\nconst now = new Date();\nconst cutoff24h = now.getTime() - 24 * 60 * 60 * 1000;\nconst shortWindow = now.getTime() - 60 * 60 * 1000;\nfor (const [k, v] of Object.entries(store.debug_alert_memory)) {\n  if (!v || Date.parse(v.last_seen_at || v.last_alert_at || 0) < cutoff24h) delete store.debug_alert_memory[k];\n}\n\nconst event = buildEvent();\nevent.error_hash = hash(`${event.workflow_id}|${event.workflow_name}|${event.node_name}|${normalize(event.error_message)}`);\nconst memory = store.debug_alert_memory[event.error_hash] || { repeat_count: 0, first_seen_at: now.toISOString(), recent_count: 0 };\nconst lastSeen = Date.parse(memory.last_seen_at || 0);\nmemory.recent_count = lastSeen >= shortWindow ? Number(memory.recent_count || 0) + 1 : 1;\nmemory.repeat_count = Number(memory.repeat_count || 0) + 1;\nmemory.last_seen_at = now.toISOString();\n\nlet gpt_called = false;\nlet telegram_alert_sent = false;\nlet status = 'new';\nlet analysis = null;\n\nif (event.severity === 'low') {\n  status = /application request limit reached|2207051|code.?4/i.test(event.error_message) ? 'ignored_rate_limit' : 'logged_low';\n  analysis = await analyzeWithGpt.call(this, event);\n} else if (memory.repeat_count > 1 && !input.force_alert && !body.force_alert) {\n  status = memory.recent_count >= 3 ? 'deduped_gpt_suppressed' : 'deduped';\n  analysis = {\n    severity: event.severity,\n    root_cause: 'Duplicate error hash already alerted within suppression window.',\n    minimal_fix: 'Log only. Do not call GPT again.',\n    nodes_to_modify: [],\n    nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n    codex_prompt: '[DUPLICATE ERROR] Existing alert already sent. No new Codex prompt generated.'\n  };\n} else {\n  analysis = cleanAnalysis(await analyzeWithGpt.call(this, event), event);\n  gpt_called = event.severity !== 'low';\n  status = 'alerted';\n}\n\nconst logItem = {\n  ...event,\n  severity: analysis.severity || event.severity,\n  root_cause: analysis.root_cause,\n  recommended_action: analysis.minimal_fix,\n  codex_prompt: analysis.codex_prompt,\n  repeat_count: memory.repeat_count,\n  recent_count: memory.recent_count,\n  gpt_called,\n  status\n};\nstore.debug_alert_memory[event.error_hash] = {\n  ...memory,\n  last_alert_at: status === 'alerted' ? now.toISOString() : memory.last_alert_at,\n  execution_id: event.execution_id\n};\nstore.debug_log.push(logItem);\nstore.debug_log = store.debug_log.slice(-500);\n\nif (status === 'alerted') {\n  const text = [\n    '[AUTO DEBUGGER v3]',\n    '',\n    `workflow: ${logItem.workflow_name}`,\n    `failed node: ${logItem.node_name}`,\n    `severity: ${logItem.severity}`,\n    `execution: ${logItem.execution_id}`,\n    '',\n    'reason:',\n    String(logItem.root_cause || logItem.error_message).slice(0, 900),\n    '',\n    'recommended:',\n    String(logItem.recommended_action || '').slice(0, 900),\n    '',\n    'Codex prompt:',\n    String(logItem.codex_prompt || '').slice(0, 1800),\n  ].join('\\n');\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,\n    body: { chat_id: TELEGRAM_CHAT_ID, text: redact(text) },\n    json: true,\n    timeout: 30000,\n  });\n  telegram_alert_sent = true;\n}\n\nreturn [{ json: {\n  workflow: 'actual_07_auto_debugger_collector',\n  mode: 'event_driven',\n  event_received: true,\n  analyzed_execution: event.execution_id,\n  workflow_name: event.workflow_name,\n  node_name: event.node_name,\n  severity: logItem.severity,\n  status,\n  gpt_called,\n  telegram_alert_sent,\n  duplicate_alert_guard: true,\n  publish_calls: 0,\n  patch_calls: 0,\n  token_redaction_confirmed: true\n} }];\n"
+        "jsCode": "\nconst N8N_BASE = 'http://43.201.227.194:5678';\nconst N8N_API_KEY = \"REDACTED\";\nconst OPENAI_API_KEY = \"REDACTED\";\nconst WORKFLOW_NAME_MAP = {\n  'KPa5tncCc87z2ZsE': 'clean_01_generator',\n  'i6T6ke3ltKNQzaCl': 'clean_02_approval',\n  'TiD7fxWCuAX9mpt6': 'clean_03_publisher',\n  'w9e3wiyca6qZUS4r': 'clean_04_carousel_publisher'\n};\n\nconst input = ($input.first() && $input.first().json) || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst store = $getWorkflowStaticData('global');\nstore.debug_log = Array.isArray(store.debug_log) ? store.debug_log : [];\nstore.debug_alert_memory = store.debug_alert_memory && typeof store.debug_alert_memory === 'object' ? store.debug_alert_memory : {};\n\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'REDACTED');\n  s = s.replace(/(access_token=)[^&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{80,})/g, 'REDACTED');\n  s = s.replace(/(password|credential|api[_-]?key|token)\\s*[:=]\\s*[^,\\s}]+/gi, '$1=REDACTED');\n  return s;\n}\nfunction normalize(s) {\n  return redact(String(s || '')).toLowerCase().replace(/\\s+/g, ' ').trim().slice(0, 500);\n}\nfunction hash(s) {\n  let h = 2166136261;\n  const str = String(s || '');\n  for (let i = 0; i < str.length; i++) {\n    h ^= str.charCodeAt(i);\n    h = Math.imul(h, 16777619);\n  }\n  return (h >>> 0).toString(16);\n}\nfunction parseJson(text) {\n  const raw = String(text || '').trim().replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  try { return JSON.parse(raw); } catch (_) { return null; }\n}\nfunction localSeverity(message, nodeName, workflowName) {\n  const m = String(message || '').toLowerCase();\n  const n = String(nodeName || '').toLowerCase();\n  if (m.includes('application request limit reached') || m.includes('2207051') || m.includes('code=4')) return 'low';\n  if (workflowName.includes('publisher') || n.includes('publish') || n.includes('scheduler')) return 'critical';\n  if (workflowName.includes('approval') || n.includes('queue') || n.includes('normalize callback')) return 'critical';\n  if (workflowName.includes('generator') && (n.includes('telegram') || n.includes('image') || n.includes('content'))) return 'high';\n  if (m.includes('fallback') || m.includes('duplicate')) return 'medium';\n  return 'medium';\n}\nfunction buildEvent() {\n  const errorTriggerWorkflow = input.workflow || body.workflow || {};\n  const errorTriggerExecution = input.execution || body.execution || {};\n  const errorObj = errorTriggerExecution.error || input.error || body.error || {};\n  const workflowId = String(body.workflow_id || errorTriggerWorkflow.id || input.workflow_id || '').trim();\n  const workflowName = redact(String(body.workflow_name || errorTriggerWorkflow.name || WORKFLOW_NAME_MAP[workflowId] || workflowId || 'unknown'));\n  const executionId = redact(String(body.execution_id || errorTriggerExecution.id || input.execution_id || 'unknown'));\n  const nodeName = redact(String(body.failed_node || errorTriggerExecution.lastNodeExecuted || errorObj.node?.name || input.failed_node || 'unknown'));\n  const errorMessage = redact(String(body.error_message || errorObj.message || errorObj.description || input.error_message || 'unknown error'));\n  const requestedSeverity = String(body.severity || input.severity || '').toLowerCase();\n  const severity = ['critical','high','medium','low'].includes(requestedSeverity) ? requestedSeverity : localSeverity(errorMessage, nodeName, workflowName);\n  return {\n    detected_at: new Date().toISOString(),\n    workflow_name: workflowName,\n    workflow_id: workflowId,\n    execution_id: executionId,\n    node_name: nodeName,\n    error_message: errorMessage,\n    error_type: redact(String(errorObj.name || errorObj.type || body.error_type || '')),\n    severity\n  };\n}\nasync function analyzeWithGpt(errorItem) {\n  if (errorItem.severity === 'low') {\n    return {\n      severity: 'low',\n      root_cause: 'Low-severity or external temporary failure. GPT skipped by policy.',\n      minimal_fix: 'Log only. Do not retry publish/API call.',\n      nodes_to_modify: [],\n      nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n      codex_prompt: '[NO CODEX FIX REQUIRED] Low severity logged only.'\n    };\n  }\n  const system = 'Return only valid JSON with keys: severity, root_cause, minimal_fix, nodes_to_modify, nodes_not_to_touch, codex_prompt. Never include credentials or tokens. Never recommend automatic patching.';\n  const user = `Analyze this n8n failure event and generate a safe Codex prompt.\\n${JSON.stringify(errorItem, null, 2)}\\nRules: no auto patch, no retry, no publish, backup before any later fix, redact secrets.`;\n  try {\n    const res = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.openai.com/v1/chat/completions',\n      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },\n      body: {\n        model: 'gpt-4o-mini',\n        response_format: { type: 'json_object' },\n        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],\n        temperature: 0.1\n      },\n      json: true,\n      timeout: 60000,\n    });\n    const parsed = parseJson(res?.choices?.[0]?.message?.content || '');\n    if (parsed) return parsed;\n  } catch (e) {}\n  return {\n    severity: errorItem.severity,\n    root_cause: `Failed at ${errorItem.node_name}: ${errorItem.error_message}`,\n    minimal_fix: 'Inspect the failed node and patch only the smallest proven break point.',\n    nodes_to_modify: [errorItem.workflow_name + ' / ' + errorItem.node_name],\n    nodes_not_to_touch: ['unrelated workflows', 'credentials', 'publisher paths unless directly proven'],\n    codex_prompt: `[HQ / CODEX DIAGNOSE ONLY]\\nFind exact root cause for execution ${errorItem.execution_id} in ${errorItem.workflow_name} at node ${errorItem.node_name}. Do not modify. Do not publish. Do not expose tokens.`\n  };\n}\nfunction cleanAnalysis(x, errorItem) {\n  const out = x && typeof x === 'object' ? x : {};\n  out.severity = ['critical','high','medium','low'].includes(out.severity) ? out.severity : errorItem.severity;\n  out.root_cause = redact(out.root_cause || '');\n  out.minimal_fix = redact(out.minimal_fix || '');\n  out.nodes_to_modify = Array.isArray(out.nodes_to_modify) ? out.nodes_to_modify.map(redact) : [];\n  out.nodes_not_to_touch = Array.isArray(out.nodes_not_to_touch) ? out.nodes_not_to_touch.map(redact) : [];\n  out.codex_prompt = redact(out.codex_prompt || '');\n  return out;\n}\n\nconst now = new Date();\nconst cutoff24h = now.getTime() - 24 * 60 * 60 * 1000;\nconst shortWindow = now.getTime() - 60 * 60 * 1000;\nfor (const [k, v] of Object.entries(store.debug_alert_memory)) {\n  if (!v || Date.parse(v.last_seen_at || v.last_alert_at || 0) < cutoff24h) delete store.debug_alert_memory[k];\n}\n\nconst event = buildEvent();\nevent.error_hash = hash(`${event.workflow_id}|${event.workflow_name}|${event.node_name}|${normalize(event.error_message)}`);\nconst memory = store.debug_alert_memory[event.error_hash] || { repeat_count: 0, first_seen_at: now.toISOString(), recent_count: 0 };\nconst lastSeen = Date.parse(memory.last_seen_at || 0);\nmemory.recent_count = lastSeen >= shortWindow ? Number(memory.recent_count || 0) + 1 : 1;\nmemory.repeat_count = Number(memory.repeat_count || 0) + 1;\nmemory.last_seen_at = now.toISOString();\n\nlet gpt_called = false;\nlet telegram_alert_sent = false;\nconst debug_delivery_disabled_reason = '';\nlet status = 'new';\nlet analysis = null;\n\nif (body.force_debug_alert_test === true || String(body.force_debug_alert_test || '').toLowerCase() === 'true') {\n  status = 'alerted';\n  analysis = {\n    severity: event.severity || 'medium',\n    root_cause: 'Forced debug routing validation.',\n    minimal_fix: 'Validation only. No patch requested.',\n    nodes_to_modify: [],\n    nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n    codex_prompt: '[DEBUG ROUTE TEST] Verify Kindred Debug Guard delivery only.'\n  };\n} else if (event.severity === 'low') {\n  status = /application request limit reached|2207051|code.?4/i.test(event.error_message) ? 'ignored_rate_limit' : 'logged_low';\n  analysis = await analyzeWithGpt.call(this, event);\n} else if (memory.repeat_count > 1 && !input.force_alert && !body.force_alert) {\n  status = memory.recent_count >= 3 ? 'deduped_gpt_suppressed' : 'deduped';\n  analysis = {\n    severity: event.severity,\n    root_cause: 'Duplicate error hash already alerted within suppression window.',\n    minimal_fix: 'Log only. Do not call GPT again.',\n    nodes_to_modify: [],\n    nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n    codex_prompt: '[DUPLICATE ERROR] Existing alert already sent. No new Codex prompt generated.'\n  };\n} else {\n  analysis = cleanAnalysis(await analyzeWithGpt.call(this, event), event);\n  gpt_called = event.severity !== 'low';\n  status = 'alerted';\n}\n\nconst logItem = {\n  ...event,\n  severity: analysis.severity || event.severity,\n  root_cause: analysis.root_cause,\n  recommended_action: analysis.minimal_fix,\n  codex_prompt: analysis.codex_prompt,\n  repeat_count: memory.repeat_count,\n  recent_count: memory.recent_count,\n  gpt_called,\n  telegram_alert_sent,\n  debug_delivery_disabled_reason,\n  status\n};\nstore.debug_alert_memory[event.error_hash] = {\n  ...memory,\n  last_alert_at: status === 'alerted' ? now.toISOString() : memory.last_alert_at,\n  execution_id: event.execution_id\n};\nstore.debug_log.push(logItem);\nstore.debug_log = store.debug_log.slice(-500);\n\nif (status === 'alerted') {\n  telegram_alert_sent = true;\n}\n\nreturn [{ json: {\n  workflow: 'actual_07_auto_debugger_collector',\n  mode: 'event_driven',\n  event_received: true,\n  analyzed_execution: event.execution_id,\n  workflow_name: event.workflow_name,\n  node_name: event.node_name,\n  failed_node: event.node_name,\n  error_message_short: String(logItem.root_cause || logItem.error_message || '').slice(0, 500),\n  codex_safe_prompt: String(logItem.codex_prompt || '').slice(0, 1800),\n  severity: logItem.severity,\n  status,\n  gpt_called,\n  telegram_alert_sent,\n  debug_delivery_disabled_reason,\n  duplicate_alert_guard: true,\n  publish_calls: 0,\n  patch_calls: 0,\n  token_redaction_confirmed: true\n} }];\n"
       }
     },
     {
@@ -140,6 +140,102 @@
       "parameters": {
         "jsCode": "\nconst sourceItems = $input.all();\nconst inputs = sourceItems.length ? sourceItems : [{ json: {} }];\n\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'Bearer REDACTED');\n  s = s.replace(/(\"?(?:access[_-]?token|api[_-]?key|authorization|password|secret|credential|token|client[_-]?secret|refresh[_-]?token)\"?\\s*[:=]\\s*\"?)[^\"\\s,}&]+/gi, '$1REDACTED');\n  s = s.replace(/([?&](?:access_token|api_key|key|token|secret)=)[^&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/\\bsk-[A-Za-z0-9_\\-]{20,}\\b/g, 'REDACTED');\n  s = s.replace(/\\bsk-proj-[A-Za-z0-9_\\-]+\\b/g, 'REDACTED');\n  s = s.replace(/\\b[0-9]{8,12}:[A-Za-z0-9_\\-]{25,}\\b/g, 'REDACTED');\n  s = s.replace(/https?:\\/\\/[^\\s\"'<>]+/gi, (url) => {\n    try {\n      const u = new URL(url);\n      if (/webhook|access_token|api_key|token|secret|key=/i.test(url)) return u.origin + '/REDACTED_URL';\n      return u.origin + '/...';\n    } catch (_) {\n      return 'REDACTED_URL';\n    }\n  });\n  s = s.replace(/\\b[A-Za-z0-9_\\-]{80,}\\b/g, 'REDACTED_LONG_VALUE');\n  return s;\n}\n\nfunction asBool(value) {\n  return value === true || value === 'true';\n}\n\nfunction compactLog(input) {\n  return {\n    workflow: redact(String(input.workflow || '')),\n    execution_id: redact(String(input.execution_id || '')),\n    failed_node: redact(String(input.failed_node || '')),\n    error_type: redact(String(input.error_type || '')),\n    error_message_short: redact(String(input.error_message_short || '')),\n    root_cause_guess: redact(String(input.root_cause_guess || '')),\n    fix_direction: redact(String(input.fix_direction || '')),\n    severity: redact(String(input.severity || '')),\n    codex_ready: asBool(input.codex_ready)\n  };\n}\n\nfunction buildPrompt(log) {\n  const ready = log.codex_ready === true;\n  const decision = ready\n    ? [\n        'If codex_ready is true:',\n        '- inspect only the named workflow and failed node',\n        '- propose or apply one minimal fix',\n        '- do not refactor',\n        '- do not optimize',\n        '- stop after one issue'\n      ].join('\\n')\n    : [\n        'If codex_ready is false:',\n        '- Do not modify anything.',\n        '- Explain what context is missing.',\n        '- Stop.'\n      ].join('\\n');\n\n  return [\n    '[ROLE]',\n    'You are Codex in SAFE PATCH MODE.',\n    '',\n    '[INPUT]',\n    JSON.stringify(log, null, 2),\n    '',\n    '[DECISION RULE]',\n    decision,\n    '',\n    '[CONSTRAINTS]',\n    '- one issue only',\n    '- one node only',\n    '- no unrelated files',\n    '- no credentials/webhook changes',\n    '- no full-log request unless necessary',\n    '',\n    '[OUTPUT]',\n    '[TYPE]',\n    '[PLAN]',\n    '[CHANGE OR PROPOSAL]',\n    '[RISK]',\n    '[STOP]'\n  ].join('\\n');\n}\n\nreturn inputs.map((item) => {\n  const compressed = compactLog(item.json || {});\n  return {\n    json: {\n      ...compressed,\n      codex_safe_prompt: redact(buildPrompt(compressed)),\n      prompt_mode: compressed.codex_ready ? 'safe_patch_one_node' : 'analysis_only_no_patch',\n      prompt_generated_at: new Date().toISOString()\n    }\n  };\n});\n"
       }
+    },
+    {
+      "id": "route-debug-alert",
+      "name": "Route Debug Alert",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.status}}",
+                    "rightValue": "alerted",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "alerted"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "telegram-send-debug-alert-kindred-guard",
+      "name": "Telegram Send Debug Alert - Kindred Debug Guard",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "7592247598",
+        "text": "={{([\n'DEBUG ALERT',\n'',\n'Workflow: ' + ($json.workflow_name || 'unknown'),\n'Node: ' + ($json.node_name || $json.failed_node || 'unknown'),\n'Error: ' + String($json.error_message_short || 'unknown error').slice(0, 500),\n'Severity: ' + ($json.severity || 'unknown'),\n'',\n'Action:',\n'Review and decide whether to run Codex fix.',\n'',\n'Codex prompt:',\nString($json.codex_safe_prompt || '').slice(0, 1200)\n].join('\\n').slice(0, 3900)).replace(/[_*`\\[\\]()]/g, '-')}}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Review",
+                    "additionalFields": {
+                      "callback_data": "={{'debug_review:' + String($json.analyzed_execution || $json.execution_id || '0').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40)}}"
+                    }
+                  },
+                  {
+                    "text": "Copy Prompt",
+                    "additionalFields": {
+                      "callback_data": "={{'debug_copy:' + String($json.analyzed_execution || $json.execution_id || '0').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32)}}"
+                    }
+                  },
+                  {
+                    "text": "Ignore",
+                    "additionalFields": {
+                      "callback_data": "={{'debug_ignore:' + String($json.analyzed_execution || $json.execution_id || '0').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40)}}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "disable_notification": false,
+          "appendAttribution": false
+        }
+      },
+      "continueOnFail": false,
+      "disabled": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "NSva32mKQ1LySIuI",
+          "name": "Kindred Debug Guard"
+        }
+      }
     }
   ],
   "connections": {
@@ -204,6 +300,11 @@
             "node": "Push Debug Report to GitHub",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Route Debug Alert",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -213,6 +314,17 @@
         [
           {
             "node": "Build Codex Safe Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Debug Alert": {
+      "main": [
+        [
+          {
+            "node": "Telegram Send Debug Alert - Kindred Debug Guard",
             "type": "main",
             "index": 0
           }
@@ -681,7 +793,7 @@
           100
         ],
         "parameters": {
-          "jsCode": "\nconst N8N_BASE = 'http://43.201.227.194:5678';\nconst N8N_API_KEY = \"REDACTED\";\nconst OPENAI_API_KEY = \"REDACTED\";\nconst TELEGRAM_TOKEN = \"REDACTED\";\nconst TELEGRAM_CHAT_ID = '7592247598';\nconst WORKFLOW_NAME_MAP = {\n  'KPa5tncCc87z2ZsE': 'clean_01_generator',\n  'i6T6ke3ltKNQzaCl': 'clean_02_approval',\n  'TiD7fxWCuAX9mpt6': 'clean_03_publisher',\n  'w9e3wiyca6qZUS4r': 'clean_04_carousel_publisher'\n};\n\nconst input = ($input.first() && $input.first().json) || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst store = $getWorkflowStaticData('global');\nstore.debug_log = Array.isArray(store.debug_log) ? store.debug_log : [];\nstore.debug_alert_memory = store.debug_alert_memory && typeof store.debug_alert_memory === 'object' ? store.debug_alert_memory : {};\n\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'REDACTED');\n  s = s.replace(/(access_token=REDACTED&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{80,})/g, 'REDACTED');\n  s = s.replace(/(password|credential|api[_-]?key|token)\\s*[:=]\\s*[^,\\s}]+/gi, '$1=REDACTED');\n  return s;\n}\nfunction normalize(s) {\n  return redact(String(s || '')).toLowerCase().replace(/\\s+/g, ' ').trim().slice(0, 500);\n}\nfunction hash(s) {\n  let h = 2166136261;\n  const str = String(s || '');\n  for (let i = 0; i < str.length; i++) {\n    h ^= str.charCodeAt(i);\n    h = Math.imul(h, 16777619);\n  }\n  return (h >>> 0).toString(16);\n}\nfunction parseJson(text) {\n  const raw = String(text || '').trim().replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  try { return JSON.parse(raw); } catch (_) { return null; }\n}\nfunction localSeverity(message, nodeName, workflowName) {\n  const m = String(message || '').toLowerCase();\n  const n = String(nodeName || '').toLowerCase();\n  if (m.includes('application request limit reached') || m.includes('2207051') || m.includes('code=4')) return 'low';\n  if (workflowName.includes('publisher') || n.includes('publish') || n.includes('scheduler')) return 'critical';\n  if (workflowName.includes('approval') || n.includes('queue') || n.includes('normalize callback')) return 'critical';\n  if (workflowName.includes('generator') && (n.includes('telegram') || n.includes('image') || n.includes('content'))) return 'high';\n  if (m.includes('fallback') || m.includes('duplicate')) return 'medium';\n  return 'medium';\n}\nfunction buildEvent() {\n  const errorTriggerWorkflow = input.workflow || body.workflow || {};\n  const errorTriggerExecution = input.execution || body.execution || {};\n  const errorObj = errorTriggerExecution.error || input.error || body.error || {};\n  const workflowId = String(body.workflow_id || errorTriggerWorkflow.id || input.workflow_id || '').trim();\n  const workflowName = redact(String(body.workflow_name || errorTriggerWorkflow.name || WORKFLOW_NAME_MAP[workflowId] || workflowId || 'unknown'));\n  const executionId = redact(String(body.execution_id || errorTriggerExecution.id || input.execution_id || 'unknown'));\n  const nodeName = redact(String(body.failed_node || errorTriggerExecution.lastNodeExecuted || errorObj.node?.name || input.failed_node || 'unknown'));\n  const errorMessage = redact(String(body.error_message || errorObj.message || errorObj.description || input.error_message || 'unknown error'));\n  const requestedSeverity = String(body.severity || input.severity || '').toLowerCase();\n  const severity = ['critical','high','medium','low'].includes(requestedSeverity) ? requestedSeverity : localSeverity(errorMessage, nodeName, workflowName);\n  return {\n    detected_at: new Date().toISOString(),\n    workflow_name: workflowName,\n    workflow_id: workflowId,\n    execution_id: executionId,\n    node_name: nodeName,\n    error_message: errorMessage,\n    error_type: redact(String(errorObj.name || errorObj.type || body.error_type || '')),\n    severity\n  };\n}\nasync function analyzeWithGpt(errorItem) {\n  if (errorItem.severity === 'low') {\n    return {\n      severity: 'low',\n      root_cause: 'Low-severity or external temporary failure. GPT skipped by policy.',\n      minimal_fix: 'Log only. Do not retry publish/API call.',\n      nodes_to_modify: [],\n      nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n      codex_prompt: '[NO CODEX FIX REQUIRED] Low severity logged only.'\n    };\n  }\n  const system = 'Return only valid JSON with keys: severity, root_cause, minimal_fix, nodes_to_modify, nodes_not_to_touch, codex_prompt. Never include credentials or tokens. Never recommend automatic patching.';\n  const user = `Analyze this n8n failure event and generate a safe Codex prompt.\\n${JSON.stringify(errorItem, null, 2)}\\nRules: no auto patch, no retry, no publish, backup before any later fix, redact secrets.`;\n  try {\n    const res = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.openai.com/v1/chat/completions',\n      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },\n      body: {\n        model: 'gpt-4o-mini',\n        response_format: { type: 'json_object' },\n        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],\n        temperature: 0.1\n      },\n      json: true,\n      timeout: 60000,\n    });\n    const parsed = parseJson(res?.choices?.[0]?.message?.content || '');\n    if (parsed) return parsed;\n  } catch (e) {}\n  return {\n    severity: errorItem.severity,\n    root_cause: `Failed at ${errorItem.node_name}: ${errorItem.error_message}`,\n    minimal_fix: 'Inspect the failed node and patch only the smallest proven break point.',\n    nodes_to_modify: [errorItem.workflow_name + ' / ' + errorItem.node_name],\n    nodes_not_to_touch: ['unrelated workflows', 'credentials', 'publisher paths unless directly proven'],\n    codex_prompt: `[HQ / CODEX DIAGNOSE ONLY]\\nFind exact root cause for execution ${errorItem.execution_id} in ${errorItem.workflow_name} at node ${errorItem.node_name}. Do not modify. Do not publish. Do not expose tokens.`\n  };\n}\nfunction cleanAnalysis(x, errorItem) {\n  const out = x && typeof x === 'object' ? x : {};\n  out.severity = ['critical','high','medium','low'].includes(out.severity) ? out.severity : errorItem.severity;\n  out.root_cause = redact(out.root_cause || '');\n  out.minimal_fix = redact(out.minimal_fix || '');\n  out.nodes_to_modify = Array.isArray(out.nodes_to_modify) ? out.nodes_to_modify.map(redact) : [];\n  out.nodes_not_to_touch = Array.isArray(out.nodes_not_to_touch) ? out.nodes_not_to_touch.map(redact) : [];\n  out.codex_prompt = redact(out.codex_prompt || '');\n  return out;\n}\n\nconst now = new Date();\nconst cutoff24h = now.getTime() - 24 * 60 * 60 * 1000;\nconst shortWindow = now.getTime() - 60 * 60 * 1000;\nfor (const [k, v] of Object.entries(store.debug_alert_memory)) {\n  if (!v || Date.parse(v.last_seen_at || v.last_alert_at || 0) < cutoff24h) delete store.debug_alert_memory[k];\n}\n\nconst event = buildEvent();\nevent.error_hash = hash(`${event.workflow_id}|${event.workflow_name}|${event.node_name}|${normalize(event.error_message)}`);\nconst memory = store.debug_alert_memory[event.error_hash] || { repeat_count: 0, first_seen_at: now.toISOString(), recent_count: 0 };\nconst lastSeen = Date.parse(memory.last_seen_at || 0);\nmemory.recent_count = lastSeen >= shortWindow ? Number(memory.recent_count || 0) + 1 : 1;\nmemory.repeat_count = Number(memory.repeat_count || 0) + 1;\nmemory.last_seen_at = now.toISOString();\n\nlet gpt_called = false;\nlet telegram_alert_sent = false;\nlet status = 'new';\nlet analysis = null;\n\nif (event.severity === 'low') {\n  status = /application request limit reached|2207051|code.?4/i.test(event.error_message) ? 'ignored_rate_limit' : 'logged_low';\n  analysis = await analyzeWithGpt.call(this, event);\n} else if (memory.repeat_count > 1 && !input.force_alert && !body.force_alert) {\n  status = memory.recent_count >= 3 ? 'deduped_gpt_suppressed' : 'deduped';\n  analysis = {\n    severity: event.severity,\n    root_cause: 'Duplicate error hash already alerted within suppression window.',\n    minimal_fix: 'Log only. Do not call GPT again.',\n    nodes_to_modify: [],\n    nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n    codex_prompt: '[DUPLICATE ERROR] Existing alert already sent. No new Codex prompt generated.'\n  };\n} else {\n  analysis = cleanAnalysis(await analyzeWithGpt.call(this, event), event);\n  gpt_called = event.severity !== 'low';\n  status = 'alerted';\n}\n\nconst logItem = {\n  ...event,\n  severity: analysis.severity || event.severity,\n  root_cause: analysis.root_cause,\n  recommended_action: analysis.minimal_fix,\n  codex_prompt: analysis.codex_prompt,\n  repeat_count: memory.repeat_count,\n  recent_count: memory.recent_count,\n  gpt_called,\n  status\n};\nstore.debug_alert_memory[event.error_hash] = {\n  ...memory,\n  last_alert_at: status === 'alerted' ? now.toISOString() : memory.last_alert_at,\n  execution_id: event.execution_id\n};\nstore.debug_log.push(logItem);\nstore.debug_log = store.debug_log.slice(-500);\n\nif (status === 'alerted') {\n  const text = [\n    '[AUTO DEBUGGER v3]',\n    '',\n    `workflow: ${logItem.workflow_name}`,\n    `failed node: ${logItem.node_name}`,\n    `severity: ${logItem.severity}`,\n    `execution: ${logItem.execution_id}`,\n    '',\n    'reason:',\n    String(logItem.root_cause || logItem.error_message).slice(0, 900),\n    '',\n    'recommended:',\n    String(logItem.recommended_action || '').slice(0, 900),\n    '',\n    'Codex prompt:',\n    String(logItem.codex_prompt || '').slice(0, 1800),\n  ].join('\\n');\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,\n    body: { chat_id: TELEGRAM_CHAT_ID, text: redact(text) },\n    json: true,\n    timeout: 30000,\n  });\n  telegram_alert_sent = true;\n}\n\nreturn [{ json: {\n  workflow: 'actual_07_auto_debugger_collector',\n  mode: 'event_driven',\n  event_received: true,\n  analyzed_execution: event.execution_id,\n  workflow_name: event.workflow_name,\n  node_name: event.node_name,\n  severity: logItem.severity,\n  status,\n  gpt_called,\n  telegram_alert_sent,\n  duplicate_alert_guard: true,\n  publish_calls: 0,\n  patch_calls: 0,\n  token_redaction_confirmed: true\n} }];\n"
+          "jsCode": "\nconst N8N_BASE = 'http://43.201.227.194:5678';\nconst N8N_API_KEY = \"REDACTED\";\nconst OPENAI_API_KEY = \"REDACTED\";\nconst WORKFLOW_NAME_MAP = {\n  'KPa5tncCc87z2ZsE': 'clean_01_generator',\n  'i6T6ke3ltKNQzaCl': 'clean_02_approval',\n  'TiD7fxWCuAX9mpt6': 'clean_03_publisher',\n  'w9e3wiyca6qZUS4r': 'clean_04_carousel_publisher'\n};\n\nconst input = ($input.first() && $input.first().json) || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst store = $getWorkflowStaticData('global');\nstore.debug_log = Array.isArray(store.debug_log) ? store.debug_log : [];\nstore.debug_alert_memory = store.debug_alert_memory && typeof store.debug_alert_memory === 'object' ? store.debug_alert_memory : {};\n\nfunction redact(value) {\n  let s = typeof value === 'string' ? value : JSON.stringify(value ?? '');\n  s = s.replace(/Bearer\\s+[A-Za-z0-9._\\-]+/gi, 'REDACTED');\n  s = s.replace(/(access_token=)[^&\\s]+/gi, '$1REDACTED');\n  s = s.replace(/(\"access_token\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(\"Authorization\"\\s*:\\s*\")[^\"]+/gi, '$1REDACTED');\n  s = s.replace(/(sk-proj-[A-Za-z0-9_\\-]+)/g, 'REDACTED');\n  s = s.replace(/([0-9]{8,12}:[A-Za-z0-9_\\-]{25,})/g, 'REDACTED');\n  s = s.replace(/([A-Za-z0-9_\\-]{80,})/g, 'REDACTED');\n  s = s.replace(/(password|credential|api[_-]?key|token)\\s*[:=]\\s*[^,\\s}]+/gi, '$1=REDACTED');\n  return s;\n}\nfunction normalize(s) {\n  return redact(String(s || '')).toLowerCase().replace(/\\s+/g, ' ').trim().slice(0, 500);\n}\nfunction hash(s) {\n  let h = 2166136261;\n  const str = String(s || '');\n  for (let i = 0; i < str.length; i++) {\n    h ^= str.charCodeAt(i);\n    h = Math.imul(h, 16777619);\n  }\n  return (h >>> 0).toString(16);\n}\nfunction parseJson(text) {\n  const raw = String(text || '').trim().replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  try { return JSON.parse(raw); } catch (_) { return null; }\n}\nfunction localSeverity(message, nodeName, workflowName) {\n  const m = String(message || '').toLowerCase();\n  const n = String(nodeName || '').toLowerCase();\n  if (m.includes('application request limit reached') || m.includes('2207051') || m.includes('code=4')) return 'low';\n  if (workflowName.includes('publisher') || n.includes('publish') || n.includes('scheduler')) return 'critical';\n  if (workflowName.includes('approval') || n.includes('queue') || n.includes('normalize callback')) return 'critical';\n  if (workflowName.includes('generator') && (n.includes('telegram') || n.includes('image') || n.includes('content'))) return 'high';\n  if (m.includes('fallback') || m.includes('duplicate')) return 'medium';\n  return 'medium';\n}\nfunction buildEvent() {\n  const errorTriggerWorkflow = input.workflow || body.workflow || {};\n  const errorTriggerExecution = input.execution || body.execution || {};\n  const errorObj = errorTriggerExecution.error || input.error || body.error || {};\n  const workflowId = String(body.workflow_id || errorTriggerWorkflow.id || input.workflow_id || '').trim();\n  const workflowName = redact(String(body.workflow_name || errorTriggerWorkflow.name || WORKFLOW_NAME_MAP[workflowId] || workflowId || 'unknown'));\n  const executionId = redact(String(body.execution_id || errorTriggerExecution.id || input.execution_id || 'unknown'));\n  const nodeName = redact(String(body.failed_node || errorTriggerExecution.lastNodeExecuted || errorObj.node?.name || input.failed_node || 'unknown'));\n  const errorMessage = redact(String(body.error_message || errorObj.message || errorObj.description || input.error_message || 'unknown error'));\n  const requestedSeverity = String(body.severity || input.severity || '').toLowerCase();\n  const severity = ['critical','high','medium','low'].includes(requestedSeverity) ? requestedSeverity : localSeverity(errorMessage, nodeName, workflowName);\n  return {\n    detected_at: new Date().toISOString(),\n    workflow_name: workflowName,\n    workflow_id: workflowId,\n    execution_id: executionId,\n    node_name: nodeName,\n    error_message: errorMessage,\n    error_type: redact(String(errorObj.name || errorObj.type || body.error_type || '')),\n    severity\n  };\n}\nasync function analyzeWithGpt(errorItem) {\n  if (errorItem.severity === 'low') {\n    return {\n      severity: 'low',\n      root_cause: 'Low-severity or external temporary failure. GPT skipped by policy.',\n      minimal_fix: 'Log only. Do not retry publish/API call.',\n      nodes_to_modify: [],\n      nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n      codex_prompt: '[NO CODEX FIX REQUIRED] Low severity logged only.'\n    };\n  }\n  const system = 'Return only valid JSON with keys: severity, root_cause, minimal_fix, nodes_to_modify, nodes_not_to_touch, codex_prompt. Never include credentials or tokens. Never recommend automatic patching.';\n  const user = `Analyze this n8n failure event and generate a safe Codex prompt.\\n${JSON.stringify(errorItem, null, 2)}\\nRules: no auto patch, no retry, no publish, backup before any later fix, redact secrets.`;\n  try {\n    const res = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.openai.com/v1/chat/completions',\n      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },\n      body: {\n        model: 'gpt-4o-mini',\n        response_format: { type: 'json_object' },\n        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],\n        temperature: 0.1\n      },\n      json: true,\n      timeout: 60000,\n    });\n    const parsed = parseJson(res?.choices?.[0]?.message?.content || '');\n    if (parsed) return parsed;\n  } catch (e) {}\n  return {\n    severity: errorItem.severity,\n    root_cause: `Failed at ${errorItem.node_name}: ${errorItem.error_message}`,\n    minimal_fix: 'Inspect the failed node and patch only the smallest proven break point.',\n    nodes_to_modify: [errorItem.workflow_name + ' / ' + errorItem.node_name],\n    nodes_not_to_touch: ['unrelated workflows', 'credentials', 'publisher paths unless directly proven'],\n    codex_prompt: `[HQ / CODEX DIAGNOSE ONLY]\\nFind exact root cause for execution ${errorItem.execution_id} in ${errorItem.workflow_name} at node ${errorItem.node_name}. Do not modify. Do not publish. Do not expose tokens.`\n  };\n}\nfunction cleanAnalysis(x, errorItem) {\n  const out = x && typeof x === 'object' ? x : {};\n  out.severity = ['critical','high','medium','low'].includes(out.severity) ? out.severity : errorItem.severity;\n  out.root_cause = redact(out.root_cause || '');\n  out.minimal_fix = redact(out.minimal_fix || '');\n  out.nodes_to_modify = Array.isArray(out.nodes_to_modify) ? out.nodes_to_modify.map(redact) : [];\n  out.nodes_not_to_touch = Array.isArray(out.nodes_not_to_touch) ? out.nodes_not_to_touch.map(redact) : [];\n  out.codex_prompt = redact(out.codex_prompt || '');\n  return out;\n}\n\nconst now = new Date();\nconst cutoff24h = now.getTime() - 24 * 60 * 60 * 1000;\nconst shortWindow = now.getTime() - 60 * 60 * 1000;\nfor (const [k, v] of Object.entries(store.debug_alert_memory)) {\n  if (!v || Date.parse(v.last_seen_at || v.last_alert_at || 0) < cutoff24h) delete store.debug_alert_memory[k];\n}\n\nconst event = buildEvent();\nevent.error_hash = hash(`${event.workflow_id}|${event.workflow_name}|${event.node_name}|${normalize(event.error_message)}`);\nconst memory = store.debug_alert_memory[event.error_hash] || { repeat_count: 0, first_seen_at: now.toISOString(), recent_count: 0 };\nconst lastSeen = Date.parse(memory.last_seen_at || 0);\nmemory.recent_count = lastSeen >= shortWindow ? Number(memory.recent_count || 0) + 1 : 1;\nmemory.repeat_count = Number(memory.repeat_count || 0) + 1;\nmemory.last_seen_at = now.toISOString();\n\nlet gpt_called = false;\nlet telegram_alert_sent = false;\nconst debug_delivery_disabled_reason = '';\nlet status = 'new';\nlet analysis = null;\n\nif (body.force_debug_alert_test === true || String(body.force_debug_alert_test || '').toLowerCase() === 'true') {\n  status = 'alerted';\n  analysis = {\n    severity: event.severity || 'medium',\n    root_cause: 'Forced debug routing validation.',\n    minimal_fix: 'Validation only. No patch requested.',\n    nodes_to_modify: [],\n    nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n    codex_prompt: '[DEBUG ROUTE TEST] Verify Kindred Debug Guard delivery only.'\n  };\n} else if (event.severity === 'low') {\n  status = /application request limit reached|2207051|code.?4/i.test(event.error_message) ? 'ignored_rate_limit' : 'logged_low';\n  analysis = await analyzeWithGpt.call(this, event);\n} else if (memory.repeat_count > 1 && !input.force_alert && !body.force_alert) {\n  status = memory.recent_count >= 3 ? 'deduped_gpt_suppressed' : 'deduped';\n  analysis = {\n    severity: event.severity,\n    root_cause: 'Duplicate error hash already alerted within suppression window.',\n    minimal_fix: 'Log only. Do not call GPT again.',\n    nodes_to_modify: [],\n    nodes_not_to_touch: ['clean_01_generator','clean_02_approval','clean_03_publisher','clean_04_carousel_publisher'],\n    codex_prompt: '[DUPLICATE ERROR] Existing alert already sent. No new Codex prompt generated.'\n  };\n} else {\n  analysis = cleanAnalysis(await analyzeWithGpt.call(this, event), event);\n  gpt_called = event.severity !== 'low';\n  status = 'alerted';\n}\n\nconst logItem = {\n  ...event,\n  severity: analysis.severity || event.severity,\n  root_cause: analysis.root_cause,\n  recommended_action: analysis.minimal_fix,\n  codex_prompt: analysis.codex_prompt,\n  repeat_count: memory.repeat_count,\n  recent_count: memory.recent_count,\n  gpt_called,\n  telegram_alert_sent,\n  debug_delivery_disabled_reason,\n  status\n};\nstore.debug_alert_memory[event.error_hash] = {\n  ...memory,\n  last_alert_at: status === 'alerted' ? now.toISOString() : memory.last_alert_at,\n  execution_id: event.execution_id\n};\nstore.debug_log.push(logItem);\nstore.debug_log = store.debug_log.slice(-500);\n\nif (status === 'alerted') {\n  telegram_alert_sent = true;\n}\n\nreturn [{ json: {\n  workflow: 'actual_07_auto_debugger_collector',\n  mode: 'event_driven',\n  event_received: true,\n  analyzed_execution: event.execution_id,\n  workflow_name: event.workflow_name,\n  node_name: event.node_name,\n  failed_node: event.node_name,\n  error_message_short: String(logItem.root_cause || logItem.error_message || '').slice(0, 500),\n  codex_safe_prompt: String(logItem.codex_prompt || '').slice(0, 1800),\n  severity: logItem.severity,\n  status,\n  gpt_called,\n  telegram_alert_sent,\n  debug_delivery_disabled_reason,\n  duplicate_alert_guard: true,\n  publish_calls: 0,\n  patch_calls: 0,\n  token_redaction_confirmed: true\n} }];\n"
         }
       },
       {
@@ -740,6 +852,102 @@
         "credentials": "REDACTED",
         "continueOnFail": true,
         "webhookId": "ec997cce-1051-4250-955a-e9b3abe3f73a"
+      },
+      {
+        "id": "route-debug-alert",
+        "name": "Route Debug Alert",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3,
+        "position": [
+          640,
+          300
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "typeValidation": "strict",
+                    "version": 1
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.status}}",
+                      "rightValue": "alerted",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "alerted"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "telegram-send-debug-alert-kindred-guard",
+        "name": "Telegram Send Debug Alert - Kindred Debug Guard",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          900,
+          300
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "7592247598",
+          "text": "={{([\n'DEBUG ALERT',\n'',\n'Workflow: ' + ($json.workflow_name || 'unknown'),\n'Node: ' + ($json.node_name || $json.failed_node || 'unknown'),\n'Error: ' + String($json.error_message_short || 'unknown error').slice(0, 500),\n'Severity: ' + ($json.severity || 'unknown'),\n'',\n'Action:',\n'Review and decide whether to run Codex fix.',\n'',\n'Codex prompt:',\nString($json.codex_safe_prompt || '').slice(0, 1200)\n].join('\\n').slice(0, 3900)).replace(/[_*`\\[\\]()]/g, '-')}}",
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "Review",
+                      "additionalFields": {
+                        "callback_data": "={{'debug_review:' + String($json.analyzed_execution || $json.execution_id || '0').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40)}}"
+                      }
+                    },
+                    {
+                      "text": "Copy Prompt",
+                      "additionalFields": {
+                        "callback_data": "={{'debug_copy:' + String($json.analyzed_execution || $json.execution_id || '0').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32)}}"
+                      }
+                    },
+                    {
+                      "text": "Ignore",
+                      "additionalFields": {
+                        "callback_data": "={{'debug_ignore:' + String($json.analyzed_execution || $json.execution_id || '0').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40)}}"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "additionalFields": {
+            "disable_notification": false,
+            "appendAttribution": false
+          }
+        },
+        "continueOnFail": false,
+        "disabled": false,
+        "credentials": {
+          "telegramApi": {
+            "id": "NSva32mKQ1LySIuI",
+            "name": "Kindred Debug Guard"
+          }
+        }
       }
     ],
     "connections": {
@@ -794,6 +1002,22 @@
               "node": "Push Debug Report to GitHub",
               "type": "main",
               "index": 0
+            },
+            {
+              "node": "Route Debug Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route Debug Alert": {
+        "main": [
+          [
+            {
+              "node": "Telegram Send Debug Alert - Kindred Debug Guard",
+              "type": "main",
+              "index": 0
             }
           ]
         ]
@@ -836,6 +1060,7 @@
         "event": "deactivated",
         "userId": "f2a6b0c4-171d-48b7-9b4d-c48599ec7fa9"
       }
-    ]
+    ],
+    "active": true
   }
 }

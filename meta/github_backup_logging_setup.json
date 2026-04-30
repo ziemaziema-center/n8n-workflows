@@ -1,12 +1,12 @@
 {
   "generated_at": "2026-04-26T17:06:26.828383",
   "exported": [
-    "workflows\\clean_01_generator.json",
-    "workflows\\clean_02_approval.json",
-    "workflows\\clean_03_publisher.json",
-    "workflows\\clean_04_carousel_publisher.json",
-    "workflows/actual_07_auto_debugger_collector.json",
-    "workflows/actual_08_github_logger.json"
+    "workflows/live/clean_01_generator.json",
+    "workflows/live/clean_02_approval.json",
+    "workflows/live/clean_03_publisher.json",
+    "workflows/live/clean_04_carousel_publisher.json",
+    "workflows/live/actual_07_auto_debugger_collector.json",
+    "workflows/live/actual_08_github_logger.json"
   ],
   "backups": [
     "backups\\2026-04-26\\clean_01_generator_backup.json",
