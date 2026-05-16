@@ -52,3 +52,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Added active n8n workflow `tac_telegram_commands`; restarted only n8n to register trigger; existing clean_01~04 workflow logic was not edited.
 - rollback: Unpublish/delete `tac_telegram_commands` and/or `tac_controller_webhook`; stop scoped `tac-service` if needed.
 - next_action: User can send `/run`, `/claude`, `/status`, or `/killall` to the configured Kindred Debug Guard Telegram bot, or continue using the HTTPS webhook directly.
+
+## 2026-05-17 08:25 KST - Dedicated Kindred AI Controller Bot Cutover
+- request: Create a dedicated `Kindred AI Controller` Telegram bot path, move TAC commands off `Kindred Debug Guard`, clean command routing, and keep planner/reviewer loop reachable through n8n.
+- files_changed: `workflows/tac_controller_webhook.json`, `workflows/tac_telegram_commands.json`, `docs/TELEGRAM_N8N_TMUX_CONTRACT.md`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `f4e3a47` before dedicated controller bot cutover.
+- validation: PASS. New n8n credential `Kindred AI Controller` created; bot identity/menu set for `@kindred_ai_controller_bot`; Telegram webhook registered to n8n with zero pending updates; credential usage shows both TAC workflows on the new credential and no TAC workflows on `Kindred Debug Guard`; local tests 11/11 PASS; `/run`, `/claude`, `/status`, and `/killall` regressions PASS.
+- side_effects: Reimported/reactivated `tac_controller_webhook` and `tac_telegram_commands`; restarted only `n8n`; existing clean_01~04 workflow logic not edited; debug bot remains assigned only to existing debug workflows.
+- rollback: Reimport previous workflow JSON from Git commit `f4e3a47` or repoint TAC Telegram nodes to the old credential, reactivate both TAC workflows, and restart only n8n.
+- next_action: User can open Telegram bot `@kindred_ai_controller_bot`, press Start, then send `/run smoke test` or `/claude Return OK` for human-origin end-to-end confirmation.

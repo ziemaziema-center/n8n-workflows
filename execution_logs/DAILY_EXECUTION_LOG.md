@@ -77,3 +77,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Active n8n workflow `tac_telegram_commands` added; n8n restarted to register trigger; existing production workflow logic not edited.
 - rollback_needed: No.
 - next_action: Use Telegram commands directly or continue via `POST /webhook/tac-controller`.
+
+## 2026-05-17 08:25 KST - Dedicated Controller Telegram Bot Cutover
+- request: Finish the new `Kindred AI Controller` Telegram bot setup, register it in n8n, replace TAC workflow credentials, remove TAC command handling from `Kindred Debug Guard`, clean command menus, and validate the planner/executor/reviewer path.
+- actions: Created n8n Telegram credential `Kindred AI Controller`; updated both TAC workflow Telegram credential references; reimported/reactivated `tac_controller_webhook` and `tac_telegram_commands`; restarted only n8n; set Telegram bot name, descriptions, and command menu; validated credential usage and webhook registration; ran `/run`, `/claude`, `/status`, and `/killall` regressions.
+- validation: PASS. `Kindred AI Controller` credential is used by both TAC workflows; `Kindred Debug Guard` no longer lists TAC workflows; Telegram Bot API reports `@kindred_ai_controller_bot`, webhook registered to n8n, and pending updates `0`; local tests 11/11 PASS; controller webhook `/run` PASS; `/claude` PASS with task `tac-20260516231952-100535c483`; `/status` PASS; `/killall` PASS.
+- telemetry: FAILURE: initial cutover updated only `tac_telegram_commands`; fixed after credential usage showed `tac_controller_webhook` still on Debug Guard. FAILURE: Windows SSH key ACL blocked one validation batch; fixed with scoped `icacls` on the private key. FAILURE: Windows TLS clients failed against the n8n domain; validation retried with Python urllib. SUCCESS: dedicated controller bot path is active and validated without editing clean_01~04 logic.
+- files_changed: `workflows/tac_controller_webhook.json`, `workflows/tac_telegram_commands.json`, `docs/TELEGRAM_N8N_TMUX_CONTRACT.md`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: n8n restarted once for workflow registration; `tac-service` tmux session remained alive; debug bot retained only existing debug workflows.
+- rollback_needed: No.
+- next_action: Human-origin Telegram confirmation: open `@kindred_ai_controller_bot`, press Start, send `/run smoke test`, then verify the returned TAC summary.

@@ -4,6 +4,7 @@
 
 ```text
 /run <task text>
+/claude <task text>
 /status <task_id>
 /killall
 ```
@@ -60,7 +61,15 @@ http://172.17.0.1:8765/status
 http://172.17.0.1:8765/killall
 ```
 
-The Telegram command workflow listens through n8n's Telegram Trigger using the existing `Kindred Debug Guard` Telegram credential. It only processes:
+The Telegram command workflow listens through n8n's Telegram Trigger using the dedicated `Kindred AI Controller` Telegram credential.
+
+Controller bot identity:
+
+```text
+@kindred_ai_controller_bot
+```
+
+It only processes:
 
 ```text
 /run
@@ -69,7 +78,7 @@ The Telegram command workflow listens through n8n's Telegram Trigger using the e
 /killall
 ```
 
-Unsupported Telegram messages are ignored.
+Unsupported Telegram messages are ignored. TAC workflows do not use the `Kindred Debug Guard` credential.
 
 ## Runner Boundary
 

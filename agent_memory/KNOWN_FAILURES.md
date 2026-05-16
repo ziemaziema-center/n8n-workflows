@@ -73,3 +73,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Python inspection found `ord(c) == 8` in `jsCode`.
 - prevention: Use raw strings for JavaScript code embedded inside JSON workflows and scan generated workflow JSON for control characters before import.
 - rollback_or_fix: Rewrote parser `jsCode` with raw strings, verified no backspace characters, reimported, republished, and restarted n8n.
+
+## 2026-05-17 08:20 KST - TAC Telegram Credential Was Split Across Workflows
+- symptom: `tac_telegram_commands` used the new controller credential, but `tac_controller_webhook` still referenced the old debug bot for Telegram summary sends.
+- cause: Credential cutover initially updated only the Telegram Trigger workflow and missed the webhook workflow's Telegram send node.
+- affected_files: `workflows/tac_controller_webhook.json`, `workflows/tac_telegram_commands.json`.
+- detection_method: n8n credential usage scan showed `Kindred Debug Guard` still used by `tac_controller_webhook`.
+- prevention: During bot cutover, scan all TAC workflow JSON files for old credential ID/name and use n8n credential usage with workflow references.
+- rollback_or_fix: Updated both TAC workflow files to the `Kindred AI Controller` credential, reimported/reactivated both workflows, restarted only n8n, and revalidated `/run`, `/claude`, `/status`, and `/killall`.

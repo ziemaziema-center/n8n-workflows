@@ -51,3 +51,10 @@ Append only unless correcting the latest entry.
 - validation: n8n logs show `tac_telegram_commands` activated; controller webhook regression for `/run`, `/claude`, `/status`, and `/killall` passes after activation.
 - rollback: Unpublish or delete only `tac_telegram_commands`; keep existing clean_01~04 workflows untouched.
 - evidence: Activated on 2026-05-17 KST with `tac_telegram_commands` and validated controller routes after activation.
+
+## Pattern: Dedicated Telegram Controller Bot Cutover
+- applies_to: Separating TAC commands from an existing debug or approval Telegram bot.
+- procedure: Create a dedicated `telegramApi` credential, update every TAC workflow Telegram Trigger and Telegram send node to the new credential, import both workflows, reactivate them, restart only n8n for webhook registration, and confirm credential usage no longer lists TAC workflows under the old bot.
+- validation: `Kindred AI Controller` credential is used by `tac_controller_webhook` and `tac_telegram_commands`; `Kindred Debug Guard` usage no longer includes TAC workflows; Telegram Bot API reports bot name/menu set and n8n webhook registered; `/run`, `/claude`, `/status`, and `/killall` webhook regressions pass.
+- rollback: Reimport the prior workflow JSON or repoint TAC Telegram nodes to the previous credential, then reactivate and restart only n8n.
+- evidence: Validated on 2026-05-17 KST with bot `@kindred_ai_controller_bot` and n8n credential `Kindred AI Controller`.
