@@ -23,6 +23,7 @@ Current active n8n workflow:
 
 ```text
 tac_controller_webhook
+tac_telegram_commands
 ```
 
 Current production webhook:
@@ -35,6 +36,7 @@ Accepted request bodies:
 
 ```json
 { "text": "/run final smoke" }
+{ "text": "/claude Return exactly OK" }
 { "text": "/status tac-..." }
 { "text": "/killall" }
 ```
@@ -57,6 +59,17 @@ http://172.17.0.1:8765/run
 http://172.17.0.1:8765/status
 http://172.17.0.1:8765/killall
 ```
+
+The Telegram command workflow listens through n8n's Telegram Trigger using the existing `Kindred Debug Guard` Telegram credential. It only processes:
+
+```text
+/run
+/claude
+/status
+/killall
+```
+
+Unsupported Telegram messages are ignored.
 
 ## Runner Boundary
 

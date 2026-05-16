@@ -65,3 +65,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Direct EC2 `POST http://127.0.0.1:8765/status` returned 404.
 - prevention: Deploy service file and restart scoped `tac-service` after every service endpoint change before n8n retest.
 - rollback_or_fix: Copied updated service file to EC2, restarted only `tac-service`, and `/status` passed through n8n.
+
+## 2026-05-17 07:47 KST - JSON-Embedded JavaScript Regex Word Boundary Became Backspace
+- symptom: n8n workflow JSON validated, but parser regexes contained actual backspace characters instead of JavaScript `\\b` word-boundary tokens.
+- cause: Python string generation used `\\b` inside a non-raw string, which became ASCII backspace before JSON serialization.
+- affected_files: `workflows/tac_controller_webhook.json`, `workflows/tac_telegram_commands.json`.
+- detection_method: Python inspection found `ord(c) == 8` in `jsCode`.
+- prevention: Use raw strings for JavaScript code embedded inside JSON workflows and scan generated workflow JSON for control characters before import.
+- rollback_or_fix: Rewrote parser `jsCode` with raw strings, verified no backspace characters, reimported, republished, and restarted n8n.

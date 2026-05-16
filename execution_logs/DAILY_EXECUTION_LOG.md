@@ -67,3 +67,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Active n8n workflow `tac_controller_webhook` exists at unique path `/webhook/tac-controller`; n8n was restarted to register it; existing production workflow logic was not edited.
 - rollback_needed: No.
 - next_action: Keep current webhook ingress or explicitly migrate Telegram bot webhook after checking existing approval-flow webhook ownership.
+
+## 2026-05-17 07:50 KST - Telegram Trigger And Claude Route Completion
+- request: Execute all remaining work with all permissions approved.
+- actions: Added active Telegram command workflow, added `/claude` route to controller webhook, fixed JSON-embedded JS regex escaping, reimported/published workflows, restarted only n8n, and ran final route validations.
+- validation: PASS. n8n logs show `tac_telegram_commands` active; `/run` PASS; `/claude` PASS with `claude-executor`; `/status` PASS for Claude task; `/killall` PASS; local tests 11/11 PASS; `tac-service` tmux session alive.
+- telemetry: FAILURE: JS regex `\\b` became backspace in JSON-generated workflow code; fixed with raw strings and control-character scan. SUCCESS: Telegram command workflow and Claude route are active and validated.
+- files_changed: `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `docs/*`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Active n8n workflow `tac_telegram_commands` added; n8n restarted to register trigger; existing production workflow logic not edited.
+- rollback_needed: No.
+- next_action: Use Telegram commands directly or continue via `POST /webhook/tac-controller`.

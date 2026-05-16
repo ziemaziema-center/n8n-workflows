@@ -44,3 +44,10 @@ Append only unless correcting the latest entry.
 - validation: n8n webhook `/run` loop x3 returns PASS with runner responses; `/status` returns a prior task result; `/killall` returns scoped tmux kill result.
 - rollback: Unpublish or delete the `tac_controller_webhook` workflow and stop only the `tac-service` tmux session.
 - evidence: Validated on 2026-05-17 KST against `https://n8n.mykindredai.com/webhook/tac-controller`.
+
+## Pattern: Telegram Trigger With Strict Command Allowlist
+- applies_to: Adding Telegram ingress without changing existing workflow logic.
+- procedure: Add a separate Telegram Trigger workflow using an existing credential, parse only explicit controller commands, ignore all unsupported messages, and call the bounded TAC runner service.
+- validation: n8n logs show `tac_telegram_commands` activated; controller webhook regression for `/run`, `/claude`, `/status`, and `/killall` passes after activation.
+- rollback: Unpublish or delete only `tac_telegram_commands`; keep existing clean_01~04 workflows untouched.
+- evidence: Activated on 2026-05-17 KST with `tac_telegram_commands` and validated controller routes after activation.

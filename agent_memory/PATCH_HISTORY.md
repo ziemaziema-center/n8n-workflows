@@ -43,3 +43,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Created/updated active n8n workflow `tac_controller_webhook`; restarted only `n8n` to register the webhook; restarted scoped tmux `tac-service`; no existing clean_01~04 workflow logic was edited.
 - rollback: Unpublish/delete `tac_controller_webhook`; stop `tac-service`; revert local Git changes after `5007b9a` if needed.
 - next_action: Decide whether to wire an actual Telegram bot webhook to `tac-controller` or keep webhook-based command ingress to avoid conflicting with existing Telegram approval workflows.
+
+## 2026-05-17 07:50 KST - Telegram Command Trigger And Claude Route
+- request: Execute the remaining pieces with all approvals.
+- files_changed: `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `docs/*`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `0c72894` before Telegram command workflow and Claude route changes.
+- validation: PASS. n8n logs show `tac_telegram_commands` active; `/run` controller webhook PASS; `/claude` controller webhook PASS with `claude-executor`; `/status` for Claude task PASS; `/killall` PASS; local tests 11/11 PASS.
+- side_effects: Added active n8n workflow `tac_telegram_commands`; restarted only n8n to register trigger; existing clean_01~04 workflow logic was not edited.
+- rollback: Unpublish/delete `tac_telegram_commands` and/or `tac_controller_webhook`; stop scoped `tac-service` if needed.
+- next_action: User can send `/run`, `/claude`, `/status`, or `/killall` to the configured Kindred Debug Guard Telegram bot, or continue using the HTTPS webhook directly.

@@ -51,6 +51,7 @@ Body: { "text": "/run final n8n loop" }
 
 Validated commands:
 - `/run`
+- `/claude`
 - `/status <task_id>`
 - `/killall`
 
@@ -62,6 +63,13 @@ Claude executor direct service smoke:
   "source": "test",
   "executor": "claude"
 }
+```
+
+Webhook Claude smoke:
+
+```text
+POST https://n8n.mykindredai.com/webhook/tac-controller
+Body: { "text": "/claude Return exactly TAC_WEBHOOK_CLAUDE_OK and do not modify files." }
 ```
 
 ## Live Wiring Gate

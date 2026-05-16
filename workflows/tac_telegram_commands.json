@@ -1,0 +1,214 @@
+{
+  "name": "tac_telegram_commands",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "tac-telegram-trigger",
+      "name": "TAC Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -860,
+        0
+      ],
+      "webhookId": "tac-telegram-commands-v1",
+      "credentials": {
+        "telegramApi": {
+          "id": "NSva32mKQ1LySIuI",
+          "name": "Kindred Debug Guard"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const update = $input.first()?.json || {};\nconst msg = update.message || update.edited_message || {};\nconst chat = msg.chat || {};\nconst rawText = String(msg.text || '').trim();\nconst chatId = String(chat.id || '').trim();\nlet action = '';\nlet prompt = '';\nlet task_id = '';\nlet executor = 'dry_run';\nif (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n} else if (/^\\/claude\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'claude';\n  prompt = rawText.replace(/^\\/claude\\s*/i, '').trim() || 'Return TAC_CLAUDE_SMOKE_OK';\n} else if (/^\\/status\\b/i.test(rawText)) {\n  action = 'status';\n  task_id = rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/killall\\b/i.test(rawText)) {\n  action = 'killall';\n}\nconst supported = !!action && !!chatId;\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nreturn [{ json: { supported, action, endpoint, runner_url: `http://172.17.0.1:8765/${endpoint}`, prompt, task_id, chat_id: chatId, executor, received_text: rawText } }];"
+      },
+      "id": "tac-normalize-telegram",
+      "name": "Normalize Telegram Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.supported}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "tac-if-supported-command",
+      "name": "IF Supported Command",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.runner_url}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{$json.prompt}}"
+            },
+            {
+              "name": "task_id",
+              "value": "={{$json.task_id}}"
+            },
+            {
+              "name": "source",
+              "value": "telegram"
+            },
+            {
+              "name": "executor",
+              "value": "={{$json.executor}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "tac-call-runner-from-telegram",
+      "name": "Call TAC Runner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -120,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json || {};\nconst result = response.result || {};\nconst status = String(result.status || (response.ok ? 'PASS' : 'UNKNOWN'));\nconst taskId = String(result.task_id || response.task_id || $node['Normalize Telegram Command'].json.task_id || 'unknown');\nconst summary = String(result.summary || response.message || response.error || 'No summary returned').slice(0, 2600);\nconst text = [\n  '[TRUE AUTONOMOUS CONTROLLER]',\n  `status: ${status}`,\n  `task: ${taskId}`,\n  '',\n  summary,\n  '',\n  'commands:',\n  `/status ${taskId}`,\n  '/killall'\n].join('\\n').slice(0, 3900);\nreturn [{ json: { status, task_id: taskId, telegram_text: text, chat_id: $node['Normalize Telegram Command'].json.chat_id } }];"
+      },
+      "id": "tac-build-telegram-reply",
+      "name": "Build Telegram Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        140,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.chat_id}}",
+        "text": "={{$json.telegram_text}}",
+        "additionalFields": {
+          "disable_notification": false,
+          "appendAttribution": false
+        }
+      },
+      "id": "tac-send-telegram-reply",
+      "name": "Send Telegram Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        -120
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "NSva32mKQ1LySIuI",
+          "name": "Kindred Debug Guard"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TAC Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Telegram Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Telegram Command": {
+      "main": [
+        [
+          {
+            "node": "IF Supported Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Supported Command": {
+      "main": [
+        [
+          {
+            "node": "Call TAC Runner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Call TAC Runner": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "tac-telegram-commands-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "controllerMode": "telegram-command-mvp",
+    "safeImport": true
+  },
+  "id": "tac-telegram-commands-local",
+  "tags": []
+}

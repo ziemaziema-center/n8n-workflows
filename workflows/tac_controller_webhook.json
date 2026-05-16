@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first()?.json || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst msg = body.message || body.edited_message || {};\nconst chat = body.chat || msg.chat || {};\nconst rawText = String(body.text || body.command || body.prompt || msg.text || '').trim();\nconst chatId = String(body.chat_id || chat.id || '').trim();\nconst taskIdRaw = String(body.task_id || '').trim();\nlet action = 'run';\nlet prompt = rawText;\nlet task_id = taskIdRaw;\nif (/^\\/killall\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'killall') {\n  action = 'killall';\n  prompt = rawText;\n} else if (/^\\/status\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'status') {\n  action = 'status';\n  task_id = taskIdRaw || rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n}\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nconst runner_url = `http://172.17.0.1:8765/${endpoint}`;\nreturn [{ json: { action, runner_url, prompt, task_id, chat_id: chatId, source: 'n8n', received_text: rawText } }];"
+        "jsCode": "const input = $input.first()?.json || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst msg = body.message || body.edited_message || {};\nconst chat = body.chat || msg.chat || {};\nconst rawText = String(body.text || body.command || body.prompt || msg.text || '').trim();\nconst chatId = String(body.chat_id || chat.id || '').trim();\nconst taskIdRaw = String(body.task_id || '').trim();\nlet action = 'run';\nlet prompt = rawText;\nlet task_id = taskIdRaw;\nlet executor = String(body.executor || '').trim().toLowerCase() === 'claude' ? 'claude' : 'dry_run';\nif (/^\\/killall\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'killall') {\n  action = 'killall';\n  prompt = rawText;\n} else if (/^\\/status\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'status') {\n  action = 'status';\n  task_id = taskIdRaw || rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/claude\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'claude';\n  prompt = rawText.replace(/^\\/claude\\s*/i, '').trim() || 'Return TAC_CLAUDE_SMOKE_OK';\n} else if (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n}\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nconst runner_url = `http://172.17.0.1:8765/${endpoint}`;\nreturn [{ json: { action, runner_url, prompt, task_id, chat_id: chatId, source: 'n8n', executor, received_text: rawText } }];"
       },
       "id": "tac-normalize-command",
       "name": "Normalize TAC Command",
@@ -49,6 +49,10 @@
             {
               "name": "source",
               "value": "n8n"
+            },
+            {
+              "name": "executor",
+              "value": "={{$json.executor}}"
             }
           ]
         },
