@@ -87,3 +87,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: n8n restarted once for workflow registration; `tac-service` tmux session remained alive; debug bot retained only existing debug workflows.
 - rollback_needed: No.
 - next_action: Human-origin Telegram confirmation: open `@kindred_ai_controller_bot`, press Start, send `/run smoke test`, then verify the returned TAC summary.
+
+## 2026-05-17 08:45 KST - Human Telegram Smoke Confirmation
+- request: Confirm live Telegram bot behavior with user-origin command.
+- actions: Reviewed user-provided Telegram screenshot showing `/run smoke test` sent to `@kindred_ai_controller_bot` and TAC summary returned by the bot.
+- validation: PASS. Screenshot response contains `[TRUE AUTONOMOUS CONTROLLER]`, `status: PASS`, task `tac-20260516234503-c1d0425439`, bounded local scaffold reason text, `/status tac-20260516234503-c1d0425439`, and `/killall`.
+- telemetry: SUCCESS: Telegram app -> n8n Telegram Trigger -> TAC runner -> Telegram summary path is confirmed from a real user-origin message. FAILURE: none observed in this validation.
+- files_changed: `agent_memory/VALIDATED_PATTERNS.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Local telemetry append only; no EC2, n8n, Docker, workflow, or credential mutation.
+- rollback_needed: No.
+- next_action: Proceed to hardening backlog: Docker-isolated runner, automatic Git checkpoints per task, stronger reviewer loop, and overnight unattended queue validation.
