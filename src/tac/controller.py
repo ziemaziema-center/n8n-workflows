@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -24,6 +25,7 @@ ALLOWED_EXECUTABLES = {
     "python",
     "python3",
     "py",
+    "claude",
     sys.executable.lower(),
     Path(sys.executable).name.lower(),
 }
@@ -37,6 +39,13 @@ DENIED_EXECUTABLES = {
     "scp",
     "ssh",
     "sudo",
+}
+
+DEFAULT_LIMITS = {
+    "max_iterations": 10,
+    "max_runtime_sec": 1800,
+    "retry_limit": 3,
+    "cost_ceiling_usd": 5,
 }
 
 
@@ -103,6 +112,60 @@ def validate_task_shape(task: dict[str, Any]) -> None:
             raise ControllerError(f"limits missing {key}")
         if limits[key] > hard_limit:
             raise ControllerError(f"{key} exceeds hard limit {hard_limit}")
+
+
+def safe_task_id(seed: str | None = None) -> str:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    digest = hashlib.sha256(f"{seed or ''}|{time.time_ns()}".encode("utf-8")).hexdigest()[:10]
+    return f"tac-{stamp}-{digest}"
+
+
+def task_from_prompt(prompt: str, *, task_id: str | None = None, source: str = "n8n", executor: str = "dry_run") -> dict[str, Any]:
+    clean_prompt = str(prompt or "").strip()
+    if not clean_prompt:
+        clean_prompt = "Phase 3 smoke run"
+    if executor == "claude":
+        execution_mode = "local_command"
+        commands = [
+            {
+                "id": "claude-executor",
+                "argv": [
+                    "claude",
+                    "-p",
+                    clean_prompt,
+                    "--permission-mode",
+                    "auto",
+                    "--output-format",
+                    "stream-json",
+                    "--verbose",
+                ],
+            }
+        ]
+    else:
+        execution_mode = "dry_run"
+        commands = [
+            {
+                "id": "planner-executor-reviewer-smoke",
+                "argv": ["echo", clean_prompt[:500]],
+            }
+        ]
+    return {
+        "task_id": task_id or safe_task_id(clean_prompt),
+        "requested_phase": 3,
+        "source": source if source in {"telegram", "n8n", "manual", "test"} else "n8n",
+        "prompt": clean_prompt,
+        "workspace": ".",
+        "execution_mode": execution_mode,
+        "risk_level": "read_only",
+        "limits": dict(DEFAULT_LIMITS),
+        "commands": commands,
+        "metadata": {
+            "generated_from_prompt": True,
+            "executor": executor,
+            "telegram_summary": True,
+            "reviewer_required": True,
+        },
+    }
 
 
 def resolve_workspace(root: Path, workspace: str) -> Path:

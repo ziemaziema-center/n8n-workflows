@@ -17,6 +17,47 @@
 - Send summary back to Telegram.
 - Route `RISK` or `BLOCKED` to human escalation.
 
+## Current Semi-Live MVP
+
+Current active n8n workflow:
+
+```text
+tac_controller_webhook
+```
+
+Current production webhook:
+
+```text
+POST https://n8n.mykindredai.com/webhook/tac-controller
+```
+
+Accepted request bodies:
+
+```json
+{ "text": "/run final smoke" }
+{ "text": "/status tac-..." }
+{ "text": "/killall" }
+```
+
+Optional Telegram-style body:
+
+```json
+{
+  "message": {
+    "text": "/run final smoke",
+    "chat": { "id": "..." }
+  }
+}
+```
+
+The workflow calls:
+
+```text
+http://172.17.0.1:8765/run
+http://172.17.0.1:8765/status
+http://172.17.0.1:8765/killall
+```
+
 ## Runner Boundary
 
 Runner accepts only a task spec file path and returns a runner result JSON.
@@ -48,5 +89,4 @@ pkill -f claude
 pkill -f codex
 ```
 
-The production implementation must scope process matching to the runner context before use.
-
+Current implementation scopes kill behavior to `tmux` sessions named `tac-task-*`.

@@ -49,3 +49,19 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Post-commit review of Git commit output showed `*.pyc` files.
 - prevention: Add `.gitignore` before running tests in new Python repositories.
 - rollback_or_fix: Added `.gitignore`, removed exact generated cache files from Git, and created cleanup commit `4f30757`.
+
+## 2026-05-17 06:50 KST - n8n Published Workflow Requires Runtime Restart
+- symptom: Newly imported and published TAC webhook returned HTTP 404 until n8n restarted.
+- cause: `n8n publish:workflow` updated stored workflow state but the running process did not register the new webhook immediately.
+- affected_files: `workflows/tac_controller_webhook.json`; n8n workflow `tac_controller_webhook`.
+- detection_method: `POST /webhook/tac-controller` returned 404 after publish; n8n CLI warned that changes would not take effect while n8n was running.
+- prevention: For CLI-imported webhook workflows, publish sequentially and restart only the n8n container after confirming the path is unique.
+- rollback_or_fix: Restarted only the `n8n` container; existing workflows came back active and TAC webhook registered.
+
+## 2026-05-17 06:51 KST - Service Patch Not Deployed Before n8n Status Test
+- symptom: n8n `/status` route returned an empty body after the workflow was fixed.
+- cause: Local service supported POST `/status`, but EC2 `tac-service` still ran the older service file.
+- affected_files: `src/tac/service.py`.
+- detection_method: Direct EC2 `POST http://127.0.0.1:8765/status` returned 404.
+- prevention: Deploy service file and restart scoped `tac-service` after every service endpoint change before n8n retest.
+- rollback_or_fix: Copied updated service file to EC2, restarted only `tac-service`, and `/status` passed through n8n.

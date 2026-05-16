@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.tac.controller import ControllerError, load_task, run_controller, validate_task_shape
+from src.tac.controller import ControllerError, load_task, run_controller, task_from_prompt, validate_task_shape
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,6 +79,21 @@ class Phase3ControllerTests(unittest.TestCase):
             path.write_text(json.dumps(task), encoding="utf-8")
             loaded = load_task(path)
         self.assertEqual(loaded["task_id"], "unit-phase3")
+
+    def test_task_from_prompt_is_bounded_dry_run(self):
+        task = task_from_prompt("/run hello", task_id="unit-generated", source="telegram")
+        self.assertEqual(task["task_id"], "unit-generated")
+        self.assertEqual(task["execution_mode"], "dry_run")
+        self.assertEqual(task["risk_level"], "read_only")
+        validate_task_shape(task)
+        result = run_controller(task, ROOT)
+        self.assertEqual(result["status"], "PASS")
+
+    def test_task_from_prompt_can_build_claude_executor(self):
+        task = task_from_prompt("say ok", task_id="unit-claude", source="test", executor="claude")
+        self.assertEqual(task["execution_mode"], "local_command")
+        self.assertEqual(task["commands"][0]["argv"][0], "claude")
+        validate_task_shape(task)
 
 
 if __name__ == "__main__":

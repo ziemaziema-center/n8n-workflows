@@ -22,6 +22,48 @@ python -m unittest discover -s tests
 python scripts\run_phase3_loop.py examples\phase3_task.dry_run.json --out runtime\phase3_result.json
 ```
 
+## EC2 Service
+
+The semi-live MVP runs this service in a scoped tmux session:
+
+```text
+tmux new-session -d -s tac-service /home/ubuntu/workspace/true-autonomous-controller/scripts/start_tac_service.sh
+```
+
+Health check:
+
+```text
+GET http://127.0.0.1:8765/health
+```
+
+n8n container reaches the service at:
+
+```text
+http://172.17.0.1:8765/health
+```
+
+## n8n Webhook Smoke
+
+```text
+POST https://n8n.mykindredai.com/webhook/tac-controller
+Body: { "text": "/run final n8n loop" }
+```
+
+Validated commands:
+- `/run`
+- `/status <task_id>`
+- `/killall`
+
+Claude executor direct service smoke:
+
+```json
+{
+  "prompt": "Return exactly TAC_SERVICE_CLAUDE_OK and do not modify files.",
+  "source": "test",
+  "executor": "claude"
+}
+```
+
 ## Live Wiring Gate
 
 Do not wire live n8n/EC2 until all are true:
@@ -41,4 +83,3 @@ Phase 3 local scaffold passes only if:
 - reviewer returns PASS
 - retry loop respects configured bounds
 - final result JSON is written
-

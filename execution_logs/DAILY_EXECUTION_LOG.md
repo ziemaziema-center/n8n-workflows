@@ -57,3 +57,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Created local Git repo and baseline commit; created remote bounded workspace `/home/ubuntu/workspace/true-autonomous-controller`; did not mutate n8n workflows, Docker containers, Telegram, GitHub remote, or production services.
 - rollback_needed: No.
 - next_action: Connect n8n Telegram trigger to the runner contract after credential IDs and inactive workflow import path are verified.
+
+## 2026-05-17 06:56 KST - Semi-Live n8n Controller MVP
+- request: Execute with all approvals and complete a one-day semi-live controller MVP without stopping mid-run.
+- actions: Added TAC HTTP service, `/run`/`/status`/`/killall` endpoints, optional Claude executor mode, n8n webhook workflow, EC2 service tmux deployment, n8n workflow import/publish, and final validation loops.
+- validation: PASS. Local tests 11/11, EC2 tests 11/11, direct EC2 service `/run` PASS, n8n `/run` loop x3 PASS, n8n `/status` PASS, n8n `/killall` PASS, Claude Code smoke PASS, service Claude executor command status PASS.
+- telemetry: FAILURE: local service import initially depended on PYTHONPATH; fixed with relative import. FAILURE: local `/killall` failed where `tmux` was absent; fixed with safe no-op. FAILURE: n8n webhook was 404 after CLI publish; fixed by restarting only n8n. FAILURE: `/status` initially failed because service patch was not deployed; fixed by copying service and restarting only `tac-service`. SUCCESS: semi-live n8n -> EC2 bounded runner MVP is active and validated.
+- files_changed: `src/tac/controller.py`, `src/tac/service.py`, `scripts/start_tac_service.sh`, `scripts/run_tac_http_service.py`, `tests/*`, `workflows/tac_controller_webhook.json`, `docs/*`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Active n8n workflow `tac_controller_webhook` exists at unique path `/webhook/tac-controller`; n8n was restarted to register it; existing production workflow logic was not edited.
+- rollback_needed: No.
+- next_action: Keep current webhook ingress or explicitly migrate Telegram bot webhook after checking existing approval-flow webhook ownership.

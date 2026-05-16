@@ -1,0 +1,260 @@
+{
+  "name": "tac_controller_webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "tac-controller",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "tac-controller-webhook",
+      "name": "TAC Controller Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        0
+      ],
+      "webhookId": "tac-controller-webhook-v1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first()?.json || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst msg = body.message || body.edited_message || {};\nconst chat = body.chat || msg.chat || {};\nconst rawText = String(body.text || body.command || body.prompt || msg.text || '').trim();\nconst chatId = String(body.chat_id || chat.id || '').trim();\nconst taskIdRaw = String(body.task_id || '').trim();\nlet action = 'run';\nlet prompt = rawText;\nlet task_id = taskIdRaw;\nif (/^\\/killall\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'killall') {\n  action = 'killall';\n  prompt = rawText;\n} else if (/^\\/status\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'status') {\n  action = 'status';\n  task_id = taskIdRaw || rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n}\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nconst runner_url = `http://172.17.0.1:8765/${endpoint}`;\nreturn [{ json: { action, runner_url, prompt, task_id, chat_id: chatId, source: 'n8n', received_text: rawText } }];"
+      },
+      "id": "tac-normalize-command",
+      "name": "Normalize TAC Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.runner_url}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{$json.prompt}}"
+            },
+            {
+              "name": "task_id",
+              "value": "={{$json.task_id}}"
+            },
+            {
+              "name": "source",
+              "value": "n8n"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "tac-call-runner",
+      "name": "Call TAC Runner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json || {};\nconst result = response.result || {};\nconst status = String(result.status || (response.ok ? 'PASS' : 'UNKNOWN'));\nconst taskId = String(result.task_id || response.task_id || $node['Normalize TAC Command'].json.task_id || 'unknown');\nconst summary = String(result.summary || response.message || response.error || 'No summary returned').slice(0, 3000);\nconst text = [\n  '[TRUE AUTONOMOUS CONTROLLER]',\n  `status: ${status}`,\n  `task: ${taskId}`,\n  '',\n  summary,\n  '',\n  `checked_at: ${new Date().toISOString()}`\n].join('\\n').slice(0, 3900);\nreturn [{ json: { ok: !!response.ok, status, task_id: taskId, telegram_text: text, chat_id: $node['Normalize TAC Command'].json.chat_id, runner_response: response } }];"
+      },
+      "id": "tac-build-summary",
+      "name": "Build Telegram Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.chat_id}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "tac-if-chat-id",
+      "name": "IF Chat ID Present",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.chat_id}}",
+        "text": "={{$json.telegram_text}}",
+        "additionalFields": {
+          "disable_notification": false,
+          "appendAttribution": false
+        }
+      },
+      "id": "tac-send-telegram",
+      "name": "Send TAC Telegram Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        460,
+        -100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "NSva32mKQ1LySIuI",
+          "name": "Kindred Debug Guard"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $node['Build Telegram Summary'].json }];"
+      },
+      "id": "tac-restore-summary-after-telegram",
+      "name": "Restore Summary After Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "tac-respond",
+      "name": "Respond TAC Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TAC Controller Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize TAC Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize TAC Command": {
+      "main": [
+        [
+          {
+            "node": "Call TAC Runner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call TAC Runner": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Summary": {
+      "main": [
+        [
+          {
+            "node": "IF Chat ID Present",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Chat ID Present": {
+      "main": [
+        [
+          {
+            "node": "Send TAC Telegram Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond TAC Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send TAC Telegram Summary": {
+      "main": [
+        [
+          {
+            "node": "Restore Summary After Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Summary After Telegram": {
+      "main": [
+        [
+          {
+            "node": "Respond TAC Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "tac-controller-webhook-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "controllerMode": "semi-live-mvp",
+    "safeImport": true
+  },
+  "id": "tac-controller-webhook-local",
+  "tags": []
+}
