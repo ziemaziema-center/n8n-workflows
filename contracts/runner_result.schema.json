@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.true-autonomous-controller/contracts/runner_result.schema.json",
+  "title": "TRUE Autonomous Controller Runner Result",
+  "type": "object",
+  "required": [
+    "task_id",
+    "status",
+    "attempts",
+    "started_at",
+    "finished_at",
+    "workspace",
+    "summary",
+    "commands",
+    "review"
+  ],
+  "properties": {
+    "task_id": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "RISK", "BLOCKED"]
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "started_at": { "type": "string" },
+    "finished_at": { "type": "string" },
+    "workspace": { "type": "string" },
+    "summary": { "type": "string" },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "argv", "exit_code", "duration_sec", "stdout_tail", "stderr_tail"],
+        "properties": {
+          "id": { "type": "string" },
+          "argv": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "exit_code": { "type": "integer" },
+          "duration_sec": { "type": "number" },
+          "stdout_tail": { "type": "string" },
+          "stderr_tail": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["status", "reasons", "retry_allowed", "escalation_required"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "RISK", "BLOCKED"]
+        },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "retry_allowed": { "type": "boolean" },
+        "escalation_required": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

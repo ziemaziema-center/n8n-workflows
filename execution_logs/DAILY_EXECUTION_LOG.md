@@ -47,3 +47,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local telemetry append only. No EC2, n8n, Docker, Telegram, GitHub, Git repository, or production state changed.
 - rollback_needed: No.
 - next_action: Start Phase 0/1 local scaffold: contracts, dry-run runner, log schema, and kill-switch design.
+
+## 2026-05-16 18:00 KST - Phase 0-3 Implementation And Debug Loop
+- request: Complete Phase 3, run it, find bugs, debug, loop x3, and report success.
+- actions: Initialized local Git baseline; implemented task/result contracts, local controller, runner CLI, validation loop, runbooks, tests, and dry-run example; ran local validation loops; copied scaffold to EC2 bounded workspace; ran EC2 tmux validation x3.
+- validation: PASS. Local `python -m unittest discover -s tests` returned 8/8 PASS; local smoke returned PASS; EC2 tmux validation produced `phase3_result_remote_loop1.json`, `phase3_result_remote_loop2.json`, and `phase3_result_remote_loop3.json`, all with `status=PASS`.
+- telemetry: FAILURE: Git add initially hit sandbox/ownership safe-directory issue; fixed with scoped `git -c safe.directory`. FAILURE: EC2 failed on `python` executable absence; fixed with `sys.executable` and `python3` allowlist. FAILURE: one scp command misplaced a generated test-file copy; deleted exact generated artifact and recopied correctly. SUCCESS: Phase 0-3 scaffold passed local and EC2 tmux loop x3.
+- files_changed: `contracts/*`, `docs/*`, `examples/*`, `scripts/*`, `src/tac/*`, `tests/*`, `runtime/*`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Created local Git repo and baseline commit; created remote bounded workspace `/home/ubuntu/workspace/true-autonomous-controller`; did not mutate n8n workflows, Docker containers, Telegram, GitHub remote, or production services.
+- rollback_needed: No.
+- next_action: Connect n8n Telegram trigger to the runner contract after credential IDs and inactive workflow import path are verified.

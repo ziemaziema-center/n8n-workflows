@@ -1,0 +1,26 @@
+{
+  "task_id": "phase3-local-smoke",
+  "requested_phase": 3,
+  "source": "manual",
+  "prompt": "Validate planner -> executor -> reviewer loop in local dry-run mode.",
+  "workspace": ".",
+  "execution_mode": "dry_run",
+  "risk_level": "read_only",
+  "limits": {
+    "max_iterations": 10,
+    "max_runtime_sec": 1800,
+    "retry_limit": 3,
+    "cost_ceiling_usd": 5
+  },
+  "commands": [
+    {
+      "id": "dry-run-echo",
+      "argv": ["echo", "phase3 dry run ok"]
+    }
+  ],
+  "metadata": {
+    "telegram_summary": true,
+    "reviewer_required": true
+  }
+}
+

@@ -1,0 +1,289 @@
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+HARD_LIMITS = {
+    "max_iterations": 10,
+    "max_runtime_sec": 1800,
+    "retry_limit": 3,
+    "cost_ceiling_usd": 5,
+}
+
+ALLOWED_EXECUTABLES = {
+    "echo",
+    "python",
+    "python3",
+    "py",
+    sys.executable.lower(),
+    Path(sys.executable).name.lower(),
+}
+
+DENIED_EXECUTABLES = {
+    "aws",
+    "curl",
+    "docker",
+    "kubectl",
+    "rm",
+    "scp",
+    "ssh",
+    "sudo",
+}
+
+
+class ControllerError(Exception):
+    """Base error for controlled failures."""
+
+
+class RiskBlocked(ControllerError):
+    """Raised when a task must not run automatically."""
+
+
+@dataclass(frozen=True)
+class Review:
+    status: str
+    reasons: list[str]
+    retry_allowed: bool
+    escalation_required: bool
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "reasons": self.reasons,
+            "retry_allowed": self.retry_allowed,
+            "escalation_required": self.escalation_required,
+        }
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def load_task(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8-sig") as handle:
+        task = json.load(handle)
+    validate_task_shape(task)
+    return task
+
+
+def validate_task_shape(task: dict[str, Any]) -> None:
+    required = {
+        "task_id",
+        "requested_phase",
+        "source",
+        "prompt",
+        "workspace",
+        "execution_mode",
+        "risk_level",
+        "limits",
+        "commands",
+    }
+    missing = sorted(required - set(task))
+    if missing:
+        raise ControllerError(f"task spec missing required fields: {', '.join(missing)}")
+
+    if not isinstance(task["commands"], list) or not task["commands"]:
+        raise ControllerError("task spec must include at least one command")
+
+    if task["requested_phase"] < 0 or task["requested_phase"] > 3:
+        raise ControllerError("local scaffold supports requested_phase 0 through 3")
+
+    limits = task["limits"]
+    for key, hard_limit in HARD_LIMITS.items():
+        if key not in limits:
+            raise ControllerError(f"limits missing {key}")
+        if limits[key] > hard_limit:
+            raise ControllerError(f"{key} exceeds hard limit {hard_limit}")
+
+
+def resolve_workspace(root: Path, workspace: str) -> Path:
+    candidate = (root / workspace).resolve()
+    root_resolved = root.resolve()
+    if candidate != root_resolved and root_resolved not in candidate.parents:
+        raise RiskBlocked(f"workspace escapes project root: {candidate}")
+    return candidate
+
+
+def executable_name(argv0: str) -> str:
+    return Path(argv0).name.lower()
+
+
+def guard_task(task: dict[str, Any], project_root: Path) -> Path:
+    workspace = resolve_workspace(project_root, task["workspace"])
+    risk_level = task["risk_level"]
+    if risk_level in {"risky", "blocked"}:
+        raise RiskBlocked(f"risk_level requires escalation: {risk_level}")
+
+    for command in task["commands"]:
+        argv = command.get("argv", [])
+        if not argv:
+            raise ControllerError(f"command {command.get('id', '<unknown>')} has empty argv")
+        exe = executable_name(argv[0])
+        if exe in DENIED_EXECUTABLES:
+            raise RiskBlocked(f"denied executable requested: {exe}")
+        if task["execution_mode"] == "local_command" and exe not in ALLOWED_EXECUTABLES:
+            raise RiskBlocked(f"executable is not allowlisted: {exe}")
+
+    return workspace
+
+
+def run_command(command: dict[str, Any], workspace: Path, timeout_sec: int, dry_run: bool) -> dict[str, Any]:
+    started = time.monotonic()
+    argv = [str(part) for part in command["argv"]]
+    if dry_run:
+        stdout = f"DRY_RUN would execute: {' '.join(argv)}"
+        stderr = ""
+        exit_code = 0
+    else:
+        completed = subprocess.run(
+            argv,
+            cwd=str(workspace),
+            capture_output=True,
+            text=True,
+            timeout=timeout_sec,
+            check=False,
+        )
+        stdout = completed.stdout
+        stderr = completed.stderr
+        exit_code = completed.returncode
+
+    return {
+        "id": command["id"],
+        "argv": argv,
+        "exit_code": int(exit_code),
+        "duration_sec": round(time.monotonic() - started, 3),
+        "stdout_tail": stdout[-2000:],
+        "stderr_tail": stderr[-2000:],
+    }
+
+
+def review_attempt(task: dict[str, Any], command_results: list[dict[str, Any]]) -> Review:
+    reasons: list[str] = []
+    retry_allowed = False
+    for command, result in zip(task["commands"], command_results):
+        if result["exit_code"] != 0 and not command.get("allow_failure", False):
+            reasons.append(f"{result['id']} exited {result['exit_code']}")
+            retry_allowed = True
+
+    if reasons:
+        return Review("FAIL", reasons, retry_allowed=retry_allowed, escalation_required=False)
+    return Review("PASS", ["all commands completed within local scaffold bounds"], False, False)
+
+
+def blocked_result(task: dict[str, Any], workspace: str, started_at: str, reason: str) -> dict[str, Any]:
+    finished_at = utc_now()
+    review = Review("BLOCKED", [reason], retry_allowed=False, escalation_required=True)
+    return {
+        "task_id": task.get("task_id", "unknown"),
+        "status": "BLOCKED",
+        "attempts": 1,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "workspace": workspace,
+        "summary": f"BLOCKED: {reason}",
+        "commands": [],
+        "review": review.to_json(),
+    }
+
+
+def run_controller(task: dict[str, Any], project_root: Path) -> dict[str, Any]:
+    started_at = utc_now()
+    try:
+        workspace = guard_task(task, project_root)
+    except RiskBlocked as exc:
+        return blocked_result(task, task.get("workspace", ""), started_at, str(exc))
+
+    retry_limit = int(task["limits"]["retry_limit"])
+    timeout_sec = int(task["limits"]["max_runtime_sec"])
+    dry_run = task["execution_mode"] == "dry_run"
+    final_commands: list[dict[str, Any]] = []
+    final_review = Review("FAIL", ["not executed"], retry_allowed=False, escalation_required=False)
+
+    for attempt in range(1, retry_limit + 2):
+        command_results = [
+            run_command(command, workspace, timeout_sec=timeout_sec, dry_run=dry_run)
+            for command in task["commands"]
+        ]
+        final_commands = command_results
+        final_review = review_attempt(task, command_results)
+        if final_review.status == "PASS":
+            break
+        if not final_review.retry_allowed:
+            break
+
+    finished_at = utc_now()
+    status = final_review.status
+    return {
+        "task_id": task["task_id"],
+        "status": status,
+        "attempts": attempt,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "workspace": str(workspace),
+        "summary": make_telegram_summary(task, status, final_review),
+        "commands": final_commands,
+        "review": final_review.to_json(),
+    }
+
+
+def make_telegram_summary(task: dict[str, Any], status: str, review: Review) -> str:
+    reason = "; ".join(review.reasons)
+    return f"[{status}] {task['task_id']} phase={task['requested_phase']} reason={reason}"
+
+
+def write_result(result: dict[str, Any], out_path: Path) -> None:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", encoding="utf-8") as handle:
+        json.dump(result, handle, indent=2, ensure_ascii=True)
+        handle.write("\n")
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the local Phase 0-3 controller loop.")
+    parser.add_argument("task_spec", type=Path)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--project-root", type=Path, default=Path.cwd())
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    try:
+        task = load_task(args.task_spec)
+        result = run_controller(task, args.project_root.resolve())
+        write_result(result, args.out)
+        print(result["summary"])
+        return 0 if result["status"] == "PASS" else 2
+    except (ControllerError, subprocess.TimeoutExpired, OSError, json.JSONDecodeError) as exc:
+        fallback = {
+            "task_id": "unknown",
+            "status": "FAIL",
+            "attempts": 1,
+            "started_at": utc_now(),
+            "finished_at": utc_now(),
+            "workspace": str(args.project_root),
+            "summary": f"[FAIL] controller error: {exc}",
+            "commands": [],
+            "review": {
+                "status": "FAIL",
+                "reasons": [str(exc)],
+                "retry_allowed": False,
+                "escalation_required": False,
+            },
+        }
+        write_result(fallback, args.out)
+        print(fallback["summary"], file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

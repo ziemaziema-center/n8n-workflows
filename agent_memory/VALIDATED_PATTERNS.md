@@ -31,3 +31,9 @@ Append only unless correcting the latest entry.
 - rollback: Remove local Phase 1 scaffold files or restore from Git checkpoint after repository initialization.
 - evidence: Adopted from prior source KB preference for bounded dry runs, local recorder validation, and zero live mutation until readiness review passes.
 
+## Pattern: Phase 3 Local-To-EC2 Bounded Validation
+- applies_to: Planner -> executor -> reviewer scaffold before n8n workflow mutation.
+- procedure: Implement contracts and a local dry-run controller, run local unit/smoke loops, copy only scaffold files into `/home/ubuntu/workspace/<project>` on EC2, and execute the same validation script inside tmux.
+- validation: Local unit tests and smoke runs pass; EC2 tmux produces `runtime/phase3_result_remote_loop1.json` through `runtime/phase3_result_remote_loop3.json` with `status=PASS`.
+- rollback: Use Git to revert local files; remove only generated files under the bounded EC2 workspace if rollback is requested.
+- evidence: Validated on 2026-05-16 KST with 8/8 local tests passing and EC2 tmux validation loop x3 producing PASS results.
