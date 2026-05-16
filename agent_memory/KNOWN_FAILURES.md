@@ -41,3 +41,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Manual review immediately after the copy command.
 - prevention: Copy files with distinct destination paths when source files belong to different target directories.
 - rollback_or_fix: Deleted only the exact misplaced generated file from the bounded EC2 workspace and recopied each file to its correct destination.
+
+## 2026-05-16 18:05 KST - Python Cache Files Entered Initial Scaffold Commit
+- symptom: `__pycache__` bytecode files were included in the first Phase 0-3 scaffold commit.
+- cause: `.gitignore` did not exist before running local Python tests.
+- affected_files: `src/tac/__pycache__/*`, `tests/__pycache__/*`, `.gitignore`.
+- detection_method: Post-commit review of Git commit output showed `*.pyc` files.
+- prevention: Add `.gitignore` before running tests in new Python repositories.
+- rollback_or_fix: Added `.gitignore`, removed exact generated cache files from Git, and created cleanup commit `4f30757`.
