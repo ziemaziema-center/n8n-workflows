@@ -79,3 +79,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service`; no n8n workflow, Docker, clean_01~04, or credential value was changed.
 - rollback: Revert this patch and restart `tac-service`, not recommended because it would restore retrying invalid credentials.
 - next_action: User must replace the EC2 Codex credential with a valid OpenAI API key or use device auth, then rerun `/codex Print exactly TAC_CODEX_OK and do not modify files.`
+
+## 2026-05-17 12:36 KST - Codex ChatGPT Login Live PASS
+- request: Validate controller after user completed Codex device auth login.
+- files_changed: `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `0b70845` before recording live Codex PASS.
+- validation: PASS. EC2 `codex login status` shows ChatGPT login; n8n TAC workflows are active; `tac-service` is running; `/codex Print exactly TAC_CODEX_OK and do not modify files.` returned task `tac-20260517033536-bb8a366f30` with status PASS and agent message `TAC_CODEX_OK`; `/status` PASS; `/killall` PASS.
+- side_effects: Local telemetry append only; no EC2 code, n8n workflow, Docker, or credential value changed.
+- rollback: Not required.
+- next_action: Use `/codex` for real bounded development tasks, starting with small repo diagnosis before longer implementation.

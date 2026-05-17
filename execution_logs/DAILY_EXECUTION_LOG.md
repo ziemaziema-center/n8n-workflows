@@ -117,3 +117,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service`; no n8n workflow, Docker, clean_01~04, or credential value was changed.
 - rollback_needed: No.
 - next_action: Replace Codex auth on EC2 with a valid OpenAI API key or device auth, then rerun `/codex Print exactly TAC_CODEX_OK and do not modify files.`
+
+## 2026-05-17 12:36 KST - Codex ChatGPT Login Live PASS
+- request: Validate the controller after user completed Codex device auth login on EC2.
+- actions: Confirmed `codex login status`; executed `/codex` through the n8n controller webhook; checked `/status`; checked `/killall`; confirmed active TAC workflows and `tac-service`.
+- validation: PASS. Codex login status shows ChatGPT login; `/codex Print exactly TAC_CODEX_OK and do not modify files.` returned task `tac-20260517033536-bb8a366f30` with status PASS and output `TAC_CODEX_OK`; `/status tac-20260517033536-bb8a366f30` PASS; `/killall` PASS; n8n workflows `tac_controller_webhook` and `tac_telegram_commands` active; `tac-service` tmux session alive.
+- telemetry: SUCCESS: Telegram/n8n/controller/Codex live execution path is now open using ChatGPT login. FAILURE: direct shell smoke had a quoting issue and was skipped in favor of the real controller path.
+- files_changed: `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Local telemetry append only; no EC2 code, n8n workflow, Docker, or credential value changed.
+- rollback_needed: No.
+- next_action: Send bounded real tasks via `/codex`, beginning with diagnosis/readiness commands before long implementation runs.

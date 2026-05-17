@@ -79,3 +79,10 @@ Append only unless correcting the latest entry.
 - validation: Local and EC2 tests pass; `/codex` with an invalid stored key returns `BLOCKED` in one attempt; generated result output contains `sk-REDACTED` instead of key-like material; runtime result files no longer grep for API-key prefixes.
 - rollback: Revert the redaction/classification patch and restart `tac-service`, though this is not recommended because it restores retry waste and weaker output hygiene.
 - evidence: Validated on 2026-05-17 KST with task `tac-20260517020244-62fc400f8a` returning `BLOCKED` for Codex authentication failure.
+
+## Pattern: Codex ChatGPT Login Live Smoke
+- applies_to: Confirming the dedicated controller can execute Codex through ChatGPT login instead of API-key auth.
+- procedure: Log in on the EC2 runner user with Codex device auth, confirm `codex login status`, run `/codex` through the n8n webhook, then confirm `/status` and `/killall`.
+- validation: Codex login status shows ChatGPT login; `/codex` returns `PASS`; command output contains the expected Codex agent message; `/status <task_id>` returns the same PASS result; `/killall` returns scoped kill PASS.
+- rollback: If the login is revoked or expires, rerun `codex login --device-auth` on the EC2 runner user and retry the `/codex` smoke.
+- evidence: Validated on 2026-05-17 KST with task `tac-20260517033536-bb8a366f30` returning `TAC_CODEX_OK`.
