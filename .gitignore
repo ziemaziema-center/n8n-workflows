@@ -3,3 +3,6 @@ __pycache__/
 .pytest_cache/
 runtime/*.tmp
 runtime/tasks/
+runtime/*.sqlite3
+runtime/*.sqlite3-shm
+runtime/*.sqlite3-wal

@@ -178,3 +178,13 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Documentation and telemetry only; no credential value stored; no n8n workflow, Docker container, database, Telegram bot, or production state changed.
 - rollback: Delete `docs/MCP_CONNECTIVITY_MATRIX.md` and revert telemetry append if this project should not track MCP state.
 - next_action: Add GitHub remote/repo access first, then install/configure Docker MCP before true containerized autonomy.
+
+## 2026-05-17 23:10 KST - Local Docker And State DB MCP Registration
+- request: Execute the remaining MCP connection steps: GitHub remote/connector access, Docker MCP install/register, controller state DB schema plus PostgreSQL/SQLite MCP, and keep Telegram through n8n.
+- files_changed: `.gitignore`, `scripts/mcp/docker_mcp_server.js`, `scripts/mcp/state_db_mcp_server.py`, `tests/test_mcp_servers.py`, `docs/MCP_CONNECTIVITY_MATRIX.md`, `docs/MCP_LOCAL_SERVERS.md`, `docs/CONTROLLER_STATE_DB_SCHEMA.md`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- external_config_changed: Added `mcp_servers.tac-docker` and `mcp_servers.tac-state-db` to `~/.codex/config.toml`; backup created beside the config before modification.
+- git_remote_changed: Added local remote `n8n-workflows-backup` pointing to `https://github.com/ziemaziema-center/n8n-workflows.git`.
+- validation: PASS. GitHub connector commit search for `ziemaziema-center/n8n-workflows` succeeded; `git ls-remote` succeeded; MCP protocol tests pass; SQLite state DB initialized; Docker Desktop daemon status read passed through `tac-docker` MCP; full local tests 28/28 PASS.
+- side_effects: Created ignored local DB file `runtime/controller_state.sqlite3`; repaired local `.docker` directory ACL; started Docker Desktop; no container was started; direct Telegram MCP was intentionally not added.
+- rollback: Remove the two TAC MCP blocks from `~/.codex/config.toml`, delete `runtime/controller_state.sqlite3`, remove remote `n8n-workflows-backup`, and revert this commit.
+- next_action: Start a new Codex session to load the newly registered MCP tool namespaces; keep Docker mutation disabled until an explicitly approved bounded container run.

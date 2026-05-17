@@ -2,23 +2,24 @@
 
 ## Operator Summary
 
-결론: 현재 세션에서 6개 MCP를 전부 100% 연결했다고 말할 수는 없습니다.
+결론: 2026-05-17 23:00 KST 기준으로 GitHub 접근, Docker MCP 등록, SQLite state DB MCP 등록까지 진행했습니다.
 
 즉시 사용 가능한 것:
 - n8n MCP: 연결됨, health check 통과.
-- GitHub tool/plugin: 도구는 열려 있음. 다만 이 controller repo에는 remote가 없고, `ziemaziema-center/n8n-workflows` repo 접근은 현재 connector에서 확인되지 않음.
+- GitHub tool/plugin: 도구는 열려 있고, `ziemaziema-center/n8n-workflows` commit search 접근 확인됨.
 - Filesystem: 별도 MCP는 아니지만 Codex workspace 파일 읽기/쓰기 가능.
+- Docker MCP: `tac-docker` 로컬 stdio MCP 서버를 repo에 추가하고 Codex config에 등록함. Docker Desktop/daemon status read 검증 통과.
+- SQLite state DB MCP: `tac-state-db` 로컬 stdio MCP 서버를 repo에 추가하고 Codex config에 등록함. `runtime/controller_state.sqlite3` schema init 통과.
 
 아직 MCP로 연결되지 않은 것:
-- Docker MCP: 없음. Docker CLI는 보이지만 현재 Windows Docker config 접근 권한 문제가 있음.
-- PostgreSQL/SQLite MCP: 없음. `sqlite3` CLI도 현재 PATH에 없음.
-- Telegram MCP: 없음. 현재 Telegram은 n8n workflow와 n8n credential을 통해 운영 중.
+- PostgreSQL direct MCP: 없음. 현재는 SQLite MCP를 controller state store로 사용.
+- Telegram direct MCP: 없음. 현재 Telegram은 의도적으로 n8n workflow와 n8n credential을 통해 운영.
 
 운영 판단:
 - 오늘 바로 쓸 control plane은 `n8n MCP + Codex filesystem + 기존 n8n Telegram bot route`입니다.
-- GitHub rollback/audit를 완성하려면 controller repo remote 연결 또는 GitHub connector repo 접근 권한 확인이 먼저 필요합니다.
-- Docker MCP는 “컨테이너 격리형 autonomous runner” 전환 전에 별도 설치/설정해야 합니다.
-- DB MCP는 task queue/execution history schema를 정한 뒤 붙이는 것이 안전합니다.
+- GitHub remote는 `n8n-workflows-backup` 이름으로 연결했습니다.
+- Docker MCP는 기본적으로 mutation disabled입니다. 실제 container run은 명시적으로 `TAC_DOCKER_MCP_ALLOW_MUTATION=1`을 설정해야 가능합니다.
+- DB MCP는 SQLite 기반으로 먼저 연결했습니다. PostgreSQL은 별도 DB URL/credential boundary가 정해질 때 추가합니다.
 
 ## 2026-05-17 KST Status
 
@@ -36,10 +37,10 @@ Do not record secret values here.
 - constraint: do not expose API key values.
 
 ### GitHub MCP
-- status: TOOL_AVAILABLE
-- evidence: GitHub plugin tools are available in the current Codex tool namespace.
-- current_repo_state: local controller repository has no configured Git remote.
-- repository_access_test: repository search for `ziemaziema-center/n8n-workflows` returned no visible repositories in this connector context.
+- status: CONNECTOR_ACCESS_CONFIRMED
+- evidence: GitHub plugin tools are available and commit search returned repository commit metadata for `ziemaziema-center/n8n-workflows`.
+- current_repo_state: local controller repository has remote `n8n-workflows-backup` pointing to `https://github.com/ziemaziema-center/n8n-workflows.git`.
+- repository_access_test: `git ls-remote https://github.com/ziemaziema-center/n8n-workflows.git HEAD` passed.
 - safe_use: PR/issue/file operations when a repository is accessible to the installed GitHub connector.
 - constraint: controller repo needs a remote or accessible GitHub repository before GitHub MCP can provide rollback/archive on this project.
 
@@ -52,22 +53,22 @@ Do not record secret values here.
 ## A Grade
 
 ### Docker MCP
-- status: NOT_CONNECTED_AS_MCP
-- evidence: no Docker MCP tools are exposed in the current Codex tool list.
-- local_capability: Docker CLI exists locally, but `C:\Users\minho\.docker\config.json` is access-denied to the current process.
-- safe_use_today: shell-based Docker checks only when explicitly needed and approved.
-- next_step: install/configure a dedicated Docker MCP server if container lifecycle control should be exposed as a first-class tool.
+- status: REGISTERED_FOR_NEXT_CODEX_SESSION
+- evidence: `scripts/mcp/docker_mcp_server.js` implements a local stdio MCP server; `~/.codex/config.toml` has `mcp_servers.tac-docker`; MCP protocol tests pass.
+- local_capability: Docker CLI and Docker Desktop daemon are available after repairing local `.docker` directory access.
+- safe_use_today: read-only Docker status and run-plan generation. Container mutation is blocked unless `TAC_DOCKER_MCP_ALLOW_MUTATION=1`.
+- next_step: keep mutation disabled by default; enable `TAC_DOCKER_MCP_ALLOW_MUTATION=1` only for an explicitly approved bounded container run.
 
 ### PostgreSQL / SQLite MCP
-- status: NOT_CONNECTED_AS_MCP
-- evidence: no PostgreSQL/SQLite MCP tools are exposed in the current Codex tool list.
-- local_capability: `sqlite3` CLI is not available on PATH in this Windows session.
-- safe_use_today: Python standard library `sqlite3` can inspect local SQLite files when inside allowed workspace and not reading secrets.
-- next_step: add a database MCP only after deciding the controller state store schema and credential boundary.
+- status: SQLITE_REGISTERED_FOR_NEXT_CODEX_SESSION
+- evidence: `scripts/mcp/state_db_mcp_server.py` implements a local stdio MCP server; `~/.codex/config.toml` has `mcp_servers.tac-state-db`; schema init and MCP protocol tests pass.
+- local_capability: Python stdlib SQLite is used; external `sqlite3` CLI is not required.
+- safe_use_today: task state, task events, artifacts, and telemetry records inside `runtime/controller_state.sqlite3`.
+- next_step: add PostgreSQL only after DB URL, credential boundary, and production retention policy are decided.
 
 ### Telegram MCP
-- status: NOT_CONNECTED_AS_MCP
-- evidence: no Telegram MCP tools are exposed in the current Codex tool list.
+- status: INTENTIONALLY_ROUTED_THROUGH_N8N
+- evidence: no direct Telegram MCP tools are exposed; current Telegram operation is through n8n TAC workflows and the `Kindred AI Controller` credential.
 - current_capability: Telegram is controlled through n8n workflows and the existing `Kindred AI Controller` bot credential inside n8n.
 - safe_use_today: use n8n MCP/workflows as the Telegram control plane.
 - next_step: only add direct Telegram MCP if there is a clear reason to bypass n8n, because n8n currently provides audit and routing.
@@ -76,12 +77,14 @@ Do not record secret values here.
 
 Current usable control plane:
 - n8n MCP: connected and healthy.
-- GitHub plugin/MCP tools: available, but target repository access is not confirmed.
+- GitHub plugin/MCP tools: available; `ziemaziema-center/n8n-workflows` access confirmed.
 - Filesystem: available through Codex workspace controls.
-- Docker/PostgreSQL/SQLite/Telegram: not connected as first-class MCP tools in this session.
+- Docker: local TAC Docker MCP registered for next Codex session; daemon status read validated.
+- SQLite: local TAC state DB MCP registered for next Codex session.
+- Telegram: intentionally routed through n8n, not direct MCP.
 
 Recommended next connection order:
-1. Add a GitHub remote for this controller repo or grant connector access to the intended repo.
-2. Keep Telegram routed through n8n unless direct Telegram MCP is explicitly required.
-3. Add Docker MCP before enabling true containerized autonomous execution.
-4. Add database MCP after defining controller state tables.
+1. Restart/new Codex session to load the newly registered `tac-docker` and `tac-state-db` MCP servers.
+2. Enable Docker MCP mutation only for an explicitly approved bounded container run.
+3. Decide whether this controller repo should push to `n8n-workflows-backup` or a new dedicated `true-autonomous-controller` repo.
+4. Keep Telegram routed through n8n unless direct Telegram MCP is explicitly required.

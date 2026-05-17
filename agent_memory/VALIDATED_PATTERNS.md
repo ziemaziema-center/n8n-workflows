@@ -149,3 +149,10 @@ Append only unless correcting the latest entry.
 - validation: n8n MCP health returned `success=true`; GitHub plugin tools were exposed; node REPL MCP returned cwd; Docker/PostgreSQL/SQLite/Telegram were not exposed as MCP tools in the current session.
 - rollback: Remove `docs/MCP_CONNECTIVITY_MATRIX.md` if the project chooses not to track MCP state in-repo.
 - evidence: Recorded on 2026-05-17 KST after user requested n8n, GitHub, Filesystem, Docker, PostgreSQL/SQLite, and Telegram MCP coverage.
+
+## Pattern: Local Dependency-Free MCP Server Registration
+- applies_to: Adding controller-specific MCP tools when a curated MCP server is not installed or exposed.
+- procedure: Implement a minimal stdio MCP server with JSON-RPC content-length framing, keep the tool surface bounded and secret-free, register it in `~/.codex/config.toml`, and validate with direct framed protocol tests before relying on tool discovery.
+- validation: `tests/test_mcp_servers.py` verifies `tac-docker` tool listing and `tac-state-db` SQLite init/task recording; full local suite passes 28/28.
+- rollback: Remove the relevant `[mcp_servers.*]` block from `~/.codex/config.toml`, delete the local server scripts, and remove docs/tests if the server is no longer wanted.
+- evidence: Applied on 2026-05-17 KST for `tac-docker` and `tac-state-db`.

@@ -177,3 +177,19 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Manual review of the MCP verification path.
 - prevention: Inspect MCP config through a redaction filter and never paste or store API key, token, or credential values in docs, telemetry, or final reports.
 - rollback_or_fix: Switched MCP status documentation to report only tool availability, config presence, and health status with secret values omitted.
+
+## 2026-05-17 23:10 KST - New MCP Servers Require Session Reload For Tool Namespace Exposure
+- symptom: Local MCP servers can be registered in `~/.codex/config.toml`, but their tool namespaces may not appear inside the already-running Codex conversation.
+- cause: Codex loads MCP server definitions at session/tool-discovery boundaries; editing config mid-session does not guarantee immediate namespace injection.
+- affected_files: `scripts/mcp/docker_mcp_server.js`, `scripts/mcp/state_db_mcp_server.py`, `docs/MCP_LOCAL_SERVERS.md`.
+- detection_method: Local stdio protocol tests passed after config registration, while current-session `tool_search` did not expose `tac-docker` or `tac-state-db` tools.
+- prevention: After adding a new MCP config entry, validate the server directly with MCP framing tests, then start a new Codex session to confirm tool namespace exposure.
+- rollback_or_fix: Registered the local MCP servers, tested them directly, and documented that next/new Codex session is required for normal tool use.
+
+## 2026-05-17 23:25 KST - Docker MCP Runtime Can Be Blocked By Local Docker ACL
+- symptom: Docker CLI reported access denied for `C:\Users\minho\.docker` and could not read Docker context metadata from the sandboxed shell.
+- cause: Docker Desktop config access and named-pipe access require the real user context; sandboxed shell checks may report false negatives.
+- affected_files: none.
+- detection_method: Non-escalated Docker checks failed, while escalated user-context checks showed Docker Desktop daemon available after `.docker` ACL repair.
+- prevention: For Docker MCP runtime validation, verify both the local MCP protocol and Docker daemon access from the user context; do not treat sandboxed Docker failure as final daemon failure.
+- rollback_or_fix: Restored current-user ACL on `C:\Users\minho\.docker`, started Docker Desktop, and validated `tac-docker` MCP `docker_status` against Docker Desktop 4.69.0.

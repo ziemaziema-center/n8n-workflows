@@ -228,3 +228,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Documentation and telemetry only; no n8n workflow, Docker container, database, Telegram bot, credential, or production state changed.
 - rollback_needed: No.
 - next_action: Connect GitHub repo/remote first, then add Docker MCP before containerized autonomous execution, then add DB MCP after schema decisions.
+
+## 2026-05-17 23:10 KST - GitHub Remote, Docker MCP, And SQLite State DB MCP
+- request: Execute the next MCP connection steps completely.
+- actions: Verified GitHub connector access to `ziemaziema-center/n8n-workflows`; added local git remote `n8n-workflows-backup`; implemented local dependency-free `tac-docker` stdio MCP server; implemented local dependency-free `tac-state-db` SQLite MCP server; defined controller state DB schema; initialized `runtime/controller_state.sqlite3`; registered both MCP servers in `~/.codex/config.toml`; repaired local `.docker` ACL and started Docker Desktop for runtime validation; kept Telegram intentionally routed through n8n instead of adding a direct Telegram MCP.
+- validation: PASS. `git ls-remote` PASS; GitHub connector commit search PASS; Docker MCP tools/list protocol test PASS; Docker MCP `docker_status` read PASS against Docker Desktop 4.69.0; SQLite MCP init and task round-trip PASS; controller state DB status PASS; full local tests 28/28 PASS.
+- telemetry: SUCCESS: GitHub access, Docker MCP registration, Docker daemon status read, SQLite state DB MCP registration, and state schema are now in place. FAILURE: new MCP tool namespaces require a new Codex session/reload to appear in normal tool discovery.
+- files_changed: `.gitignore`, `scripts/mcp/docker_mcp_server.js`, `scripts/mcp/state_db_mcp_server.py`, `tests/test_mcp_servers.py`, `docs/MCP_CONNECTIVITY_MATRIX.md`, `docs/MCP_LOCAL_SERVERS.md`, `docs/CONTROLLER_STATE_DB_SCHEMA.md`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Updated local `~/.codex/config.toml` with backup; created ignored SQLite runtime DB; repaired local `.docker` ACL; started Docker Desktop; no production workflow, Telegram bot, n8n credential, Docker container, or live trading state changed.
+- rollback_needed: No.
+- next_action: Start a new Codex session to load `tac-docker` and `tac-state-db`; keep Docker mutation disabled until an explicitly approved bounded container execution.
