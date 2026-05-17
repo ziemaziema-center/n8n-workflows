@@ -161,3 +161,19 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User supplied a real Telegram transcript and reported that the result was not readable or actionable.
 - prevention: Telegram-facing text must be Korean, plain-language, sectioned by operator questions: what will happen, expected time, what finished, what could not be done, remaining work, and next action.
 - rollback_or_fix: Updated Codex execution prompt to require Korean plain-language reports; changed controller summaries to Korean labels; changed Telegram received/final replies to Korean operator-first format; validated real Telegram Trigger execution `10554`.
+
+## 2026-05-17 22:20 KST - MCP Availability Must Be Verified Before Claiming Integration
+- symptom: User requested several MCP integrations as if all could be enabled immediately.
+- cause: Some capabilities exist as Codex plugins or shell access, but not as first-class MCP tools in the current session.
+- affected_files: `docs/MCP_CONNECTIVITY_MATRIX.md`.
+- detection_method: `tool_search` exposed n8n MCP, GitHub plugin tools, and node REPL, but did not expose Docker, PostgreSQL, SQLite, Telegram, or a separate Filesystem MCP.
+- prevention: Separate `CONNECTED`, `TOOL_AVAILABLE`, `AVAILABLE_AS_CODEX_FILESYSTEM`, and `NOT_CONNECTED_AS_MCP` in operator docs before making architecture claims.
+- rollback_or_fix: Added an MCP connectivity matrix and recorded verified status without storing secret values.
+
+## 2026-05-17 22:35 KST - MCP Config Reads Must Redact Secrets
+- symptom: Local MCP configuration inspection can include environment variables that are secret-bearing.
+- cause: Raw config reads are faster than redacted inspection but can expose credential values in command output.
+- affected_files: none; no secret value was written to project files.
+- detection_method: Manual review of the MCP verification path.
+- prevention: Inspect MCP config through a redaction filter and never paste or store API key, token, or credential values in docs, telemetry, or final reports.
+- rollback_or_fix: Switched MCP status documentation to report only tool availability, config presence, and health status with secret values omitted.

@@ -218,3 +218,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service` and n8n; sent one short Telegram validation pair; no production workflow logic, Docker workload, Upbit live order, or credential value changed.
 - rollback_needed: No.
 - next_action: Use the new report shape for the next real Upbit bounded cycle.
+
+## 2026-05-17 22:35 KST - MCP Connectivity Verification
+- request: Connect n8n, GitHub, Filesystem, Docker, PostgreSQL/SQLite, and Telegram MCP capabilities to Codex with all approvals.
+- actions: Verified actual tool exposure instead of assuming availability; checked n8n MCP health; checked GitHub connector/tool visibility; checked Codex filesystem access; checked Docker CLI presence; checked SQLite CLI presence; documented the verified integration matrix in `docs/MCP_CONNECTIVITY_MATRIX.md`.
+- validation: PASS. n8n MCP health returned `success=true`; GitHub plugin tools are exposed but target repo access is not confirmed; Codex filesystem is available in the trusted workspace; Docker/PostgreSQL/SQLite/Telegram are not exposed as first-class MCP tools in this session; project docs contain no secret values; local tests 25/25 PASS; TAC workflow JSON parse PASS.
+- telemetry: SUCCESS: MCP status is now explicit and operator-readable. FAILURE: Requested “100% all MCP connected” is not currently true because several MCP servers are not installed/exposed to Codex.
+- files_changed: `docs/MCP_CONNECTIVITY_MATRIX.md`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Documentation and telemetry only; no n8n workflow, Docker container, database, Telegram bot, credential, or production state changed.
+- rollback_needed: No.
+- next_action: Connect GitHub repo/remote first, then add Docker MCP before containerized autonomous execution, then add DB MCP after schema decisions.

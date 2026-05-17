@@ -142,3 +142,10 @@ Append only unless correcting the latest entry.
 - validation: Local tests 25/25 pass; EC2 tests 25/25 pass; `tac_controller_webhook` smoke returns Korean `결과 요약`; real Telegram Trigger execution `10554` sends Korean `상태: 접수됨` and `상태: 완료` messages successfully.
 - rollback: Revert `src/tac/controller.py` and both TAC workflow JSON files, then restart `tac-service` and n8n.
 - evidence: Added after the user reported that the prior successful Upbit report was too English/technical to operate from Telegram.
+
+## Pattern: MCP Connectivity Matrix
+- applies_to: Adding or claiming Codex MCP/plugin capabilities for the autonomous controller.
+- procedure: Verify available tools through `tool_search`, verify configured local MCP servers without exposing secrets, run a health check where available, then record each integration as connected, tool-available, filesystem-native, or not connected as MCP.
+- validation: n8n MCP health returned `success=true`; GitHub plugin tools were exposed; node REPL MCP returned cwd; Docker/PostgreSQL/SQLite/Telegram were not exposed as MCP tools in the current session.
+- rollback: Remove `docs/MCP_CONNECTIVITY_MATRIX.md` if the project chooses not to track MCP state in-repo.
+- evidence: Recorded on 2026-05-17 KST after user requested n8n, GitHub, Filesystem, Docker, PostgreSQL/SQLite, and Telegram MCP coverage.

@@ -169,3 +169,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service` and n8n; sent one short Telegram smoke pair; no clean_01~04 logic, Docker workload, Upbit live order, or credential value changed.
 - rollback: Revert this patch, redeploy previous controller/workflow files, restart `tac-service` and n8n.
 - next_action: Future real `/codex` tasks should produce Korean plain-language reports from both the controller wrapper and Codex prompt.
+
+## 2026-05-17 22:20 KST - MCP Connectivity Matrix
+- request: Connect n8n, GitHub, Filesystem, Docker, PostgreSQL/SQLite, and Telegram MCP capabilities to Codex with all approvals.
+- files_changed: `docs/MCP_CONNECTIVITY_MATRIX.md`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `bbeee6d` before MCP connectivity documentation.
+- validation: PASS. n8n MCP health returned `success=true`; GitHub plugin tools are exposed; node REPL MCP returned current workspace; Codex local config confirms n8n MCP and GitHub plugin are configured without recording secrets; Docker CLI exists but Docker MCP is not exposed; PostgreSQL/SQLite/Telegram MCP tools are not exposed in this session.
+- side_effects: Documentation and telemetry only; no credential value stored; no n8n workflow, Docker container, database, Telegram bot, or production state changed.
+- rollback: Delete `docs/MCP_CONNECTIVITY_MATRIX.md` and revert telemetry append if this project should not track MCP state.
+- next_action: Add GitHub remote/repo access first, then install/configure Docker MCP before true containerized autonomy.
