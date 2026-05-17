@@ -70,3 +70,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Reimported/reactivated both TAC workflows; restarted `tac-service`; restarted only `n8n`; updated Telegram bot command menu to `/run`, `/codex`, `/status`, `/killall`; no clean_01~04 logic edited.
 - rollback: Revert this commit, redeploy prior `controller.py`, reimport prior TAC workflow JSON, and restart only `tac-service` and n8n.
 - next_action: Complete Codex authentication on EC2 runner with `codex login --with-api-key` or `codex login`; then rerun `/codex Print exactly TAC_CODEX_WEBHOOK_OK and do not modify files.`
+
+## 2026-05-17 11:05 KST - Codex Invalid API Key Handling
+- request: Diagnose `/codex` failure after user completed Codex login.
+- files_changed: `src/tac/controller.py`, `tests/test_phase3_controller.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `7b528f3` before auth failure handling patch.
+- validation: PASS. Failed task result showed `invalid_api_key`; local tests 13/13 PASS; EC2 tests 13/13 PASS; `/codex` now returns `BLOCKED` with escalation in one attempt; EC2 generated result files were redacted and no longer match API-key prefixes.
+- side_effects: Restarted only `tac-service`; no n8n workflow, Docker, clean_01~04, or credential value was changed.
+- rollback: Revert this patch and restart `tac-service`, not recommended because it would restore retrying invalid credentials.
+- next_action: User must replace the EC2 Codex credential with a valid OpenAI API key or use device auth, then rerun `/codex Print exactly TAC_CODEX_OK and do not modify files.`

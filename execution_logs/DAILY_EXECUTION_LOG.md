@@ -107,3 +107,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Codex CLI installed under `/home/ubuntu/.local`; Telegram bot commands now show `/codex`; n8n restarted once; `tac-service` restarted; existing clean_01~04 logic not edited.
 - rollback_needed: No.
 - next_action: Authenticate Codex CLI on EC2 runner, then run `/codex` live smoke.
+
+## 2026-05-17 11:05 KST - Codex Invalid API Key Debug
+- request: Diagnose why `/codex` still failed after user logged in through PowerShell/OpenAI.
+- actions: Inspected failed task `tac-20260517015618-99fc7dea5d`; confirmed Codex CLI login exists but the stored API key is rejected by OpenAI API; added auth-error classification; added API-key output redaction; deployed to EC2; restarted `tac-service`; redacted existing generated task result JSON files.
+- validation: PASS. Local tests 13/13 PASS; EC2 tests 13/13 PASS; `/codex` now returns `BLOCKED` with task `tac-20260517020244-62fc400f8a` and one attempt instead of retrying as `FAIL`; generated result files no longer match API-key prefixes.
+- telemetry: FAILURE: Codex `login status` can pass even when the stored key is invalid at API request time. FAILURE: previous result tails contained masked API-key material from Codex error text; fixed by redacting command output and existing generated results. SUCCESS: invalid Codex credentials now escalate deterministically and do not retry.
+- files_changed: `src/tac/controller.py`, `tests/test_phase3_controller.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only `tac-service`; no n8n workflow, Docker, clean_01~04, or credential value was changed.
+- rollback_needed: No.
+- next_action: Replace Codex auth on EC2 with a valid OpenAI API key or device auth, then rerun `/codex Print exactly TAC_CODEX_OK and do not modify files.`

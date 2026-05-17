@@ -89,3 +89,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Webhook `/codex` smoke returned `codex-executor exited 2`; direct `codex exec --help` showed current option layout; `codex login status` returned `Not logged in`.
 - prevention: Verify installed CLI help before wiring executor arguments; add Codex login preflight so authentication failures return `BLOCKED` without retry loops.
 - rollback_or_fix: Updated argv to `codex --ask-for-approval never exec --sandbox workspace-write --json --skip-git-repo-check <prompt>`, installed Codex CLI on EC2, added PATH bootstrap, and added a login preflight gate.
+
+## 2026-05-17 11:05 KST - Codex Login Status Can Pass With Invalid API Key
+- symptom: `/codex` returned `FAIL` with `codex-executor exited 1` even after Codex CLI login was completed.
+- cause: `codex login status` reported an API-key login, but the stored key was rejected by OpenAI API with `invalid_api_key`.
+- affected_files: `src/tac/controller.py`, `tests/test_phase3_controller.py`, EC2 generated `runtime/tasks/*/result.json`.
+- detection_method: Failed task result `tac-20260517015618-99fc7dea5d` showed 401 `invalid_api_key` from the Responses API.
+- prevention: Treat Codex auth API errors as `BLOCKED` with escalation instead of retryable executor failures; redact API-key-like strings from command output tails before storing result JSON.
+- rollback_or_fix: Added auth-error classification and output redaction; deployed to EC2; restarted `tac-service`; redacted existing EC2 runtime result JSON files.

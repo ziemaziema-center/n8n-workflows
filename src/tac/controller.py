@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -56,6 +57,11 @@ class ControllerError(Exception):
 
 class RiskBlocked(ControllerError):
     """Raised when a task must not run automatically."""
+
+
+SECRET_PATTERNS = [
+    re.compile(r"sk-[A-Za-z0-9_*\\-]{8,}"),
+]
 
 
 @dataclass(frozen=True)
@@ -182,6 +188,13 @@ def executable_name(argv0: str) -> str:
     return Path(argv0).name.lower()
 
 
+def redact_sensitive_text(text: str) -> str:
+    redacted = str(text or "")
+    for pattern in SECRET_PATTERNS:
+        redacted = pattern.sub("sk-REDACTED", redacted)
+    return redacted
+
+
 def ensure_codex_ready() -> None:
     if shutil.which("codex") is None:
         raise RiskBlocked("codex cli is not installed or not on PATH")
@@ -243,15 +256,33 @@ def run_command(command: dict[str, Any], workspace: Path, timeout_sec: int, dry_
         "argv": argv,
         "exit_code": int(exit_code),
         "duration_sec": round(time.monotonic() - started, 3),
-        "stdout_tail": stdout[-2000:],
-        "stderr_tail": stderr[-2000:],
+        "stdout_tail": redact_sensitive_text(stdout[-2000:]),
+        "stderr_tail": redact_sensitive_text(stderr[-2000:]),
     }
+
+
+def codex_auth_error(result: dict[str, Any]) -> str | None:
+    if result.get("id") != "codex-executor":
+        return None
+    combined = f"{result.get('stdout_tail', '')}\n{result.get('stderr_tail', '')}".lower()
+    auth_markers = [
+        "invalid_api_key",
+        "incorrect api key",
+        "missing bearer or basic authentication",
+        "401 unauthorized",
+    ]
+    if any(marker in combined for marker in auth_markers):
+        return "codex authentication failed; refresh EC2 Codex login with a valid OpenAI API key or device auth"
+    return None
 
 
 def review_attempt(task: dict[str, Any], command_results: list[dict[str, Any]]) -> Review:
     reasons: list[str] = []
     retry_allowed = False
     for command, result in zip(task["commands"], command_results):
+        auth_reason = codex_auth_error(result)
+        if auth_reason:
+            return Review("BLOCKED", [auth_reason], retry_allowed=False, escalation_required=True)
         if result["exit_code"] != 0 and not command.get("allow_failure", False):
             reasons.append(f"{result['id']} exited {result['exit_code']}")
             retry_allowed = True

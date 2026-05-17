@@ -4,7 +4,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.tac.controller import ControllerError, load_task, run_controller, task_from_prompt, validate_task_shape
+from src.tac.controller import (
+    ControllerError,
+    load_task,
+    redact_sensitive_text,
+    review_attempt,
+    run_controller,
+    task_from_prompt,
+    validate_task_shape,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -98,6 +106,29 @@ class Phase3ControllerTests(unittest.TestCase):
         self.assertIn("workspace-write", task["commands"][0]["argv"])
         self.assertIn("--skip-git-repo-check", task["commands"][0]["argv"])
         validate_task_shape(task)
+
+    def test_codex_auth_error_blocks_without_retry(self):
+        task = task_from_prompt("say ok", task_id="unit-codex-auth", source="test", executor="codex")
+        review = review_attempt(
+            task,
+            [
+                {
+                    "id": "codex-executor",
+                    "exit_code": 1,
+                    "stdout_tail": "unexpected status 401 Unauthorized: Incorrect API key provided",
+                    "stderr_tail": "",
+                }
+            ],
+        )
+        self.assertEqual(review.status, "BLOCKED")
+        self.assertFalse(review.retry_allowed)
+        self.assertTrue(review.escalation_required)
+
+    def test_redacts_api_keys_from_command_output(self):
+        text = "Incorrect API key provided: " + "sk-" + "proj-abcdefghijklmnopqrstuvwxyz1234567890"
+        redacted = redact_sensitive_text(text)
+        self.assertNotIn("abcdefghijklmnopqrstuvwxyz", redacted)
+        self.assertIn("sk-REDACTED", redacted)
 
 
 if __name__ == "__main__":

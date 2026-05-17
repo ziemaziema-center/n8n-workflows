@@ -72,3 +72,10 @@ Append only unless correcting the latest entry.
 - validation: Source/workflow/docs contain no current `/claude` command references; local and EC2 tests pass; `/run` passes; `/codex` reaches Codex preflight and returns `BLOCKED` if login is absent; `/status` and `/killall` continue to work.
 - rollback: Revert local Git commit and reimport previous n8n workflow JSON, then restart only `tac-service` and n8n.
 - evidence: Validated on 2026-05-17 KST with Codex CLI `0.130.0`, active TAC workflows, `/run` PASS, `/codex` auth preflight BLOCKED, `/status` PASS, and `/killall` PASS.
+
+## Pattern: Codex Auth Failure Escalation
+- applies_to: Codex CLI executor failures caused by authentication or invalid API key.
+- procedure: Detect 401/auth markers in Codex command output, redact API-key-like strings from stdout/stderr tails, classify the task as `BLOCKED`, disable retry, and require human credential refresh.
+- validation: Local and EC2 tests pass; `/codex` with an invalid stored key returns `BLOCKED` in one attempt; generated result output contains `sk-REDACTED` instead of key-like material; runtime result files no longer grep for API-key prefixes.
+- rollback: Revert the redaction/classification patch and restart `tac-service`, though this is not recommended because it restores retry waste and weaker output hygiene.
+- evidence: Validated on 2026-05-17 KST with task `tac-20260517020244-62fc400f8a` returning `BLOCKED` for Codex authentication failure.
