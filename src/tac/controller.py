@@ -229,6 +229,7 @@ def task_from_prompt(prompt: str, *, task_id: str | None = None, source: str = "
             "executor": executor,
             "telegram_summary": True,
             "reviewer_required": True,
+            "telegram_followup": clean_prompt.startswith("FOLLOWUP_TASK: true"),
         },
     }
 

@@ -157,3 +157,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service` and n8n; no clean_01~04 workflow logic, Docker workload, Upbit live trading, or credential value changed.
 - rollback_needed: No.
 - next_action: Resend the Telegram `/codex` project command; it should now return a final report instead of silently disappearing.
+
+## 2026-05-17 14:50 KST - Telegram Natural Follow-Up Routing Fix
+- request: Fix another no-response case when a follow-up approval was sent as ordinary text instead of `/codex`.
+- actions: Confirmed the screenshot message had no slash command; patched `tac_telegram_commands` so non-slash text becomes a Codex follow-up; tagged follow-up prompts; added service logic to hydrate the workspace from the latest TAC result; added regression coverage; deployed to EC2; reimported/published the Telegram workflow; restarted `tac-service` and n8n.
+- validation: PASS. Local tests 21/21 PASS; EC2 tests 21/21 PASS; `tac_telegram_commands` active; follow-up smoke task `tac-20260517054736-54de626dc9` returned `Codex output: FOLLOWUP_WORKSPACE_OK` and used `/home/ubuntu/workspace/02_upbit_automation_clean`.
+- telemetry: FAILURE: Dedicated controller bot silently ignored non-slash natural follow-up text. SUCCESS: Natural text now routes as a Codex follow-up to the latest bounded workspace when no explicit `WORKSPACE:` is present.
+- files_changed: `src/tac/controller.py`, `src/tac/service.py`, `tests/test_service_contract.py`, `workflows/tac_telegram_commands.json`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only `tac-service` and n8n; no clean_01~04 workflow logic, Docker workload, Upbit live trading, or credential value changed.
+- rollback_needed: No.
+- next_action: User can resend the natural follow-up text; it should now produce a controller response.

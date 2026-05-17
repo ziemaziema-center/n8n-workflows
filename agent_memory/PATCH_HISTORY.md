@@ -115,3 +115,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service` and n8n; updated only TAC workflows; no clean_01~04, Docker workload, Upbit live order, or credential value changed.
 - rollback: Revert this patch, reimport previous workflow JSON, and restart `tac-service`/n8n.
 - next_action: User can resend the long Telegram command; tasks under the 30-minute hard limit should now return a final Telegram report.
+
+## 2026-05-17 14:50 KST - Telegram Natural Follow-Up Routing
+- request: Fix another no-response case after the user sent a normal follow-up approval message without `/codex`.
+- files_changed: `src/tac/controller.py`, `src/tac/service.py`, `tests/test_service_contract.py`, `workflows/tac_telegram_commands.json`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `60125ed` before natural follow-up routing patch.
+- validation: PASS. Local tests 21/21 PASS; EC2 tests 21/21 PASS; `tac_telegram_commands` reimported/published and active; follow-up smoke task `tac-20260517054736-54de626dc9` returned `Codex output: FOLLOWUP_WORKSPACE_OK` and used `/home/ubuntu/workspace/02_upbit_automation_clean`.
+- side_effects: Restarted only `tac-service` and n8n; updated only TAC Telegram workflow; no clean_01~04, Docker workload, Upbit live order, or credential value changed.
+- rollback: Revert this patch, reimport prior `tac_telegram_commands.json`, and restart `tac-service`/n8n.
+- next_action: User can resend the natural follow-up text; it should now be treated as a Codex follow-up to the latest bounded workspace.

@@ -32,7 +32,35 @@ class ControllerState:
             json.dump(task, handle, indent=2, ensure_ascii=True)
             handle.write("\n")
 
+    def latest_result(self, exclude_task_id: str = "") -> dict[str, Any] | None:
+        result_paths = sorted(
+            self.runtime_root.glob("tac-*/result.json"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        for path in result_paths:
+            if exclude_task_id and path.parent.name == exclude_task_id:
+                continue
+            try:
+                with path.open("r", encoding="utf-8-sig") as handle:
+                    return json.load(handle)
+            except (OSError, json.JSONDecodeError):
+                continue
+        return None
+
+    def apply_followup_workspace(self, task: dict[str, Any]) -> None:
+        metadata = task.get("metadata") if isinstance(task.get("metadata"), dict) else {}
+        if not metadata.get("telegram_followup") or task.get("workspace") != ".":
+            return
+        latest = self.latest_result(str(task.get("task_id") or ""))
+        workspace = str((latest or {}).get("workspace") or "")
+        if workspace.startswith("/home/ubuntu/workspace/") or workspace.startswith(str(self.project_root)):
+            task["workspace"] = workspace
+            metadata["followup_workspace_from_task"] = str((latest or {}).get("task_id") or "unknown")
+            task["metadata"] = metadata
+
     def run_task(self, task: dict[str, Any]) -> dict[str, Any]:
+        self.apply_followup_workspace(task)
         validate_task_shape(task)
         self.save_task(task)
         result = run_controller(task, self.project_root)

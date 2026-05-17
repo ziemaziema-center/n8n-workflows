@@ -107,3 +107,10 @@ Append only unless correcting the latest entry.
 - validation: Local tests 20/20 pass; EC2 tests 20/20 pass; both TAC workflows are active; n8n webhook `/codex` returns `Codex output: TELEGRAM_TIMEOUT_FIX_OK`.
 - rollback: Restore shorter n8n timeouts and revert controller `agent_text` extraction if needed, though that reintroduces silent long-run failures.
 - evidence: Validated on 2026-05-17 KST with task `tac-20260517051453-69c2e2e7fe`.
+
+## Pattern: Telegram Natural Follow-Up To Latest Workspace
+- applies_to: Dedicated controller bot messages that are natural follow-ups rather than slash commands.
+- procedure: Route non-slash Telegram text as a Codex follow-up task, tag the prompt with `FOLLOWUP_TASK: true`, and, when no explicit workspace is present, hydrate the task workspace from the latest TAC result.
+- validation: Local tests 21/21 pass; EC2 tests 21/21 pass; n8n `tac_telegram_commands` is active after reimport; follow-up smoke without `WORKSPACE:` runs in the latest Upbit bounded workspace and returns `FOLLOWUP_WORKSPACE_OK`.
+- rollback: Restore slash-command-only Telegram parser and remove follow-up workspace hydration.
+- evidence: Validated on 2026-05-17 KST with task `tac-20260517054736-54de626dc9`.

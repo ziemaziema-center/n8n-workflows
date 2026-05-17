@@ -121,3 +121,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Latest task `tac-20260517044407-96cf346ad5` had a PASS `result.json`, no running Codex process, and `tac-service` showed `BrokenPipeError`.
 - prevention: Keep n8n runner HTTP timeout aligned with TAC hard runtime limit; store parsed Codex `agent_text` separately from stdout tails.
 - rollback_or_fix: Increased TAC workflow HTTP timeouts to 30 minutes, expanded Telegram summary allowance, added `agent_text` extraction from full stdout before truncation, deployed to EC2/n8n, restarted `tac-service` and n8n, and validated `TELEGRAM_TIMEOUT_FIX_OK`.
+
+## 2026-05-17 14:50 KST - Telegram Follow-Up Text Was Silently Ignored
+- symptom: User sent a natural follow-up approval message in the dedicated controller bot and received no response.
+- cause: `tac_telegram_commands` only treated slash-prefixed `/run`, `/codex`, `/status`, and `/killall` messages as supported; ordinary text was routed to the unsupported branch with no reply.
+- affected_files: `workflows/tac_telegram_commands.json`, `src/tac/controller.py`, `src/tac/service.py`, `tests/test_service_contract.py`.
+- detection_method: User screenshot showed a non-slash follow-up message after a prior TAC report; workflow parser review confirmed non-slash text leaves `action` empty.
+- prevention: Dedicated controller bot should treat non-slash text as a Codex follow-up, and the service should carry forward the latest bounded workspace when no explicit `WORKSPACE:` is provided.
+- rollback_or_fix: Added Telegram non-slash follow-up parsing, tagged follow-up tasks, hydrated follow-up workspace from latest result, deployed to EC2/n8n, restarted `tac-service` and n8n, and validated `FOLLOWUP_WORKSPACE_OK`.
