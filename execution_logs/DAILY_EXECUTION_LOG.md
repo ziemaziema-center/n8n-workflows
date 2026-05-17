@@ -147,3 +147,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service`; no n8n workflow, Docker, clean_01~04, or credential value changed. Temporary host-mode Codex is less isolated than the final Docker target.
 - rollback_needed: No immediate rollback; set `TAC_CODEX_SANDBOX=workspace-write` and restart `tac-service` if host-mode fallback must be disabled.
 - next_action: Use explicit `WORKSPACE:` in Telegram commands for real project work; complete Docker-isolated runner before unattended overnight mutation.
+
+## 2026-05-17 14:15 KST - Long Telegram Reply Timeout Fix
+- request: Determine whether no Telegram reply after a long `/codex` command is normal.
+- actions: Inspected EC2 runtime tasks and `tac-service`; confirmed task `tac-20260517044407-96cf346ad5` reached TAC and completed PASS after 185 seconds; found `BrokenPipeError` from n8n disconnecting before TAC response; increased TAC n8n HTTP timeouts to 30 minutes; added controller `agent_text` extraction before stdout truncation; redeployed controller/tests/workflows; reimported/published TAC workflows; restarted `tac-service` and n8n.
+- validation: PASS. Local tests 20/20 PASS; EC2 tests 20/20 PASS; `tac_controller_webhook` and `tac_telegram_commands` active; n8n `/run` smoke PASS; n8n `/codex` smoke task `tac-20260517051453-69c2e2e7fe` returned `Codex output: TELEGRAM_TIMEOUT_FIX_OK`.
+- telemetry: FAILURE: Long Telegram Codex run completed but the user saw no reply because n8n timeout was shorter than Codex runtime. FAILURE: Long Codex final messages could be truncated out of `stdout_tail` and omitted from summaries. SUCCESS: Future long runs within the 30-minute hard limit should return Telegram final reports with parsed Codex output.
+- files_changed: `src/tac/controller.py`, `tests/test_phase3_controller.py`, `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only `tac-service` and n8n; no clean_01~04 workflow logic, Docker workload, Upbit live trading, or credential value changed.
+- rollback_needed: No.
+- next_action: Resend the Telegram `/codex` project command; it should now return a final report instead of silently disappearing.

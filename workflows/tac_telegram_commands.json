@@ -83,7 +83,7 @@
           ]
         },
         "options": {
-          "timeout": 120000,
+          "timeout": 1800000,
           "response": {
             "response": {
               "responseFormat": "json"
@@ -102,7 +102,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $json || {};\nconst result = response.result || {};\nconst status = String(result.status || (response.ok ? 'PASS' : 'UNKNOWN'));\nconst taskId = String(result.task_id || response.task_id || $node['Normalize Telegram Command'].json.task_id || 'unknown');\nconst summary = String(result.summary || response.message || response.error || 'No summary returned').slice(0, 2600);\nconst text = [\n  '[TRUE AUTONOMOUS CONTROLLER]',\n  `status: ${status}`,\n  `task: ${taskId}`,\n  '',\n  summary,\n  '',\n  'commands:',\n  `/status ${taskId}`,\n  '/killall'\n].join('\\n').slice(0, 3900);\nreturn [{ json: { status, task_id: taskId, telegram_text: text, chat_id: $node['Normalize Telegram Command'].json.chat_id } }];"
+        "jsCode": "const response = $json || {};\nconst result = response.result || {};\nconst status = String(result.status || (response.ok ? 'PASS' : 'UNKNOWN'));\nconst taskId = String(result.task_id || response.task_id || $node['Normalize Telegram Command'].json.task_id || 'unknown');\nconst summary = String(result.summary || response.message || response.error || 'No summary returned').slice(0, 3300);\nconst text = [\n  '[TRUE AUTONOMOUS CONTROLLER]',\n  `status: ${status}`,\n  `task: ${taskId}`,\n  '',\n  summary,\n  '',\n  'commands:',\n  `/status ${taskId}`,\n  '/killall'\n].join('\\n').slice(0, 3900);\nreturn [{ json: { status, task_id: taskId, telegram_text: text, chat_id: $node['Normalize Telegram Command'].json.chat_id } }];"
       },
       "id": "tac-build-telegram-reply",
       "name": "Build Telegram Reply",

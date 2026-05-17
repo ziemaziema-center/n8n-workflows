@@ -329,8 +329,9 @@ def run_command(command: dict[str, Any], workspace: Path, timeout_sec: int, dry_
         "argv": argv,
         "exit_code": int(exit_code),
         "duration_sec": round(time.monotonic() - started, 3),
-        "stdout_tail": redact_sensitive_text(stdout[-2000:]),
-        "stderr_tail": redact_sensitive_text(stderr[-2000:]),
+        "agent_text": redact_sensitive_text(extract_codex_agent_text_from_output(stdout)),
+        "stdout_tail": redact_sensitive_text(stdout[-20000:]),
+        "stderr_tail": redact_sensitive_text(stderr[-5000:]),
     }
 
 
@@ -349,11 +350,9 @@ def codex_auth_error(result: dict[str, Any]) -> str | None:
     return None
 
 
-def extract_codex_agent_text(result: dict[str, Any]) -> str:
-    if result.get("id") != "codex-executor":
-        return ""
+def extract_codex_agent_text_from_output(output: str) -> str:
     messages: list[str] = []
-    for line in str(result.get("stdout_tail", "")).splitlines():
+    for line in str(output or "").splitlines():
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
@@ -364,6 +363,14 @@ def extract_codex_agent_text(result: dict[str, Any]) -> str:
         if item.get("type") == "agent_message" and item.get("text"):
             messages.append(str(item["text"]).strip())
     return "\n\n".join(message for message in messages if message).strip()
+
+
+def extract_codex_agent_text(result: dict[str, Any]) -> str:
+    if result.get("id") != "codex-executor":
+        return ""
+    if result.get("agent_text"):
+        return str(result["agent_text"]).strip()
+    return extract_codex_agent_text_from_output(str(result.get("stdout_tail", "")))
 
 
 def review_attempt(task: dict[str, Any], command_results: list[dict[str, Any]]) -> Review:

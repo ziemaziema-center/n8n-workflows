@@ -106,3 +106,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service`; switched EC2 service default Codex sandbox to `danger-full-access` as a temporary host-mode fallback bounded by `/home/ubuntu/workspace`; no n8n workflow, Docker, clean_01~04, or credential value changed.
 - rollback: Set `TAC_CODEX_SANDBOX=workspace-write` and restart `tac-service`, or revert this patch; recommended long-term fix remains Docker-isolated Codex runner.
 - next_action: Send real project requests with an explicit first line such as `WORKSPACE: /home/ubuntu/workspace/02_업비트_자동화`; build Docker isolation before unattended overnight mutation.
+
+## 2026-05-17 14:15 KST - Long Telegram Codex Reply Fix
+- request: Explain whether no Telegram response after a long `/codex` command is normal and fix it if not.
+- files_changed: `src/tac/controller.py`, `tests/test_phase3_controller.py`, `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `7a3f537` before timeout/output extraction patch.
+- validation: PASS. Existing user task `tac-20260517044407-96cf346ad5` completed after 185 seconds but n8n disconnected; local tests 20/20 PASS; EC2 tests 20/20 PASS; n8n TAC workflows active; `/codex` webhook smoke task `tac-20260517051453-69c2e2e7fe` returned `Codex output: TELEGRAM_TIMEOUT_FIX_OK`.
+- side_effects: Restarted only `tac-service` and n8n; updated only TAC workflows; no clean_01~04, Docker workload, Upbit live order, or credential value changed.
+- rollback: Revert this patch, reimport previous workflow JSON, and restart `tac-service`/n8n.
+- next_action: User can resend the long Telegram command; tasks under the 30-minute hard limit should now return a final Telegram report.

@@ -100,3 +100,10 @@ Append only unless correcting the latest entry.
 - validation: Local tests 18/18 pass; EC2 tests 18/18 pass; n8n `/codex` read-only smoke for `/home/ubuntu/workspace/02_업비트_자동화` returns a Korean Codex report with workspace, file count, secret count, and no file modification; `/status` and `/killall` pass.
 - rollback: Set `TAC_CODEX_SANDBOX=workspace-write` or revert the patch and restart `tac-service`; final long-term replacement is Docker-isolated runner mode.
 - evidence: Validated on 2026-05-17 KST with task `tac-20260517035838-8102c8f455`.
+
+## Pattern: Long Codex Telegram Reply Timeout Guard
+- applies_to: `/codex` tasks that may run longer than the previous 60-120 second n8n HTTP request timeouts.
+- procedure: Set TAC n8n HTTP Request node timeouts to the controller hard runtime window, store parsed Codex `agent_text` from full stdout before truncating command tails, and keep Telegram message bodies under Telegram's 4096 character limit.
+- validation: Local tests 20/20 pass; EC2 tests 20/20 pass; both TAC workflows are active; n8n webhook `/codex` returns `Codex output: TELEGRAM_TIMEOUT_FIX_OK`.
+- rollback: Restore shorter n8n timeouts and revert controller `agent_text` extraction if needed, though that reintroduces silent long-run failures.
+- evidence: Validated on 2026-05-17 KST with task `tac-20260517051453-69c2e2e7fe`.

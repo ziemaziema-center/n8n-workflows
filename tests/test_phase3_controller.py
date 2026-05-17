@@ -11,6 +11,7 @@ from src.tac.controller import (
     Review,
     extract_requested_workspace,
     extract_codex_agent_text,
+    extract_codex_agent_text_from_output,
     load_task,
     make_result_summary,
     redact_sensitive_text,
@@ -179,6 +180,21 @@ class Phase3ControllerTests(unittest.TestCase):
         summary = make_result_summary(task, "PASS", Review("PASS", ["ok"], False, False), [command_result])
         self.assertIn("Codex output:", summary)
         self.assertIn("진단 결과", summary)
+
+
+    def test_extracts_codex_agent_message_from_agent_text_field(self):
+        command_result = {
+            "id": "codex-executor",
+            "exit_code": 0,
+            "agent_text": "완료 보고",
+            "stdout_tail": '"text":"truncated',
+            "stderr_tail": "",
+        }
+        self.assertEqual(extract_codex_agent_text(command_result), "완료 보고")
+
+    def test_extracts_codex_agent_message_from_full_output(self):
+        output = json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": "full report"}})
+        self.assertEqual(extract_codex_agent_text_from_output(output), "full report")
 
 
 if __name__ == "__main__":

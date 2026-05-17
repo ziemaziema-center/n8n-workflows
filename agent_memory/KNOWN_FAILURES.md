@@ -113,3 +113,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User-provided Telegram result for task `tac-20260517034624-91d65b73bf`; direct EC2 `codex --sandbox danger-full-access` smoke confirmed host mode can read files where `workspace-write` blocks.
 - prevention: Keep Docker-isolated runner as the final safety target; until then, run Codex host mode only from explicit bounded workspaces under `/home/ubuntu/workspace`, with prompt-level deny rules and Telegram escalation.
 - rollback_or_fix: Added workspace extraction/allowlist, set EC2 service fallback `TAC_CODEX_SANDBOX=danger-full-access`, closed Codex stdin, expanded `/killall` to terminate Codex/Claude processes, deployed to EC2, and validated Upbit read-only smoke through n8n.
+
+## 2026-05-17 14:15 KST - Long Telegram Codex Runs Can Finish Without Reply
+- symptom: User sent a long `/codex` project task in Telegram and received no bot reply.
+- cause: `tac_telegram_commands` HTTP Request timeout was 120 seconds while Codex completed after about 185 seconds; n8n disconnected before TAC service wrote the response. The controller also stored only the final stdout tail, so a long Codex `agent_message` JSON line could be truncated and omitted from `result.summary`.
+- affected_files: `src/tac/controller.py`, `tests/test_phase3_controller.py`, `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`.
+- detection_method: Latest task `tac-20260517044407-96cf346ad5` had a PASS `result.json`, no running Codex process, and `tac-service` showed `BrokenPipeError`.
+- prevention: Keep n8n runner HTTP timeout aligned with TAC hard runtime limit; store parsed Codex `agent_text` separately from stdout tails.
+- rollback_or_fix: Increased TAC workflow HTTP timeouts to 30 minutes, expanded Telegram summary allowance, added `agent_text` extraction from full stdout before truncation, deployed to EC2/n8n, restarted `tac-service` and n8n, and validated `TELEGRAM_TIMEOUT_FIX_OK`.
