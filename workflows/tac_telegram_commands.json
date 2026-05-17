@@ -26,7 +26,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const update = $input.first()?.json || {};\nconst msg = update.message || update.edited_message || {};\nconst chat = msg.chat || {};\nconst rawText = String(msg.text || '').trim();\nconst chatId = String(chat.id || '').trim();\nlet action = '';\nlet prompt = '';\nlet task_id = '';\nlet executor = 'dry_run';\nif (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n} else if (/^\\/codex\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'codex';\n  prompt = rawText.replace(/^\\/codex\\s*/i, '').trim() || 'Return TAC_CODEX_SMOKE_OK';\n} else if (/^\\/status\\b/i.test(rawText)) {\n  action = 'status';\n  task_id = rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/killall\\b/i.test(rawText)) {\n  action = 'killall';\n} else if (rawText && !rawText.startsWith('/')) {\n  action = 'run';\n  executor = 'codex';\n  prompt = [\n    'FOLLOWUP_TASK: true',\n    'Telegram follow-up message. First inspect the latest TAC task/result if needed and continue from the most recent related bounded workspace.',\n    'If this is an approval, execute only the approved bounded scope and keep forbidden live mutations blocked unless explicitly approved.',\n    '',\n    'User message:',\n    rawText,\n  ].join('\\n');\n}\nconst supported = !!action && !!chatId;\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nreturn [{ json: { supported, action, endpoint, runner_url: `http://172.17.0.1:8765/${endpoint}`, prompt, task_id, chat_id: chatId, executor, received_text: rawText } }];"
+        "jsCode": "const update = $input.first()?.json || {};\nconst msg = update.message || update.edited_message || {};\nconst chat = msg.chat || {};\nconst rawText = String(msg.text || '').trim();\nconst chatId = String(chat.id || '').trim();\nlet action = '';\nlet prompt = '';\nlet task_id = '';\nlet executor = 'dry_run';\nif (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n} else if (/^\\/codex\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'codex';\n  prompt = rawText.replace(/^\\/codex\\s*/i, '').trim() || 'Return TAC_CODEX_SMOKE_OK';\n} else if (/^\\/status\\b/i.test(rawText)) {\n  action = 'status';\n  task_id = rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/killall\\b/i.test(rawText)) {\n  action = 'killall';\n} else if (rawText && !rawText.startsWith('/')) {\n  action = 'run';\n  executor = 'codex';\n  prompt = [\n    'FOLLOWUP_TASK: true',\n    'Telegram follow-up message. First inspect the latest TAC task/result if needed and continue from the most recent related bounded workspace.',\n    'If this is an approval, execute only the approved bounded scope and keep forbidden live mutations blocked unless explicitly approved.',\n    '',\n    'User message:',\n    rawText,\n  ].join('\\n');\n}\nfunction makeTaskId() {\n  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);\n  const rand = Math.random().toString(16).slice(2, 10).padEnd(8, '0');\n  return `tac-${stamp}-${rand}`;\n}\nif (action === 'run' && !task_id) {\n  task_id = makeTaskId();\n}\nconst supported = !!action && !!chatId;\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nreturn [{ json: { supported, action, endpoint, runner_url: `http://172.17.0.1:8765/${endpoint}`, prompt, task_id, chat_id: chatId, executor, received_text: rawText } }];"
       },
       "id": "tac-normalize-telegram",
       "name": "Normalize Telegram Command",
@@ -138,6 +138,118 @@
           "name": "Kindred AI Controller"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "equal",
+              "value2": "run"
+            }
+          ]
+        }
+      },
+      "id": "tac-if-run-action",
+      "name": "IF Run Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const command = $node['Normalize Telegram Command'].json || {};\nconst taskId = String(command.task_id || 'starting');\nconst text = [\n  '[TRUE AUTONOMOUS CONTROLLER]',\n  'status: RECEIVED',\n  `task: ${taskId}`,\n  '',\n  '명령 접수. Codex 실행을 시작합니다.',\n  '완료되면 최종 보고를 다시 보냅니다.',\n  '',\n  'commands:',\n  `/status ${taskId}`,\n  '/killall'\n].join('\\n').slice(0, 3900);\nreturn [{ json: { chat_id: command.chat_id, telegram_text: text } }];"
+      },
+      "id": "tac-build-received-reply",
+      "name": "Build Received Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        140,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.chat_id}}",
+        "text": "={{$json.telegram_text}}",
+        "additionalFields": {
+          "disable_notification": false,
+          "appendAttribution": false
+        }
+      },
+      "id": "tac-send-received-reply",
+      "name": "Send Received Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "vX5rMVz0EqOevX0u",
+          "name": "Kindred AI Controller"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $node['Normalize Telegram Command'].json }];"
+      },
+      "id": "tac-restore-command-after-received",
+      "name": "Restore Command After Received",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const command = $node['Normalize Telegram Command'].json || {};\nconst text = [\n  '[TRUE AUTONOMOUS CONTROLLER]',\n  'status: IGNORED',\n  'task: none',\n  '',\n  '지원하지 않는 명령입니다.',\n  '사용 가능:',\n  '/codex <작업>',\n  '/run <smoke>',\n  '/status <task_id>',\n  '/killall',\n  '또는 일반 후속 메시지'\n].join('\\n').slice(0, 3900);\nreturn [{ json: { chat_id: command.chat_id, telegram_text: text } }];"
+      },
+      "id": "tac-build-unsupported-reply",
+      "name": "Build Unsupported Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.chat_id}}",
+        "text": "={{$json.telegram_text}}",
+        "additionalFields": {
+          "disable_notification": false,
+          "appendAttribution": false
+        }
+      },
+      "id": "tac-send-unsupported-reply",
+      "name": "Send Unsupported Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        140,
+        280
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "vX5rMVz0EqOevX0u",
+          "name": "Kindred AI Controller"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -168,12 +280,69 @@
       "main": [
         [
           {
-            "node": "Call TAC Runner",
+            "node": "IF Run Action",
             "type": "main",
             "index": 0
           }
         ],
-        []
+        [
+          {
+            "node": "Build Unsupported Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Run Action": {
+      "main": [
+        [
+          {
+            "node": "Build Received Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call TAC Runner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Received Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Received Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Received Reply": {
+      "main": [
+        [
+          {
+            "node": "Restore Command After Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Command After Received": {
+      "main": [
+        [
+          {
+            "node": "Call TAC Runner",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Call TAC Runner": {
@@ -192,6 +361,17 @@
         [
           {
             "node": "Send Telegram Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Unsupported Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Unsupported Reply",
             "type": "main",
             "index": 0
           }

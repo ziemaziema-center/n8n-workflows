@@ -167,3 +167,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service` and n8n; no clean_01~04 workflow logic, Docker workload, Upbit live trading, or credential value changed.
 - rollback_needed: No.
 - next_action: User can resend the natural follow-up text; it should now produce a controller response.
+
+## 2026-05-17 15:10 KST - Telegram Received Ack And Status UX
+- request: Fix the controller bot once so long Telegram commands do not look ignored while running.
+- actions: Inspected latest runtime tasks and confirmed the user's 14:59 message produced task `tac-20260517055951-c2007161f8`, which completed PASS; added pre-run `status: RECEIVED` Telegram reply, generated task ids before runner execution, included `/status <task_id>` in the received reply, added unsupported command reply nodes, added workflow contract tests, deployed workflow to EC2/n8n, and restarted n8n.
+- validation: PASS. Local tests 23/23 PASS; EC2 tests 23/23 PASS; workflow JSON parses; n8n TAC workflows active; `/status tac-20260517055951-c2007161f8` PASS; `/codex` smoke task `tac-20260517060655-8488d97be4` returned `FINAL_PIPELINE_OK`.
+- telemetry: FAILURE: Final-only Telegram reporting made long tasks indistinguishable from ignored messages. SUCCESS: Future run/follow-up messages should immediately return `status: RECEIVED` and then a final report.
+- files_changed: `workflows/tac_telegram_commands.json`, `tests/test_workflow_contract.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only n8n; no clean_01~04 workflow logic, Docker workload, Upbit live trading, or credential value changed.
+- rollback_needed: No.
+- next_action: Continue with actual Upbit project work only after read-only live state and n8n runtime checks are explicitly approved.

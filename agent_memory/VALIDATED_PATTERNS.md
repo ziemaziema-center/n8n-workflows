@@ -114,3 +114,10 @@ Append only unless correcting the latest entry.
 - validation: Local tests 21/21 pass; EC2 tests 21/21 pass; n8n `tac_telegram_commands` is active after reimport; follow-up smoke without `WORKSPACE:` runs in the latest Upbit bounded workspace and returns `FOLLOWUP_WORKSPACE_OK`.
 - rollback: Restore slash-command-only Telegram parser and remove follow-up workspace hydration.
 - evidence: Validated on 2026-05-17 KST with task `tac-20260517054736-54de626dc9`.
+
+## Pattern: Telegram Received Ack Before Long Runner
+- applies_to: Dedicated controller bot `/run`, `/codex`, and natural follow-up messages.
+- procedure: Generate a task id in the Telegram normalization node, send a `status: RECEIVED` Telegram message with `/status <task_id>` before calling the TAC runner, then send the final report after runner completion. Route unsupported slash commands to an explicit ignored/help reply.
+- validation: Local tests 23/23 pass; EC2 tests 23/23 pass; `tac_telegram_commands` is active after reimport; `/status tac-20260517055951-c2007161f8` returns PASS; `/codex` smoke returns `FINAL_PIPELINE_OK`.
+- rollback: Restore the direct IF Supported Command -> Call TAC Runner edge and remove received/unsupported reply nodes.
+- evidence: Validated on 2026-05-17 KST with task `tac-20260517060655-8488d97be4`.

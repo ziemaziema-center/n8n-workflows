@@ -124,3 +124,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service` and n8n; updated only TAC Telegram workflow; no clean_01~04, Docker workload, Upbit live order, or credential value changed.
 - rollback: Revert this patch, reimport prior `tac_telegram_commands.json`, and restart `tac-service`/n8n.
 - next_action: User can resend the natural follow-up text; it should now be treated as a Codex follow-up to the latest bounded workspace.
+
+## 2026-05-17 15:10 KST - Telegram Received Ack And Status UX
+- request: Fix the controller bot end-to-end so users are not left wondering if a long task started.
+- files_changed: `workflows/tac_telegram_commands.json`, `tests/test_workflow_contract.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `12c05a5` before Telegram received-ack patch.
+- validation: PASS. Local tests 23/23 PASS; EC2 tests 23/23 PASS; n8n `tac_telegram_commands` reimported/published and active; `/status tac-20260517055951-c2007161f8` PASS; `/codex` smoke task `tac-20260517060655-8488d97be4` returned `FINAL_PIPELINE_OK`.
+- side_effects: Restarted only n8n; updated only TAC Telegram workflow; no clean_01~04, Docker workload, Upbit live order, or credential value changed.
+- rollback: Revert workflow JSON/test patch, reimport prior `tac_telegram_commands.json`, and restart n8n.
+- next_action: Telegram run messages should now produce an immediate `status: RECEIVED` reply followed by the final report.

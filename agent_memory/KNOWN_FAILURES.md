@@ -129,3 +129,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User screenshot showed a non-slash follow-up message after a prior TAC report; workflow parser review confirmed non-slash text leaves `action` empty.
 - prevention: Dedicated controller bot should treat non-slash text as a Codex follow-up, and the service should carry forward the latest bounded workspace when no explicit `WORKSPACE:` is provided.
 - rollback_or_fix: Added Telegram non-slash follow-up parsing, tagged follow-up tasks, hydrated follow-up workspace from latest result, deployed to EC2/n8n, restarted `tac-service` and n8n, and validated `FOLLOWUP_WORKSPACE_OK`.
+
+## 2026-05-17 15:10 KST - Telegram Long-Run UX Had No Received State
+- symptom: User could not tell whether a Telegram `/codex` message had been accepted, ignored, or was still running.
+- cause: `tac_telegram_commands` sent only the final report after the runner completed; long Codex runs therefore looked silent until completion.
+- affected_files: `workflows/tac_telegram_commands.json`, `tests/test_workflow_contract.py`.
+- detection_method: User screenshot showed a long run with no immediate controller feedback; latest runtime task had completed PASS, but the UI had no running/received marker.
+- prevention: Telegram run commands must send a `status: RECEIVED` acknowledgement before the long runner call and include a task id plus `/status` command.
+- rollback_or_fix: Added pre-run received reply, pre-generated n8n task ids, unsupported-command replies, workflow contract tests, redeployed to n8n, and validated service/status/Codex smoke.
