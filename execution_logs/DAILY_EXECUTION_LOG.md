@@ -177,3 +177,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only n8n; no clean_01~04 workflow logic, Docker workload, Upbit live trading, or credential value changed.
 - rollback_needed: No.
 - next_action: Continue with actual Upbit project work only after read-only live state and n8n runtime checks are explicitly approved.
+
+## 2026-05-17 15:40 KST - Telegram Immediate Execution Briefing
+- request: Make Telegram immediately show expected direction, HQ/agent communication, execution plan, and estimated work time when a command is sent.
+- actions: Replaced the simple `RECEIVED` pre-run message with a deterministic execution briefing that includes `expected_time`, `expected_direction`, `hq_agent_flow`, `execution_plan`, `/status <task_id>`, and `/killall`; added workflow contract assertions; deployed updated Telegram workflow to EC2/n8n; reimported/published workflow and restarted n8n.
+- validation: PASS. Local tests 23/23 PASS; EC2 tests 23/23 PASS; workflow JSON parses; contract test verifies briefing fields; n8n TAC workflows active; TAC service health PASS; `/codex` smoke task `tac-20260517063840-a53dda620e` returned `ACK_BRIEFING_PATCH_OK`.
+- telemetry: SUCCESS: Telegram pre-run responses now explain what will happen before the long runner starts. FAILURE: none observed in validation.
+- files_changed: `workflows/tac_telegram_commands.json`, `tests/test_workflow_contract.py`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only n8n; no clean_01~04 workflow logic, Docker workload, Upbit live trading, or credential value changed.
+- rollback_needed: No.
+- next_action: User can send a Telegram command to verify the new immediate briefing in the real Telegram UI.

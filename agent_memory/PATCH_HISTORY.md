@@ -133,3 +133,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only n8n; updated only TAC Telegram workflow; no clean_01~04, Docker workload, Upbit live order, or credential value changed.
 - rollback: Revert workflow JSON/test patch, reimport prior `tac_telegram_commands.json`, and restart n8n.
 - next_action: Telegram run messages should now produce an immediate `status: RECEIVED` reply followed by the final report.
+
+## 2026-05-17 15:40 KST - Telegram Immediate Execution Briefing
+- request: Make Telegram immediately report expected direction, HQ/agent communication flow, execution approach, and estimated work time after a command.
+- files_changed: `workflows/tac_telegram_commands.json`, `tests/test_workflow_contract.py`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `29bcf5b` before briefing patch.
+- validation: PASS. Local tests 23/23 PASS; EC2 tests 23/23 PASS; workflow JSON parses; contract test requires `expected_time`, `expected_direction`, `hq_agent_flow`, and `execution_plan`; n8n `tac_telegram_commands` reimported/published and active; `/codex` smoke task `tac-20260517063840-a53dda620e` returned `ACK_BRIEFING_PATCH_OK`.
+- side_effects: Restarted only n8n; updated only TAC Telegram workflow; no clean_01~04, Docker workload, Upbit live order, or credential value changed.
+- rollback: Revert this patch, reimport previous Telegram workflow JSON, and restart n8n.
+- next_action: User can send a Telegram command and should immediately receive a briefing message, then a final report.

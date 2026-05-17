@@ -17,7 +17,12 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("Send Received Reply", nodes)
         self.assertIn("Restore Command After Received", nodes)
         self.assertIn("makeTaskId", nodes["Normalize Telegram Command"]["parameters"]["jsCode"])
-        self.assertIn("/status ${taskId}", nodes["Build Received Reply"]["parameters"]["jsCode"])
+        received_code = nodes["Build Received Reply"]["parameters"]["jsCode"]
+        self.assertIn("expected_time:", received_code)
+        self.assertIn("expected_direction:", received_code)
+        self.assertIn("hq_agent_flow:", received_code)
+        self.assertIn("execution_plan:", received_code)
+        self.assertIn("/status ${taskId}", received_code)
         connections = workflow["connections"]
         self.assertEqual(
             connections["IF Run Action"]["main"][0][0]["node"],

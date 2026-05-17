@@ -121,3 +121,10 @@ Append only unless correcting the latest entry.
 - validation: Local tests 23/23 pass; EC2 tests 23/23 pass; `tac_telegram_commands` is active after reimport; `/status tac-20260517055951-c2007161f8` returns PASS; `/codex` smoke returns `FINAL_PIPELINE_OK`.
 - rollback: Restore the direct IF Supported Command -> Call TAC Runner edge and remove received/unsupported reply nodes.
 - evidence: Validated on 2026-05-17 KST with task `tac-20260517060655-8488d97be4`.
+
+## Pattern: Telegram Immediate Execution Briefing
+- applies_to: Dedicated controller bot run/codex/follow-up commands that need immediate user-facing orientation.
+- procedure: In the pre-run `status: RECEIVED` message, include task id, estimated time, expected direction, HQ-to-agent flow, execution plan, `/status <task_id>`, and `/killall`.
+- validation: Local tests 23/23 pass; EC2 tests 23/23 pass; workflow contract asserts `expected_time`, `expected_direction`, `hq_agent_flow`, and `execution_plan`; n8n TAC workflows are active; `/codex` smoke returns `ACK_BRIEFING_PATCH_OK`.
+- rollback: Revert only `tac_telegram_commands.json` and `tests/test_workflow_contract.py`, reimport the prior Telegram workflow, and restart n8n.
+- evidence: Validated on 2026-05-17 KST with task `tac-20260517063840-a53dda620e`.
