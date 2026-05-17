@@ -2,7 +2,7 @@
 
 ## Project Identity
 
-TRUE AUTONOMOUS CONTROLLER is a persistent autonomous orchestration layer for AWS EC2, Docker, n8n, Telegram, Claude Code, Codex CLI, GitHub, tmux, and the existing Instagram plus flight-deal automation stack.
+TRUE AUTONOMOUS CONTROLLER is a persistent autonomous orchestration layer for AWS EC2, Docker, n8n, Telegram, Codex CLI, GitHub, tmux, and the existing Instagram plus flight-deal automation stack.
 
 This is not a single long autonomous agent run. The target is a stateful controller with planner, executor, reviewer, retryer, summarizer, escalation gate, telemetry, rollback, and bounded runtime safety.
 
@@ -12,7 +12,7 @@ This is not a single long autonomous agent run. The target is a stateful control
 ChatGPT HQ Project
   -> n8n Orchestrator on EC2
   -> tmux-based Agent Runner
-  -> Claude Code auto OR Codex CLI
+  -> Codex CLI
   -> Sandboxed Git Workspace
   -> Reviewer Agent
   -> Telegram Summary + Escalation
@@ -48,25 +48,19 @@ Default permissions:
 Codex CLI safe default:
 
 ```text
-codex exec --sandbox workspace-write --ask-for-approval on-request
+codex --ask-for-approval on-request exec --sandbox workspace-write "<prompt>"
 ```
 
 Codex headless pattern:
 
 ```text
-codex exec --sandbox workspace-write --ask-for-approval never --json "<prompt>"
+codex --ask-for-approval never exec --sandbox workspace-write --json "<prompt>"
 ```
 
 Container-only full autonomy pattern:
 
 ```text
-codex exec --sandbox danger-full-access --ask-for-approval never --json "<prompt>"
-```
-
-Claude Code preferred permission mode:
-
-```text
-claude --permission-mode auto
+codex --dangerously-bypass-approvals-and-sandbox exec --json "<prompt>"
 ```
 
 Do not assume current CLI semantics without local or official verification.
@@ -74,7 +68,7 @@ Do not assume current CLI semantics without local or official verification.
 ## Phase Roadmap
 
 Phase 1:
-- Telegram -> n8n -> tmux runner -> Claude/Codex -> Telegram summary
+- Telegram -> n8n -> tmux runner -> Codex -> Telegram summary
 
 Phase 2:
 - Docker-isolated runner
@@ -113,7 +107,7 @@ Build the Phase 1 controller skeleton:
 - Telegram intake contract
 - n8n task queue and dispatcher contract
 - tmux runner script
-- Codex/Claude command wrapper with sandbox and timeout
+- Codex command wrapper with sandbox and timeout
 - log capture path
 - Telegram summary formatter
 - kill switch route
@@ -121,4 +115,3 @@ Build the Phase 1 controller skeleton:
 - retry/escalation bounds
 
 No EC2, n8n, Docker, or workflow mutation should happen until local contracts and dry-run validation are present.
-

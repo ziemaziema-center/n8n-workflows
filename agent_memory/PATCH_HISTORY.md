@@ -61,3 +61,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Reimported/reactivated `tac_controller_webhook` and `tac_telegram_commands`; restarted only `n8n`; existing clean_01~04 workflow logic not edited; debug bot remains assigned only to existing debug workflows.
 - rollback: Reimport previous workflow JSON from Git commit `f4e3a47` or repoint TAC Telegram nodes to the old credential, reactivate both TAC workflows, and restart only n8n.
 - next_action: User can open Telegram bot `@kindred_ai_controller_bot`, press Start, then send `/run smoke test` or `/claude Return OK` for human-origin end-to-end confirmation.
+
+## 2026-05-17 09:05 KST - Codex-First Executor Cutover
+- request: Replace Claude naming and execution with Codex so the controller bot uses Codex as the live agent.
+- files_changed: `AGENTS.md`, `SESSION_BOOT.md`, `src/tac/controller.py`, `scripts/start_tac_service.sh`, `tests/test_phase3_controller.py`, `workflows/tac_controller_webhook.json`, `workflows/tac_telegram_commands.json`, `docs/TELEGRAM_N8N_TMUX_CONTRACT.md`, `docs/PHASE_0_3_RUNBOOK.md`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `0f069f5` before Codex-first cutover.
+- validation: PARTIAL PASS. Current-facing source/workflow/docs no longer expose `/claude`; Codex CLI `0.130.0` installed on EC2; local tests 11/11 PASS; EC2 tests 11/11 PASS; n8n TAC workflows active; `/run` PASS; `/codex` returns `BLOCKED` immediately because Codex CLI is not logged in; `/status` PASS; `/killall` PASS.
+- side_effects: Reimported/reactivated both TAC workflows; restarted `tac-service`; restarted only `n8n`; updated Telegram bot command menu to `/run`, `/codex`, `/status`, `/killall`; no clean_01~04 logic edited.
+- rollback: Revert this commit, redeploy prior `controller.py`, reimport prior TAC workflow JSON, and restart only `tac-service` and n8n.
+- next_action: Complete Codex authentication on EC2 runner with `codex login --with-api-key` or `codex login`; then rerun `/codex Print exactly TAC_CODEX_WEBHOOK_OK and do not modify files.`

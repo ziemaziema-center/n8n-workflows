@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -25,7 +26,7 @@ ALLOWED_EXECUTABLES = {
     "python",
     "python3",
     "py",
-    "claude",
+    "codex",
     sys.executable.lower(),
     Path(sys.executable).name.lower(),
 }
@@ -124,20 +125,21 @@ def task_from_prompt(prompt: str, *, task_id: str | None = None, source: str = "
     clean_prompt = str(prompt or "").strip()
     if not clean_prompt:
         clean_prompt = "Phase 3 smoke run"
-    if executor == "claude":
+    if executor == "codex":
         execution_mode = "local_command"
         commands = [
             {
-                "id": "claude-executor",
+                "id": "codex-executor",
                 "argv": [
-                    "claude",
-                    "-p",
+                    "codex",
+                    "--ask-for-approval",
+                    "never",
+                    "exec",
+                    "--sandbox",
+                    "workspace-write",
+                    "--json",
+                    "--skip-git-repo-check",
                     clean_prompt,
-                    "--permission-mode",
-                    "auto",
-                    "--output-format",
-                    "stream-json",
-                    "--verbose",
                 ],
             }
         ]
@@ -180,6 +182,21 @@ def executable_name(argv0: str) -> str:
     return Path(argv0).name.lower()
 
 
+def ensure_codex_ready() -> None:
+    if shutil.which("codex") is None:
+        raise RiskBlocked("codex cli is not installed or not on PATH")
+    status = subprocess.run(
+        ["codex", "login", "status"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    combined = f"{status.stdout}\n{status.stderr}".strip()
+    if status.returncode != 0 or "not logged in" in combined.lower():
+        raise RiskBlocked("codex cli is not logged in; run codex login --with-api-key or codex login")
+
+
 def guard_task(task: dict[str, Any], project_root: Path) -> Path:
     workspace = resolve_workspace(project_root, task["workspace"])
     risk_level = task["risk_level"]
@@ -195,6 +212,8 @@ def guard_task(task: dict[str, Any], project_root: Path) -> Path:
             raise RiskBlocked(f"denied executable requested: {exe}")
         if task["execution_mode"] == "local_command" and exe not in ALLOWED_EXECUTABLES:
             raise RiskBlocked(f"executable is not allowlisted: {exe}")
+        if task["execution_mode"] == "local_command" and exe == "codex":
+            ensure_codex_ready()
 
     return workspace
 

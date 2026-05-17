@@ -89,10 +89,14 @@ class Phase3ControllerTests(unittest.TestCase):
         result = run_controller(task, ROOT)
         self.assertEqual(result["status"], "PASS")
 
-    def test_task_from_prompt_can_build_claude_executor(self):
-        task = task_from_prompt("say ok", task_id="unit-claude", source="test", executor="claude")
+    def test_task_from_prompt_can_build_codex_executor(self):
+        task = task_from_prompt("say ok", task_id="unit-codex", source="test", executor="codex")
         self.assertEqual(task["execution_mode"], "local_command")
-        self.assertEqual(task["commands"][0]["argv"][0], "claude")
+        self.assertEqual(task["commands"][0]["id"], "codex-executor")
+        self.assertEqual(task["commands"][0]["argv"][:4], ["codex", "--ask-for-approval", "never", "exec"])
+        self.assertIn("--sandbox", task["commands"][0]["argv"])
+        self.assertIn("workspace-write", task["commands"][0]["argv"])
+        self.assertIn("--skip-git-repo-check", task["commands"][0]["argv"])
         validate_task_shape(task)
 
 

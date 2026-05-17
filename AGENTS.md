@@ -54,13 +54,12 @@ Hard stops for autonomous runs:
 
 Kill switch expectation:
 - Telegram command: `/killall`
-- runner action: terminate Claude/Codex agent processes only inside the bounded runner scope
+- runner action: terminate Codex agent processes only inside the bounded runner scope
 
 ## Current Project Target
 
 Immediate milestone:
 
-Telegram -> n8n -> tmux runner -> Claude/Codex runner -> log capture -> Telegram summary
+Telegram -> n8n -> tmux runner -> Codex runner -> log capture -> Telegram summary
 
 Optimize for safe persistent orchestration, not maximum autonomy.
-

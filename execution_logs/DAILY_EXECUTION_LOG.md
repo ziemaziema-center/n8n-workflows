@@ -97,3 +97,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local telemetry append only; no EC2, n8n, Docker, workflow, or credential mutation.
 - rollback_needed: No.
 - next_action: Proceed to hardening backlog: Docker-isolated runner, automatic Git checkpoints per task, stronger reviewer loop, and overnight unattended queue validation.
+
+## 2026-05-17 09:05 KST - Codex-First Command And Executor Cutover
+- request: Replace Claude naming with Codex naming and make Codex the executor path.
+- actions: Replaced current `/claude` command parsing with `/codex`; changed runner executor from `claude` to `codex`; installed Codex CLI in EC2 runner user local prefix; added PATH bootstrap to `tac-service`; fixed Codex CLI `0.130.0` argv ordering; added Codex login preflight; updated docs, Telegram command menu, and n8n workflows; redeployed EC2 bounded workspace files; reimported/reactivated TAC workflows; restarted `tac-service` and n8n.
+- validation: PARTIAL PASS. Current-facing source/workflow/docs scan found no `/claude` command references; local tests 11/11 PASS; EC2 tests 11/11 PASS; Codex CLI version `0.130.0` installed; n8n TAC workflows active; `/run` PASS with task `tac-20260516235509-df9363c789`; `/codex` returns `BLOCKED` with task `tac-20260517000017-5c7149e94b` because Codex CLI is not logged in; `/status` PASS; `/killall` PASS.
+- telemetry: FAILURE: first npm prefix was misquoted through Windows/SSH and installed under an unintended path; fixed by reinstalling with remote shell quoting. FAILURE: previous Codex CLI arg pattern used an invalid `exec` option position for version `0.130.0`; fixed from live `codex exec --help`. FAILURE: Codex auth is not complete; preflight now blocks instead of retrying. SUCCESS: Controller command surface is Codex-first and safely blocks until Codex login is completed.
+- files_changed: `AGENTS.md`, `SESSION_BOOT.md`, `src/tac/controller.py`, `scripts/start_tac_service.sh`, `tests/test_phase3_controller.py`, `workflows/tac_controller_webhook.json`, `workflows/tac_telegram_commands.json`, `docs/TELEGRAM_N8N_TMUX_CONTRACT.md`, `docs/PHASE_0_3_RUNBOOK.md`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Codex CLI installed under `/home/ubuntu/.local`; Telegram bot commands now show `/codex`; n8n restarted once; `tac-service` restarted; existing clean_01~04 logic not edited.
+- rollback_needed: No.
+- next_action: Authenticate Codex CLI on EC2 runner, then run `/codex` live smoke.

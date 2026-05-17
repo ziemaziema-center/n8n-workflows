@@ -81,3 +81,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: n8n credential usage scan showed `Kindred Debug Guard` still used by `tac_controller_webhook`.
 - prevention: During bot cutover, scan all TAC workflow JSON files for old credential ID/name and use n8n credential usage with workflow references.
 - rollback_or_fix: Updated both TAC workflow files to the `Kindred AI Controller` credential, reimported/reactivated both workflows, restarted only n8n, and revalidated `/run`, `/claude`, `/status`, and `/killall`.
+
+## 2026-05-17 09:00 KST - Codex CLI Cutover Requires Current CLI Semantics And Login
+- symptom: `/codex` initially failed with an unsupported approval flag location, then reached Codex CLI but failed with 401 authentication errors.
+- cause: Codex CLI `0.130.0` expects `--ask-for-approval` as a global option before `exec`; the EC2 runner user also had no Codex CLI login credential.
+- affected_files: `src/tac/controller.py`, `tests/test_phase3_controller.py`, `workflows/tac_controller_webhook.json`, `workflows/tac_telegram_commands.json`, `scripts/start_tac_service.sh`.
+- detection_method: Webhook `/codex` smoke returned `codex-executor exited 2`; direct `codex exec --help` showed current option layout; `codex login status` returned `Not logged in`.
+- prevention: Verify installed CLI help before wiring executor arguments; add Codex login preflight so authentication failures return `BLOCKED` without retry loops.
+- rollback_or_fix: Updated argv to `codex --ask-for-approval never exec --sandbox workspace-write --json --skip-git-repo-check <prompt>`, installed Codex CLI on EC2, added PATH bootstrap, and added a login preflight gate.

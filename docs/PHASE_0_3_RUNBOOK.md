@@ -51,25 +51,34 @@ Body: { "text": "/run final n8n loop" }
 
 Validated commands:
 - `/run`
-- `/claude`
+- `/codex`
 - `/status <task_id>`
 - `/killall`
 
-Claude executor direct service smoke:
+Codex executor direct service smoke:
 
 ```json
 {
-  "prompt": "Return exactly TAC_SERVICE_CLAUDE_OK and do not modify files.",
+  "prompt": "Return exactly TAC_SERVICE_CODEX_OK and do not modify files.",
   "source": "test",
-  "executor": "claude"
+  "executor": "codex"
 }
 ```
 
-Webhook Claude smoke:
+Codex executor requires the EC2 runner user to be logged in:
+
+```text
+codex login status
+codex login --with-api-key
+```
+
+If Codex is not logged in, `/codex` returns `BLOCKED` instead of retrying.
+
+Webhook Codex smoke:
 
 ```text
 POST https://n8n.mykindredai.com/webhook/tac-controller
-Body: { "text": "/claude Return exactly TAC_WEBHOOK_CLAUDE_OK and do not modify files." }
+Body: { "text": "/codex Return exactly TAC_WEBHOOK_CODEX_OK and do not modify files." }
 ```
 
 ## Live Wiring Gate

@@ -65,3 +65,10 @@ Append only unless correcting the latest entry.
 - validation: Bot response must include `[TRUE AUTONOMOUS CONTROLLER]`, `status: PASS`, a `tac-*` task id, bounded execution reason text, `/status <task_id>`, and `/killall`.
 - rollback: If no response or wrong bot responds, inspect Telegram webhook registration and n8n credential usage, then reimport/reactivate the TAC workflows and restart only n8n.
 - evidence: User screenshot on 2026-05-17 KST showed `/run smoke test` returning `status: PASS` and task `tac-20260516234503-c1d0425439` from `@kindred_ai_controller_bot`.
+
+## Pattern: Codex-First Command Surface
+- applies_to: Replacing Claude-facing TAC commands with Codex-facing execution.
+- procedure: Use `/codex` as the live agent command, send executor `codex` through n8n, build runner argv with current Codex CLI semantics, install Codex CLI in the EC2 runner user's local prefix, export that prefix in `tac-service`, and preflight `codex login status` before execution.
+- validation: Source/workflow/docs contain no current `/claude` command references; local and EC2 tests pass; `/run` passes; `/codex` reaches Codex preflight and returns `BLOCKED` if login is absent; `/status` and `/killall` continue to work.
+- rollback: Revert local Git commit and reimport previous n8n workflow JSON, then restart only `tac-service` and n8n.
+- evidence: Validated on 2026-05-17 KST with Codex CLI `0.130.0`, active TAC workflows, `/run` PASS, `/codex` auth preflight BLOCKED, `/status` PASS, and `/killall` PASS.

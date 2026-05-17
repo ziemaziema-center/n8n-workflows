@@ -4,7 +4,7 @@
 
 ```text
 /run <task text>
-/claude <task text>
+/codex <task text>
 /status <task_id>
 /killall
 ```
@@ -37,7 +37,7 @@ Accepted request bodies:
 
 ```json
 { "text": "/run final smoke" }
-{ "text": "/claude Return exactly OK" }
+{ "text": "/codex Return exactly OK" }
 { "text": "/status tac-..." }
 { "text": "/killall" }
 ```
@@ -73,12 +73,14 @@ It only processes:
 
 ```text
 /run
-/claude
+/codex
 /status
 /killall
 ```
 
 Unsupported Telegram messages are ignored. TAC workflows do not use the `Kindred Debug Guard` credential.
+
+`/codex` requires Codex CLI to be installed and logged in on the EC2 runner user. If it is not logged in, the controller returns `BLOCKED` with escalation required instead of retrying.
 
 ## Runner Boundary
 
@@ -107,7 +109,6 @@ Telegram:
 Bounded action:
 
 ```text
-pkill -f claude
 pkill -f codex
 ```
 
