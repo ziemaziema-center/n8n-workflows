@@ -197,3 +197,14 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only n8n; one validation Telegram summary was sent to the controller chat; no clean_01~04 workflow logic, Docker workload, Upbit live order, or credential value changed.
 - rollback_needed: No.
 - next_action: User can resend the natural-language command; it should now receive the immediate briefing before runner work starts.
+
+## 2026-05-17 20:50 KST - Upbit First Bounded Cycle Replay
+- request: User asked whether the validation Telegram message was the end; execute the missed Upbit command rather than only explaining.
+- actions: Confirmed the prior message `tac-20260517074612-960807be93` was only a validation send; derived the Telegram Trigger secret header from n8n source semantics; replayed the command through the actual Telegram Trigger path; found execution `10545` failed in `Build Received Reply` because non-ASCII regex literals became invalid; patched long-run detection to ASCII-only and added test coverage; redeployed `tac_telegram_commands`; replayed an explicit Upbit `/codex` bounded cycle.
+- validation: PASS. Local tests 25/25 PASS; EC2 tests 25/25 PASS; n8n execution `10546` success; task `tac-20260517114459-672cbd72` PASS; workspace `/home/ubuntu/workspace/02_upbit_automation_clean`; WF05 offline regression 12/12 PASS; all six workflow JSON artifacts now report `active=false`; TAC service health PASS; no Codex process remains.
+- telemetry: FAILURE: Embedded n8n JS should not use unproven non-ASCII regex literals. SUCCESS: Real Telegram Trigger path now starts runner work and completes a bounded Upbit cycle.
+- files_changed: `workflows/tac_telegram_commands.json`, `tests/test_workflow_contract.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- upbit_workspace_changes: Added explicit `active: false` to WF01, WF02, WF03, WF06 local artifacts; added `reports/first_bounded_controller_cycle_2026-05-17.md`; updated Upbit workspace `PATCH_HISTORY.md` and `DAILY_EXECUTION_LOG.md`; backup at `backups/controller_cycle_20260517_inactive_flags`.
+- side_effects: Restarted only n8n; sent immediate/final Telegram messages; no live trading, cancel, reorder, n8n activation, Docker restart, production mutation, or secret value output.
+- rollback_needed: No controller rollback. Upbit artifact rollback is available from the generated backup if needed.
+- next_action: Continue in bounded cycles: read-only runtime n8n/helper preflight, then current-order state verification, then remaining production-readiness gaps.

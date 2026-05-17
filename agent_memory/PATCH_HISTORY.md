@@ -151,3 +151,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only n8n; sent one validation Telegram summary to the user's controller chat; no clean_01~04 logic, Docker workload, Upbit live order, or credential value changed.
 - rollback: Reimport workflow JSONs from commit `baebb95` and restart n8n, though that restores the Markdown entity bug.
 - next_action: User can resend the 16:23 natural-language command; it should now receive the immediate briefing and then continue to runner execution.
+
+## 2026-05-17 20:50 KST - Upbit First Bounded Cycle Replay
+- request: Clarify whether the validation Telegram message was the end, then actually restart the missed Upbit command through the real Telegram Trigger path.
+- files_changed: `workflows/tac_telegram_commands.json`, `tests/test_workflow_contract.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `e0dcc21` before long-run briefing regex hardening.
+- validation: PASS. n8n execution `10545` exposed a non-ASCII regex failure; patched the briefing code to ASCII-only long-run detection; local tests 25/25 PASS; EC2 tests 25/25 PASS; replayed an explicit Upbit `/codex` bounded task through the Telegram Trigger webhook; n8n execution `10546` succeeded; TAC task `tac-20260517114459-672cbd72` PASS.
+- side_effects: Restarted only n8n; sent immediate and final Telegram messages for the replayed Upbit task; Codex modified only the bounded Upbit workspace by adding explicit local `active: false` fields and additive report/memory entries; no live trading, n8n activation, Docker restart, production mutation, or secret printing.
+- rollback: Revert local controller workflow/test patch; in the Upbit workspace, use the generated backup `backups/controller_cycle_20260517_inactive_flags` if the explicit inactive flags need to be restored.
+- next_action: Continue Upbit work in additional bounded cycles, starting with read-only runtime n8n/helper preflight and current-order state verification.

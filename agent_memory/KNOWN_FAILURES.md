@@ -145,3 +145,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: n8n execution `10487` for workflow `tac-telegram-commands-local` failed at node `Send Received Reply` before `Call TAC Runner`; decoded execution data showed HTTP 400 from Telegram.
 - prevention: Every TAC Telegram send node must explicitly set `parse_mode: HTML`; arbitrary final summaries must HTML-escape `&`, `<`, and `>`.
 - rollback_or_fix: Replaced underscore briefing labels with Telegram-safe labels, set `parse_mode: HTML` on all TAC Telegram send nodes, escaped dynamic summaries, redeployed both TAC workflows, restarted n8n, and validated actual Telegram send through `tac_controller_webhook`.
+
+## 2026-05-17 20:50 KST - n8n Code Node Regex Must Avoid Non-ASCII Literals
+- symptom: A repaired Telegram Trigger replay failed in `Build Received Reply` before Telegram send or runner dispatch.
+- cause: The JavaScript regex for long-run detection included Korean literals; after n8n import/runtime decoding they appeared as `??`, producing an invalid regex with `Nothing to repeat`.
+- affected_files: `workflows/tac_telegram_commands.json`, `tests/test_workflow_contract.py`.
+- detection_method: n8n execution `10545` failed at `Build Received Reply`; decoded execution data showed `SyntaxError: Invalid regular expression`.
+- prevention: Keep embedded n8n workflow JavaScript ASCII-only unless a runtime path has been proven Unicode-safe; add contract coverage with `received_code.isascii()`.
+- rollback_or_fix: Replaced long-run detection with ASCII-only patterns, redeployed `tac_telegram_commands`, restarted n8n, and replayed the Upbit first bounded cycle successfully as execution `10546`.
