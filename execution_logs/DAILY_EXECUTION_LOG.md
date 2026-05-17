@@ -187,3 +187,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only n8n; no clean_01~04 workflow logic, Docker workload, Upbit live trading, or credential value changed.
 - rollback_needed: No.
 - next_action: User can send a Telegram command to verify the new immediate briefing in the real Telegram UI.
+
+## 2026-05-17 16:50 KST - Telegram Parse Mode Hardening
+- request: Fix the real Telegram path after the user sent a natural-language command and still received no immediate briefing.
+- actions: Queried n8n execution metadata; decoded execution `10487`; confirmed the user message reached `tac_telegram_commands` but failed at `Send Received Reply` before runner dispatch; set all TAC Telegram send nodes to `parse_mode: HTML`; changed pre-run briefing labels to Telegram-safe text; added HTML escaping for dynamic summaries; redeployed both TAC workflows; restarted n8n.
+- validation: PASS. Local tests 25/25 PASS; EC2 tests 25/25 PASS; workflow JSON parses; live n8n export confirms `parse_mode: HTML` on all `tac_telegram_commands` send nodes; TAC service health PASS; actual `tac_controller_webhook` send with chat id returned HTTP 200 and task `tac-20260517074612-960807be93`.
+- telemetry: FAILURE: n8n Telegram send nodes silently default to Markdown when `parse_mode` is unset, so underscore labels can block the entire pre-run branch. SUCCESS: TAC Telegram sends now use explicit HTML mode and escape arbitrary summaries.
+- files_changed: `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `tests/test_workflow_contract.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only n8n; one validation Telegram summary was sent to the controller chat; no clean_01~04 workflow logic, Docker workload, Upbit live order, or credential value changed.
+- rollback_needed: No.
+- next_action: User can resend the natural-language command; it should now receive the immediate briefing before runner work starts.

@@ -137,3 +137,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User screenshot showed a long run with no immediate controller feedback; latest runtime task had completed PASS, but the UI had no running/received marker.
 - prevention: Telegram run commands must send a `status: RECEIVED` acknowledgement before the long runner call and include a task id plus `/status` command.
 - rollback_or_fix: Added pre-run received reply, pre-generated n8n task ids, unsupported-command replies, workflow contract tests, redeployed to n8n, and validated service/status/Codex smoke.
+
+## 2026-05-17 16:50 KST - Telegram Markdown Entity Parse Blocked Pre-Run Reply
+- symptom: A real Telegram follow-up message entered `tac_telegram_commands` but produced no immediate briefing and no runner task.
+- cause: n8n Telegram `sendMessage` defaults `parse_mode` to `Markdown` when unset. The pre-run briefing labels contained underscores such as `execution_plan`, causing Telegram API error `can't parse entities`.
+- affected_files: `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `tests/test_workflow_contract.py`.
+- detection_method: n8n execution `10487` for workflow `tac-telegram-commands-local` failed at node `Send Received Reply` before `Call TAC Runner`; decoded execution data showed HTTP 400 from Telegram.
+- prevention: Every TAC Telegram send node must explicitly set `parse_mode: HTML`; arbitrary final summaries must HTML-escape `&`, `<`, and `>`.
+- rollback_or_fix: Replaced underscore briefing labels with Telegram-safe labels, set `parse_mode: HTML` on all TAC Telegram send nodes, escaped dynamic summaries, redeployed both TAC workflows, restarted n8n, and validated actual Telegram send through `tac_controller_webhook`.

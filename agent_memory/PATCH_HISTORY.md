@@ -142,3 +142,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only n8n; updated only TAC Telegram workflow; no clean_01~04, Docker workload, Upbit live order, or credential value changed.
 - rollback: Revert this patch, reimport previous Telegram workflow JSON, and restart n8n.
 - next_action: User can send a Telegram command and should immediately receive a briefing message, then a final report.
+
+## 2026-05-17 16:50 KST - Telegram Parse Mode Hardening
+- request: Fix the real Telegram command path after the immediate briefing still failed for a natural-language follow-up.
+- files_changed: `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `tests/test_workflow_contract.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `baebb95` before parse-mode hardening.
+- validation: PASS. Decoded n8n execution `10487` and found `Send Received Reply` failed with Telegram HTTP 400 `can't parse entities`; local tests 25/25 PASS; EC2 tests 25/25 PASS; live n8n export confirms all TAC Telegram send nodes use `parse_mode: HTML`; `tac_controller_webhook` with chat id returned 200 and sent task `tac-20260517074612-960807be93`.
+- side_effects: Restarted only n8n; sent one validation Telegram summary to the user's controller chat; no clean_01~04 logic, Docker workload, Upbit live order, or credential value changed.
+- rollback: Reimport workflow JSONs from commit `baebb95` and restart n8n, though that restores the Markdown entity bug.
+- next_action: User can resend the 16:23 natural-language command; it should now receive the immediate briefing and then continue to runner execution.
