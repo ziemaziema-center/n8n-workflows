@@ -86,3 +86,10 @@ Append only unless correcting the latest entry.
 - validation: Codex login status shows ChatGPT login; `/codex` returns `PASS`; command output contains the expected Codex agent message; `/status <task_id>` returns the same PASS result; `/killall` returns scoped kill PASS.
 - rollback: If the login is revoked or expires, rerun `codex login --device-auth` on the EC2 runner user and retry the `/codex` smoke.
 - evidence: Validated on 2026-05-17 KST with task `tac-20260517033536-bb8a366f30` returning `TAC_CODEX_OK`.
+
+## Pattern: Codex Output In Telegram Summary
+- applies_to: Returning actionable Codex diagnosis, plans, or implementation reports through Telegram.
+- procedure: Parse Codex `--json` JSONL output, extract `item.completed` events where `item.type` is `agent_message`, and append that text to the task summary under `Codex output:`.
+- validation: Local and EC2 tests pass; `/codex` webhook response includes `Codex output:` with the agent message; Telegram summary will show the same result because the workflow uses `result.summary`.
+- rollback: Revert the summary extraction patch and restart `tac-service`.
+- evidence: Validated on 2026-05-17 KST with task `tac-20260517034419-6e3a728f89`.

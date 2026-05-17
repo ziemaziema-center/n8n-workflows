@@ -97,3 +97,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Failed task result `tac-20260517015618-99fc7dea5d` showed 401 `invalid_api_key` from the Responses API.
 - prevention: Treat Codex auth API errors as `BLOCKED` with escalation instead of retryable executor failures; redact API-key-like strings from command output tails before storing result JSON.
 - rollback_or_fix: Added auth-error classification and output redaction; deployed to EC2; restarted `tac-service`; redacted existing EC2 runtime result JSON files.
+
+## 2026-05-17 12:45 KST - Telegram PASS Summary Hid Codex Output
+- symptom: Telegram returned `status: PASS` and task id, but did not show the actual Codex diagnosis or plan content.
+- cause: Controller summary used only the reviewer status string and did not extract Codex JSONL `agent_message` text from command output.
+- affected_files: `src/tac/controller.py`, `tests/test_phase3_controller.py`.
+- detection_method: User received generic `PASS ... reason=all commands completed` after asking for project diagnosis and could not see the planned content.
+- prevention: Extract Codex `agent_message` events from JSONL stdout and include them under `Codex output:` in the result summary returned to Telegram.
+- rollback_or_fix: Added Codex output extraction and tests; deployed to EC2; restarted `tac-service`; verified Telegram/webhook summary includes the actual Codex output.

@@ -127,3 +127,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local telemetry append only; no EC2 code, n8n workflow, Docker, or credential value changed.
 - rollback_needed: No.
 - next_action: Send bounded real tasks via `/codex`, beginning with diagnosis/readiness commands before long implementation runs.
+
+## 2026-05-17 12:45 KST - Codex Output Telegram Summary Fix
+- request: Fix generic PASS Telegram replies so the user can see Codex's plan, diagnosis, or report content.
+- actions: Added Codex JSONL `agent_message` extraction to controller summaries; added unit coverage; deployed `controller.py` and tests to EC2; restarted `tac-service`; validated through the n8n webhook.
+- validation: PASS. Local tests 14/14 PASS; EC2 tests 14/14 PASS; task `tac-20260517034419-6e3a728f89` returned `telegram_text` containing `Codex output:` and the agent message `업비트 진단 보고서는 이제 Telegram summary에 표시됩니다.`
+- telemetry: FAILURE: previous PASS summary hid the useful Codex output. SUCCESS: Telegram summaries now include actionable Codex output text.
+- files_changed: `src/tac/controller.py`, `tests/test_phase3_controller.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only `tac-service`; no n8n workflow, Docker, or credential value changed.
+- rollback_needed: No.
+- next_action: Re-run the `/codex` Upbit diagnosis prompt and inspect the visible `Codex output:` section.

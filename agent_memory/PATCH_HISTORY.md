@@ -88,3 +88,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local telemetry append only; no EC2 code, n8n workflow, Docker, or credential value changed.
 - rollback: Not required.
 - next_action: Use `/codex` for real bounded development tasks, starting with small repo diagnosis before longer implementation.
+
+## 2026-05-17 12:45 KST - Telegram Summary Includes Codex Output
+- request: Make Telegram report show the actual Codex plan/diagnosis, not only generic PASS.
+- files_changed: `src/tac/controller.py`, `tests/test_phase3_controller.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `05a6c0f` before summary extraction patch.
+- validation: PASS. Local tests 14/14 PASS; EC2 tests 14/14 PASS; `/codex` webhook response for task `tac-20260517034419-6e3a728f89` includes `Codex output:` and the actual agent message in `telegram_text`.
+- side_effects: Restarted only `tac-service`; no n8n workflow, Docker, clean_01~04, or credential value changed.
+- rollback: Revert this patch and restart `tac-service`.
+- next_action: Re-run the Upbit diagnosis prompt; Telegram should now include the visible diagnosis/report body.

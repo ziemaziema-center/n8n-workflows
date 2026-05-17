@@ -276,6 +276,23 @@ def codex_auth_error(result: dict[str, Any]) -> str | None:
     return None
 
 
+def extract_codex_agent_text(result: dict[str, Any]) -> str:
+    if result.get("id") != "codex-executor":
+        return ""
+    messages: list[str] = []
+    for line in str(result.get("stdout_tail", "")).splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        item = event.get("item") if isinstance(event, dict) else None
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == "agent_message" and item.get("text"):
+            messages.append(str(item["text"]).strip())
+    return "\n\n".join(message for message in messages if message).strip()
+
+
 def review_attempt(task: dict[str, Any], command_results: list[dict[str, Any]]) -> Review:
     reasons: list[str] = []
     retry_allowed = False
@@ -342,15 +359,21 @@ def run_controller(task: dict[str, Any], project_root: Path) -> dict[str, Any]:
         "started_at": started_at,
         "finished_at": finished_at,
         "workspace": str(workspace),
-        "summary": make_telegram_summary(task, status, final_review),
+        "summary": make_result_summary(task, status, final_review, final_commands),
         "commands": final_commands,
         "review": final_review.to_json(),
     }
 
 
-def make_telegram_summary(task: dict[str, Any], status: str, review: Review) -> str:
+def make_result_summary(task: dict[str, Any], status: str, review: Review, command_results: list[dict[str, Any]]) -> str:
     reason = "; ".join(review.reasons)
-    return f"[{status}] {task['task_id']} phase={task['requested_phase']} reason={reason}"
+    header = f"[{status}] {task['task_id']} phase={task['requested_phase']} reason={reason}"
+    agent_text = "\n\n".join(
+        text for text in (extract_codex_agent_text(result) for result in command_results) if text
+    ).strip()
+    if agent_text:
+        return f"{header}\n\nCodex output:\n{agent_text}"
+    return header
 
 
 def write_result(result: dict[str, Any], out_path: Path) -> None:

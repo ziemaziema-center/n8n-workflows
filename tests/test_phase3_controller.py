@@ -6,7 +6,10 @@ from pathlib import Path
 
 from src.tac.controller import (
     ControllerError,
+    Review,
+    extract_codex_agent_text,
     load_task,
+    make_result_summary,
     redact_sensitive_text,
     review_attempt,
     run_controller,
@@ -129,6 +132,25 @@ class Phase3ControllerTests(unittest.TestCase):
         redacted = redact_sensitive_text(text)
         self.assertNotIn("abcdefghijklmnopqrstuvwxyz", redacted)
         self.assertIn("sk-REDACTED", redacted)
+
+    def test_extracts_codex_agent_message_for_summary(self):
+        stdout_tail = "\n".join(
+            [
+                json.dumps({"type": "thread.started", "thread_id": "unit"}),
+                json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": "진단 결과: Phase 1부터 진행"}}),
+            ]
+        )
+        command_result = {
+            "id": "codex-executor",
+            "exit_code": 0,
+            "stdout_tail": stdout_tail,
+            "stderr_tail": "",
+        }
+        self.assertEqual(extract_codex_agent_text(command_result), "진단 결과: Phase 1부터 진행")
+        task = self.base_task()
+        summary = make_result_summary(task, "PASS", Review("PASS", ["ok"], False, False), [command_result])
+        self.assertIn("Codex output:", summary)
+        self.assertIn("진단 결과", summary)
 
 
 if __name__ == "__main__":
