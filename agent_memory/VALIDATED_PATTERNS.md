@@ -93,3 +93,10 @@ Append only unless correcting the latest entry.
 - validation: Local and EC2 tests pass; `/codex` webhook response includes `Codex output:` with the agent message; Telegram summary will show the same result because the workflow uses `result.summary`.
 - rollback: Revert the summary extraction patch and restart `tac-service`.
 - evidence: Validated on 2026-05-17 KST with task `tac-20260517034419-6e3a728f89`.
+
+## Pattern: Bounded Workspace Codex Host-Mode Fallback
+- applies_to: EC2 hosts where Codex `workspace-write` sandbox fails with `bwrap` before any file read.
+- procedure: Extract an explicit workspace from `WORKSPACE:` lines, absolute `/home/ubuntu/workspace/...` paths, or known project aliases; resolve only relative paths inside the controller project root and absolute paths inside configured `TAC_ALLOWED_WORKSPACE_ROOTS`; run Codex with service-level `TAC_CODEX_SANDBOX=danger-full-access` only as a temporary host-mode fallback; close stdin so Codex cannot hang waiting for inherited input; keep the prompt denylist for secrets, sudo, destructive deletion, Docker restart, production mutation, AWS mutation, and live trading.
+- validation: Local tests 18/18 pass; EC2 tests 18/18 pass; n8n `/codex` read-only smoke for `/home/ubuntu/workspace/02_업비트_자동화` returns a Korean Codex report with workspace, file count, secret count, and no file modification; `/status` and `/killall` pass.
+- rollback: Set `TAC_CODEX_SANDBOX=workspace-write` or revert the patch and restart `tac-service`; final long-term replacement is Docker-isolated runner mode.
+- evidence: Validated on 2026-05-17 KST with task `tac-20260517035838-8102c8f455`.

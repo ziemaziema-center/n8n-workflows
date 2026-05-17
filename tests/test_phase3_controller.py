@@ -1,16 +1,20 @@
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from src.tac.controller import (
     ControllerError,
     Review,
+    extract_requested_workspace,
     extract_codex_agent_text,
     load_task,
     make_result_summary,
     redact_sensitive_text,
+    resolve_workspace,
     review_attempt,
     run_controller,
     task_from_prompt,
@@ -109,6 +113,30 @@ class Phase3ControllerTests(unittest.TestCase):
         self.assertIn("workspace-write", task["commands"][0]["argv"])
         self.assertIn("--skip-git-repo-check", task["commands"][0]["argv"])
         validate_task_shape(task)
+
+    def test_task_from_prompt_extracts_upbit_workspace_alias(self):
+        task = task_from_prompt("02_업비트_자동화 프로젝트 진단", task_id="unit-upbit", source="test", executor="codex")
+        self.assertEqual(task["workspace"], "/home/ubuntu/workspace/02_업비트_자동화")
+        self.assertIn("Bounded workspace: /home/ubuntu/workspace/02_업비트_자동화", task["commands"][0]["argv"][-1])
+
+    def test_extract_requested_workspace_from_explicit_line(self):
+        self.assertEqual(
+            extract_requested_workspace("WORKSPACE: /home/ubuntu/workspace/demo\n진단해"),
+            "/home/ubuntu/workspace/demo",
+        )
+
+    def test_resolve_workspace_allows_configured_workspace_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            allowed = Path(tmp).resolve()
+            child = allowed / "project"
+            child.mkdir()
+            with patch.dict(os.environ, {"TAC_ALLOWED_WORKSPACE_ROOTS": str(allowed)}):
+                self.assertEqual(resolve_workspace(ROOT, str(child)), child.resolve())
+
+    def test_codex_sandbox_can_be_host_mode_from_environment(self):
+        with patch.dict(os.environ, {"TAC_CODEX_SANDBOX": "danger-full-access"}):
+            task = task_from_prompt("say ok", task_id="unit-codex-host", source="test", executor="codex")
+        self.assertIn("danger-full-access", task["commands"][0]["argv"])
 
     def test_codex_auth_error_blocks_without_retry(self):
         task = task_from_prompt("say ok", task_id="unit-codex-auth", source="test", executor="codex")

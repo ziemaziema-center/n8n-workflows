@@ -97,3 +97,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service`; no n8n workflow, Docker, clean_01~04, or credential value changed.
 - rollback: Revert this patch and restart `tac-service`.
 - next_action: Re-run the Upbit diagnosis prompt; Telegram should now include the visible diagnosis/report body.
+
+## 2026-05-17 13:00 KST - Codex Bounded Workspace Host-Mode Fallback
+- request: Fix `/codex` Upbit diagnosis after Telegram showed Codex could not read files because `bwrap` failed on EC2.
+- files_changed: `src/tac/controller.py`, `src/tac/service.py`, `scripts/start_tac_service.sh`, `tests/test_phase3_controller.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `d020864` before host-mode fallback patch.
+- validation: PASS. Local tests 18/18 PASS; EC2 tests 18/18 PASS; `tac-service` health PASS; n8n `/codex` read-only Upbit workspace smoke returned PASS with concrete Codex output; `/status tac-20260517035838-8102c8f455` PASS; `/killall` PASS and no Codex process remained.
+- side_effects: Restarted only `tac-service`; switched EC2 service default Codex sandbox to `danger-full-access` as a temporary host-mode fallback bounded by `/home/ubuntu/workspace`; no n8n workflow, Docker, clean_01~04, or credential value changed.
+- rollback: Set `TAC_CODEX_SANDBOX=workspace-write` and restart `tac-service`, or revert this patch; recommended long-term fix remains Docker-isolated Codex runner.
+- next_action: Send real project requests with an explicit first line such as `WORKSPACE: /home/ubuntu/workspace/02_업비트_자동화`; build Docker isolation before unattended overnight mutation.

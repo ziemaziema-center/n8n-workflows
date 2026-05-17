@@ -137,3 +137,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only `tac-service`; no n8n workflow, Docker, or credential value changed.
 - rollback_needed: No.
 - next_action: Re-run the `/codex` Upbit diagnosis prompt and inspect the visible `Codex output:` section.
+
+## 2026-05-17 13:00 KST - Codex Workspace Read Fix For Upbit Diagnosis
+- request: Diagnose and fix why `/codex` now shows output but cannot read the Upbit workspace due to `bwrap: loopback: Failed RTM_NEWADDR`.
+- actions: Added bounded workspace extraction from `WORKSPACE:` lines, `/home/ubuntu/workspace/...` paths, and Upbit aliases; changed relative workspace validation to remain project-root scoped while allowing absolute configured workspace roots; added service-level `TAC_ALLOWED_WORKSPACE_ROOTS=/home/ubuntu/workspace` and temporary `TAC_CODEX_SANDBOX=danger-full-access`; closed Codex stdin; expanded `/killall` to terminate scoped Codex/Claude processes; deployed to EC2 and restarted only `tac-service`.
+- validation: PASS. Local tests 18/18 PASS; EC2 tests 18/18 PASS; service health PASS; n8n `/codex` read-only smoke for `/home/ubuntu/workspace/02_업비트_자동화` returned PASS with Codex output showing cwd, file count `102`, secret count `0`, and no file modification; `/status tac-20260517035838-8102c8f455` PASS; `/killall` PASS; `pgrep -a codex` returned no process.
+- telemetry: FAILURE: Codex `workspace-write` sandbox is not usable on this EC2 because bwrap cannot configure loopback networking. FAILURE: first workspace-root patch accidentally allowed relative `..` because `/home/ubuntu/workspace` was allowed; fixed by restricting relative paths to the controller project root only. SUCCESS: real n8n -> TAC -> Codex -> bounded Upbit workspace -> Telegram summary path now returns actionable reports.
+- files_changed: `src/tac/controller.py`, `src/tac/service.py`, `scripts/start_tac_service.sh`, `tests/test_phase3_controller.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only `tac-service`; no n8n workflow, Docker, clean_01~04, or credential value changed. Temporary host-mode Codex is less isolated than the final Docker target.
+- rollback_needed: No immediate rollback; set `TAC_CODEX_SANDBOX=workspace-write` and restart `tac-service` if host-mode fallback must be disabled.
+- next_action: Use explicit `WORKSPACE:` in Telegram commands for real project work; complete Docker-isolated runner before unattended overnight mutation.

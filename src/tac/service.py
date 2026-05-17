@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -64,17 +65,27 @@ def read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
 
 
 def kill_scoped_tmux_sessions() -> dict[str, Any]:
+    killed_processes: list[str] = []
+    current_uid = str(os.getuid()) if hasattr(os, "getuid") else ""
+    for pattern in ("codex", "claude"):
+        command = ["pkill"]
+        if current_uid:
+            command.extend(["-u", current_uid])
+        command.extend(["-f", pattern])
+        killed = subprocess.run(command, capture_output=True, text=True, check=False)
+        if killed.returncode == 0:
+            killed_processes.append(pattern)
     if shutil.which("tmux") is None:
-        return {"killed_sessions": [], "message": "tmux unavailable on this host"}
+        return {"killed_sessions": [], "killed_process_patterns": killed_processes, "message": "tmux unavailable on this host"}
     listed = subprocess.run(["tmux", "list-sessions", "-F", "#{session_name}"], capture_output=True, text=True, check=False)
     if listed.returncode != 0:
-        return {"killed_sessions": [], "message": "no tmux server or no sessions"}
+        return {"killed_sessions": [], "killed_process_patterns": killed_processes, "message": "no tmux server or no sessions"}
     sessions = [line.strip() for line in listed.stdout.splitlines() if line.strip().startswith("tac-task-")]
     killed: list[str] = []
     for session in sessions:
         subprocess.run(["tmux", "kill-session", "-t", session], capture_output=True, text=True, check=False)
         killed.append(session)
-    return {"killed_sessions": killed, "message": "scoped tmux kill completed"}
+    return {"killed_sessions": killed, "killed_process_patterns": killed_processes, "message": "scoped tmux kill completed"}
 
 
 class ControllerHandler(BaseHTTPRequestHandler):

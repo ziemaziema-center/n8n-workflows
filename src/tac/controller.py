@@ -50,6 +50,16 @@ DEFAULT_LIMITS = {
     "cost_ceiling_usd": 5,
 }
 
+DEFAULT_CODEX_SANDBOX = "workspace-write"
+ALLOWED_CODEX_SANDBOXES = {"read-only", "workspace-write", "danger-full-access"}
+
+WORKSPACE_ALIASES = {
+    "02_업비트_자동화": "/home/ubuntu/workspace/02_업비트_자동화",
+    "업비트": "/home/ubuntu/workspace/02_업비트_자동화",
+    "upbit": "/home/ubuntu/workspace/02_업비트_자동화",
+    "02_upbit_automation_clean": "/home/ubuntu/workspace/02_upbit_automation_clean",
+}
+
 
 class ControllerError(Exception):
     """Base error for controlled failures."""
@@ -127,12 +137,59 @@ def safe_task_id(seed: str | None = None) -> str:
     return f"tac-{stamp}-{digest}"
 
 
+def codex_sandbox_mode() -> str:
+    mode = os.environ.get("TAC_CODEX_SANDBOX", DEFAULT_CODEX_SANDBOX).strip()
+    if mode not in ALLOWED_CODEX_SANDBOXES:
+        return DEFAULT_CODEX_SANDBOX
+    return mode
+
+
+def extract_requested_workspace(prompt: str) -> str:
+    text = str(prompt or "")
+    for line in text.splitlines():
+        match = re.match(r"^\s*(?:WORKSPACE|workspace)\s*[:=]\s*(\S+)\s*$", line)
+        if match:
+            return match.group(1)
+    path_match = re.search(r"(/home/ubuntu/workspace/[^\s]+)", text)
+    if path_match:
+        return path_match.group(1)
+    lowered = text.lower()
+    for alias, workspace in WORKSPACE_ALIASES.items():
+        if alias.lower() in lowered:
+            return workspace
+    return "."
+
+
+def build_codex_prompt(user_prompt: str, workspace: str) -> str:
+    return "\n".join(
+        [
+            "TRUE AUTONOMOUS CONTROLLER task.",
+            "",
+            "Operating rules:",
+            "- Work only inside the bounded workspace shown below.",
+            "- Read project memory first when present: agent_memory/KNOWN_FAILURES.md, agent_memory/VALIDATED_PATTERNS.md, agent_memory/PATCH_HISTORY.md, SESSION_BOOT.md.",
+            "- Do not read or print secret values from .env, key, credential, token, or private-key files.",
+            "- Do not run sudo, force push, destructive deletion, live trading, AWS mutation, Docker restart, or production mutation.",
+            "- For Upbit/trading projects, stay dry-run/read-only unless the prompt explicitly approves live exchange mutation.",
+            "- Validate before reporting success. If validation cannot run, say exactly what blocked it.",
+            "- Return a concrete report suitable for Telegram, including what you checked, findings, remaining risks, and next actions.",
+            "",
+            f"Bounded workspace: {workspace}",
+            "",
+            "User request:",
+            user_prompt,
+        ]
+    )
+
+
 def task_from_prompt(prompt: str, *, task_id: str | None = None, source: str = "n8n", executor: str = "dry_run") -> dict[str, Any]:
     clean_prompt = str(prompt or "").strip()
     if not clean_prompt:
         clean_prompt = "Phase 3 smoke run"
+    workspace = extract_requested_workspace(clean_prompt)
     if executor == "codex":
         execution_mode = "local_command"
+        codex_prompt = build_codex_prompt(clean_prompt, workspace)
         commands = [
             {
                 "id": "codex-executor",
@@ -142,10 +199,10 @@ def task_from_prompt(prompt: str, *, task_id: str | None = None, source: str = "
                     "never",
                     "exec",
                     "--sandbox",
-                    "workspace-write",
+                    codex_sandbox_mode(),
                     "--json",
                     "--skip-git-repo-check",
-                    clean_prompt,
+                    codex_prompt,
                 ],
             }
         ]
@@ -162,7 +219,7 @@ def task_from_prompt(prompt: str, *, task_id: str | None = None, source: str = "
         "requested_phase": 3,
         "source": source if source in {"telegram", "n8n", "manual", "test"} else "n8n",
         "prompt": clean_prompt,
-        "workspace": ".",
+        "workspace": workspace,
         "execution_mode": execution_mode,
         "risk_level": "read_only",
         "limits": dict(DEFAULT_LIMITS),
@@ -177,11 +234,26 @@ def task_from_prompt(prompt: str, *, task_id: str | None = None, source: str = "
 
 
 def resolve_workspace(root: Path, workspace: str) -> Path:
-    candidate = (root / workspace).resolve()
+    workspace_text = str(workspace or ".").strip()
+    raw_candidate = Path(workspace_text).expanduser()
     root_resolved = root.resolve()
-    if candidate != root_resolved and root_resolved not in candidate.parents:
-        raise RiskBlocked(f"workspace escapes project root: {candidate}")
-    return candidate
+    if not raw_candidate.is_absolute():
+        candidate = (root / raw_candidate).resolve()
+        if candidate == root_resolved or root_resolved in candidate.parents:
+            return candidate
+        raise RiskBlocked(f"relative workspace escapes project root: {candidate}")
+
+    candidate = raw_candidate.resolve()
+    allowed_roots = [root_resolved]
+    configured_roots = os.environ.get("TAC_ALLOWED_WORKSPACE_ROOTS", "")
+    if configured_roots:
+        allowed_roots.extend(Path(path).expanduser().resolve() for path in configured_roots.split(os.pathsep) if path.strip())
+    elif Path("/home/ubuntu/workspace").exists():
+        allowed_roots.append(Path("/home/ubuntu/workspace").resolve())
+    for allowed_root in allowed_roots:
+        if candidate == allowed_root or allowed_root in candidate.parents:
+            return candidate
+    raise RiskBlocked(f"workspace escapes allowed roots: {candidate}")
 
 
 def executable_name(argv0: str) -> str:
@@ -244,6 +316,7 @@ def run_command(command: dict[str, Any], workspace: Path, timeout_sec: int, dry_
             cwd=str(workspace),
             capture_output=True,
             text=True,
+            stdin=subprocess.DEVNULL,
             timeout=timeout_sec,
             check=False,
         )

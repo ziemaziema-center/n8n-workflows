@@ -105,3 +105,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User received generic `PASS ... reason=all commands completed` after asking for project diagnosis and could not see the planned content.
 - prevention: Extract Codex `agent_message` events from JSONL stdout and include them under `Codex output:` in the result summary returned to Telegram.
 - rollback_or_fix: Added Codex output extraction and tests; deployed to EC2; restarted `tac-service`; verified Telegram/webhook summary includes the actual Codex output.
+
+## 2026-05-17 13:00 KST - EC2 Codex Workspace Sandbox Fails With bwrap
+- symptom: `/codex` reached Codex but read-only file diagnosis failed before `pwd` or memory-file reads with `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`.
+- cause: The EC2 kernel/container environment blocks the Codex `workspace-write` sandbox setup path.
+- affected_files: `src/tac/controller.py`, `src/tac/service.py`, `scripts/start_tac_service.sh`, `tests/test_phase3_controller.py`.
+- detection_method: User-provided Telegram result for task `tac-20260517034624-91d65b73bf`; direct EC2 `codex --sandbox danger-full-access` smoke confirmed host mode can read files where `workspace-write` blocks.
+- prevention: Keep Docker-isolated runner as the final safety target; until then, run Codex host mode only from explicit bounded workspaces under `/home/ubuntu/workspace`, with prompt-level deny rules and Telegram escalation.
+- rollback_or_fix: Added workspace extraction/allowlist, set EC2 service fallback `TAC_CODEX_SANDBOX=danger-full-access`, closed Codex stdin, expanded `/killall` to terminate Codex/Claude processes, deployed to EC2, and validated Upbit read-only smoke through n8n.
