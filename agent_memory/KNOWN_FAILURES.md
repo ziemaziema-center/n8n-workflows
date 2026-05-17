@@ -153,3 +153,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: n8n execution `10545` failed at `Build Received Reply`; decoded execution data showed `SyntaxError: Invalid regular expression`.
 - prevention: Keep embedded n8n workflow JavaScript ASCII-only unless a runtime path has been proven Unicode-safe; add contract coverage with `received_code.isascii()`.
 - rollback_or_fix: Replaced long-run detection with ASCII-only patterns, redeployed `tac_telegram_commands`, restarted n8n, and replayed the Upbit first bounded cycle successfully as execution `10546`.
+
+## 2026-05-17 21:05 KST - Telegram Reports Were Too Technical For Operator Use
+- symptom: Telegram replies technically completed, but the user could not quickly understand what was planned, completed, blocked, or still needed because messages used English labels and raw Codex-style report text.
+- cause: The controller optimized for machine/audit summaries (`status`, `Codex output`, raw task reasons) instead of an operator-first Korean report format.
+- affected_files: `src/tac/controller.py`, `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `tests/test_phase3_controller.py`, `tests/test_workflow_contract.py`.
+- detection_method: User supplied a real Telegram transcript and reported that the result was not readable or actionable.
+- prevention: Telegram-facing text must be Korean, plain-language, sectioned by operator questions: what will happen, expected time, what finished, what could not be done, remaining work, and next action.
+- rollback_or_fix: Updated Codex execution prompt to require Korean plain-language reports; changed controller summaries to Korean labels; changed Telegram received/final replies to Korean operator-first format; validated real Telegram Trigger execution `10554`.

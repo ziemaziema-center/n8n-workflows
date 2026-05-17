@@ -208,3 +208,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only n8n; sent immediate/final Telegram messages; no live trading, cancel, reorder, n8n activation, Docker restart, production mutation, or secret value output.
 - rollback_needed: No controller rollback. Upbit artifact rollback is available from the generated backup if needed.
 - next_action: Continue in bounded cycles: read-only runtime n8n/helper preflight, then current-order state verification, then remaining production-readiness gaps.
+
+## 2026-05-17 21:05 KST - Korean Operator Telegram Reports
+- request: Make Telegram command replies readable for the operator in Korean, not as English/technical logs.
+- actions: Updated Codex prompt to require Korean plain-language final reports; changed controller result summaries from `[PASS]`/`Codex output` style to Korean labels; changed Telegram received/final/unsupported replies to Korean operator-first sections; kept workflow JavaScript source ASCII-safe with unicode escapes; redeployed controller and both TAC workflows; restarted `tac-service` and n8n.
+- validation: PASS. Local tests 25/25 PASS; workflow JSON parses; EC2 tests 25/25 PASS; `tac-service` health PASS; `tac_controller_webhook` smoke returned Korean result summary with Korean reason; real Telegram Trigger execution `10554` succeeded and sent Korean received/final messages.
+- telemetry: FAILURE: Previous successful Telegram reports were not operator-readable. SUCCESS: New Telegram messages start with Korean status, task id, estimated time, plan, result summary, and next commands.
+- files_changed: `src/tac/controller.py`, `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `tests/test_phase3_controller.py`, `tests/test_workflow_contract.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Restarted only `tac-service` and n8n; sent one short Telegram validation pair; no production workflow logic, Docker workload, Upbit live order, or credential value changed.
+- rollback_needed: No.
+- next_action: Use the new report shape for the next real Upbit bounded cycle.

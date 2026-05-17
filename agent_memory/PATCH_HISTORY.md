@@ -160,3 +160,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Restarted only n8n; sent immediate and final Telegram messages for the replayed Upbit task; Codex modified only the bounded Upbit workspace by adding explicit local `active: false` fields and additive report/memory entries; no live trading, n8n activation, Docker restart, production mutation, or secret printing.
 - rollback: Revert local controller workflow/test patch; in the Upbit workspace, use the generated backup `backups/controller_cycle_20260517_inactive_flags` if the explicit inactive flags need to be restored.
 - next_action: Continue Upbit work in additional bounded cycles, starting with read-only runtime n8n/helper preflight and current-order state verification.
+
+## 2026-05-17 21:05 KST - Korean Operator Telegram Reports
+- request: Make Telegram replies easy to understand in Korean, with clear planning, expected time, completed work, blocked work, remaining work, and updates.
+- files_changed: `src/tac/controller.py`, `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, `tests/test_phase3_controller.py`, `tests/test_workflow_contract.py`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `6788a4f` before Korean operator-report patch.
+- validation: PASS. Local tests 25/25 PASS; JSON validation PASS; EC2 tests 25/25 PASS; `tac-service` health PASS after restart; n8n TAC workflows active after reimport/publish/restart; webhook smoke `tac-20260517120607-84e5e72d6d` returned Korean result summary; real Telegram Trigger execution `10554` succeeded with Korean received/final messages.
+- side_effects: Restarted only `tac-service` and n8n; sent one short Telegram smoke pair; no clean_01~04 logic, Docker workload, Upbit live order, or credential value changed.
+- rollback: Revert this patch, redeploy previous controller/workflow files, restart `tac-service` and n8n.
+- next_action: Future real `/codex` tasks should produce Korean plain-language reports from both the controller wrapper and Codex prompt.

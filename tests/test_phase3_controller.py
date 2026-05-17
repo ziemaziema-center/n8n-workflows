@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import sys
 import tempfile
@@ -53,7 +53,7 @@ class Phase3ControllerTests(unittest.TestCase):
         result = run_controller(self.base_task(), ROOT)
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["attempts"], 1)
-        self.assertIn("[PASS]", result["summary"])
+        self.assertIn("\uacb0\ub860: \uc644\ub8cc", result["summary"])
 
     def test_blocks_risky_task(self):
         task = self.base_task()
@@ -113,16 +113,19 @@ class Phase3ControllerTests(unittest.TestCase):
         self.assertIn("--sandbox", task["commands"][0]["argv"])
         self.assertIn("workspace-write", task["commands"][0]["argv"])
         self.assertIn("--skip-git-repo-check", task["commands"][0]["argv"])
+        self.assertIn("Return the final report in Korean", task["commands"][0]["argv"][-1])
+        self.assertIn("Return the final report in Korean", task["commands"][0]["argv"][-1])
+        self.assertIn("\uacb0\ub860, \uc608\uc0c1 \uc2dc\uac04/\uc2e4\uc81c \uc18c\uc694", task["commands"][0]["argv"][-1])
         validate_task_shape(task)
 
     def test_task_from_prompt_extracts_upbit_workspace_alias(self):
-        task = task_from_prompt("02_업비트_자동화 프로젝트 진단", task_id="unit-upbit", source="test", executor="codex")
-        self.assertEqual(task["workspace"], "/home/ubuntu/workspace/02_업비트_자동화")
-        self.assertIn("Bounded workspace: /home/ubuntu/workspace/02_업비트_자동화", task["commands"][0]["argv"][-1])
+        task = task_from_prompt("upbit project diagnosis", task_id="unit-upbit", source="test", executor="codex")
+        self.assertEqual(task["workspace"], "/home/ubuntu/workspace/02_\uc5c5\ube44\ud2b8_\uc790\ub3d9\ud654")
+        self.assertIn("Bounded workspace: /home/ubuntu/workspace/02_\uc5c5\ube44\ud2b8_\uc790\ub3d9\ud654", task["commands"][0]["argv"][-1])
 
     def test_extract_requested_workspace_from_explicit_line(self):
         self.assertEqual(
-            extract_requested_workspace("WORKSPACE: /home/ubuntu/workspace/demo\n진단해"),
+            extract_requested_workspace("WORKSPACE: /home/ubuntu/workspace/demo\ndiagnose"),
             "/home/ubuntu/workspace/demo",
         )
 
@@ -166,7 +169,7 @@ class Phase3ControllerTests(unittest.TestCase):
         stdout_tail = "\n".join(
             [
                 json.dumps({"type": "thread.started", "thread_id": "unit"}),
-                json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": "진단 결과: Phase 1부터 진행"}}),
+                json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": "吏꾨떒 寃곌낵: Phase 1遺??吏꾪뻾"}}),
             ]
         )
         command_result = {
@@ -175,22 +178,23 @@ class Phase3ControllerTests(unittest.TestCase):
             "stdout_tail": stdout_tail,
             "stderr_tail": "",
         }
-        self.assertEqual(extract_codex_agent_text(command_result), "진단 결과: Phase 1부터 진행")
+        self.assertEqual(extract_codex_agent_text(command_result), "吏꾨떒 寃곌낵: Phase 1遺??吏꾪뻾")
         task = self.base_task()
         summary = make_result_summary(task, "PASS", Review("PASS", ["ok"], False, False), [command_result])
-        self.assertIn("Codex output:", summary)
-        self.assertIn("진단 결과", summary)
+        self.assertIn("결론: 완료", summary)
+        self.assertIn("상세 보고:", summary)
+        self.assertIn("吏꾨떒 寃곌낵", summary)
 
 
     def test_extracts_codex_agent_message_from_agent_text_field(self):
         command_result = {
             "id": "codex-executor",
             "exit_code": 0,
-            "agent_text": "완료 보고",
+            "agent_text": "?꾨즺 蹂닿퀬",
             "stdout_tail": '"text":"truncated',
             "stderr_tail": "",
         }
-        self.assertEqual(extract_codex_agent_text(command_result), "완료 보고")
+        self.assertEqual(extract_codex_agent_text(command_result), "?꾨즺 蹂닿퀬")
 
     def test_extracts_codex_agent_message_from_full_output(self):
         output = json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": "full report"}})

@@ -172,7 +172,12 @@ def build_codex_prompt(user_prompt: str, workspace: str) -> str:
             "- Do not run sudo, force push, destructive deletion, live trading, AWS mutation, Docker restart, or production mutation.",
             "- For Upbit/trading projects, stay dry-run/read-only unless the prompt explicitly approves live exchange mutation.",
             "- Validate before reporting success. If validation cannot run, say exactly what blocked it.",
-            "- Return a concrete report suitable for Telegram, including what you checked, findings, remaining risks, and next actions.",
+            "- Return the final report in Korean, in plain non-technical language first.",
+            "- Avoid English operational labels unless they are command names, file names, task ids, or unavoidable product names.",
+            "- Explain code or automation terms in simple Korean when they matter.",
+            "- Do not dump raw logs unless they are short and necessary.",
+            "- If the user asks for multi-hour work, explain that this controller runs one bounded cycle at a time with a 30 minute hard limit, then report the next cycle.",
+            "- Use this exact Korean report shape: 결론, 예상 시간/실제 소요, 이번에 한 일, 검증 결과, 못한 일/막힌 이유, 남은 일, 다음 단계, 승인이 필요한 일.",
             "",
             f"Bounded workspace: {workspace}",
             "",
@@ -374,6 +379,15 @@ def extract_codex_agent_text(result: dict[str, Any]) -> str:
     return extract_codex_agent_text_from_output(str(result.get("stdout_tail", "")))
 
 
+def korean_review_reason(reason: str) -> str:
+    normalized = str(reason or "").strip()
+    translations = {
+        "all commands completed within local scaffold bounds": "허용된 작업 범위 안에서 모든 명령이 끝났습니다.",
+        "ok": "검토 기준을 통과했습니다.",
+    }
+    return translations.get(normalized, normalized)
+
+
 def review_attempt(task: dict[str, Any], command_results: list[dict[str, Any]]) -> Review:
     reasons: list[str] = []
     retry_allowed = False
@@ -400,7 +414,13 @@ def blocked_result(task: dict[str, Any], workspace: str, started_at: str, reason
         "started_at": started_at,
         "finished_at": finished_at,
         "workspace": workspace,
-        "summary": f"BLOCKED: {reason}",
+        "summary": "\n".join(
+            [
+                "결론: 막힘",
+                f"작업번호: {task.get('task_id', 'unknown')}",
+                f"막힌 이유: {reason}",
+            ]
+        ),
         "commands": [],
         "review": review.to_json(),
     }
@@ -447,13 +467,24 @@ def run_controller(task: dict[str, Any], project_root: Path) -> dict[str, Any]:
 
 
 def make_result_summary(task: dict[str, Any], status: str, review: Review, command_results: list[dict[str, Any]]) -> str:
-    reason = "; ".join(review.reasons)
-    header = f"[{status}] {task['task_id']} phase={task['requested_phase']} reason={reason}"
+    status_label = {
+        "PASS": "완료",
+        "BLOCKED": "막힘",
+        "FAIL": "실패",
+    }.get(status, status)
+    reason = "; ".join(korean_review_reason(reason) for reason in review.reasons)
+    header = "\n".join(
+        [
+            f"결론: {status_label}",
+            f"작업번호: {task['task_id']}",
+            f"판정 이유: {reason}",
+        ]
+    )
     agent_text = "\n\n".join(
         text for text in (extract_codex_agent_text(result) for result in command_results) if text
     ).strip()
     if agent_text:
-        return f"{header}\n\nCodex output:\n{agent_text}"
+        return f"{header}\n\n상세 보고:\n{agent_text}"
     return header
 
 

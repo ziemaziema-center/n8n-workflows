@@ -135,3 +135,10 @@ Append only unless correcting the latest entry.
 - validation: Local tests 25/25 pass; EC2 tests 25/25 pass; live n8n export shows `parse_mode: HTML` on all `tac_telegram_commands` send nodes; controller webhook with chat id returns 200 and sends Telegram summary task `tac-20260517074612-960807be93`.
 - rollback: Reimport the prior workflow JSONs and restart n8n, but this is not recommended because unset parse mode restores Markdown entity failures.
 - evidence: Validated after n8n execution `10487` showed `Send Received Reply` failed on Telegram Markdown entity parsing before the runner started.
+
+## Pattern: Korean Operator-First Telegram Reports
+- applies_to: Any Telegram-facing TAC received, final, status, or escalation report.
+- procedure: Present Korean plain-language sections before technical detail: status, task id, estimated time, direction, role split, plan, result summary, completed work, blocked work, remaining work, and next commands. Keep raw logs and English labels out of the first screen.
+- validation: Local tests 25/25 pass; EC2 tests 25/25 pass; `tac_controller_webhook` smoke returns Korean `결과 요약`; real Telegram Trigger execution `10554` sends Korean `상태: 접수됨` and `상태: 완료` messages successfully.
+- rollback: Revert `src/tac/controller.py` and both TAC workflow JSON files, then restart `tac-service` and n8n.
+- evidence: Added after the user reported that the prior successful Upbit report was too English/technical to operate from Telegram.
