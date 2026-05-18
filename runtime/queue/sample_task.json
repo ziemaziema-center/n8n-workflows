@@ -37,5 +37,9 @@
   "retry_count": 0,
   "max_retries": 3,
   "continuation_ledger_path": "reports/hq_continuation_ledger_2026-05-18.json",
-  "final_report_path": "reports/hq_runtime_orchestration_final_report_2026-05-18.md"
+  "final_report_path": "reports/hq_runtime_orchestration_final_report_2026-05-18.md",
+  "notification": {
+    "on_completion": false,
+    "channel": "none"
+  }
 }

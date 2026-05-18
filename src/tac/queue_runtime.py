@@ -20,6 +20,7 @@ def make_queue_task(
     workspace_path: str = "/home/ubuntu/workspace/true-autonomous-controller",
     priority: str = "normal",
     target_runner: str = "codex",
+    notification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not workspace_path.startswith("/home/ubuntu/workspace/"):
         raise ValueError("workspace_path must stay under /home/ubuntu/workspace/")
@@ -61,6 +62,7 @@ def make_queue_task(
         "max_retries": 3,
         "continuation_ledger_path": "reports/hq_continuation_ledger_2026-05-18.json",
         "final_report_path": "reports/phase4_runtime_operating_report_2026-05-18.md",
+        "notification": notification or {"on_completion": False},
     }
 
 
@@ -84,6 +86,7 @@ def validate_queue_task(task: dict[str, Any]) -> None:
         "max_retries",
         "continuation_ledger_path",
         "final_report_path",
+        "notification",
     }
     missing = sorted(required - set(task))
     if missing:
@@ -96,6 +99,11 @@ def validate_queue_task(task: dict[str, Any]) -> None:
         raise ValueError("allowed_scope must include no_production_mutation")
     if int(task["retry_count"]) > int(task["max_retries"]):
         raise ValueError("retry_count cannot exceed max_retries")
+    notification = task.get("notification")
+    if not isinstance(notification, dict):
+        raise ValueError("notification must be an object")
+    if notification.get("on_completion") and not notification.get("chat_id"):
+        raise ValueError("completion notification requires chat_id")
 
 
 def ensure_db(conn: sqlite3.Connection) -> None:

@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_TELEGRAM_COMMANDS = {
     "/run",
+    "/work",
     "/status",
     "/queue",
     "/pause",
@@ -86,6 +87,7 @@ class RuntimeOrchestrationDraftTests(unittest.TestCase):
         wrapper = (ROOT / "scripts/hq_safe_agent_wrapper_template.sh").read_text(encoding="utf-8")
         self.assertIn("DEFERRED_GATE", wrapper)
         self.assertIn("--sandbox workspace-write", wrapper)
+        self.assertIn("hq_company_task_runner.py", wrapper)
 
     def test_reviewer_loop_template_exists_and_classifies(self) -> None:
         text = (ROOT / "scripts/hq_reviewer_loop_template.py").read_text(encoding="utf-8")
@@ -100,7 +102,7 @@ class RuntimeOrchestrationDraftTests(unittest.TestCase):
         self.assertIn("inactive n8n SSH dispatch workflow draft", completed)
         self.assertEqual(
             ledger["final_report_path"],
-            "reports/phase4_runtime_operating_report_2026-05-18.md",
+            "reports/company_mode_runtime_completion_report_2026-05-18.md",
         )
         registry = (ROOT / "reports/deferred_gate_registry_2026-05-18.md").read_text(encoding="utf-8")
         for gate in [

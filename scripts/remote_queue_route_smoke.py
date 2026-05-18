@@ -39,6 +39,7 @@ def main() -> int:
                 "task_id": task_id,
                 "objective": "Live queue endpoint route smoke; no dispatch.",
                 "workspace_path": "/home/ubuntu/workspace/true-autonomous-controller",
+                "target_runner": "dry_run",
                 "dispatch": True,
             },
         ),

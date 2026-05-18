@@ -87,6 +87,12 @@ class ControllerState:
                 workspace_path=str(body.get("workspace_path") or "/home/ubuntu/workspace/true-autonomous-controller"),
                 priority=str(body.get("priority") or "normal"),
                 target_runner=str(body.get("target_runner") or "codex"),
+                notification={
+                    "on_completion": bool(str(body.get("chat_id") or "").strip()),
+                    "chat_id": str(body.get("chat_id") or "").strip(),
+                    "webhook_url": str(body.get("notify_webhook_url") or "https://n8n.mykindredai.com/webhook/tac-controller").strip(),
+                    "channel": "telegram",
+                },
             )
         result = write_queue_task(task, runtime_root=self.project_root / "runtime")
         dispatch_requested = str(body.get("dispatch") or "").strip().lower() in {"1", "true", "yes"}

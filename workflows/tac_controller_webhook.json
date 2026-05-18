@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first()?.json || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst msg = body.message || body.edited_message || {};\nconst chat = body.chat || msg.chat || {};\nconst rawText = String(body.text || body.command || body.prompt || msg.text || '').trim();\nconst chatId = String(body.chat_id || chat.id || '').trim();\nconst taskIdRaw = String(body.task_id || '').trim();\nlet action = 'run';\nlet prompt = rawText;\nlet task_id = taskIdRaw;\nlet executor = String(body.executor || '').trim().toLowerCase() === 'codex' ? 'codex' : 'dry_run';\nif (/^\\/killall\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'killall') {\n  action = 'killall';\n  prompt = rawText;\n} else if (/^\\/status\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'status') {\n  action = 'status';\n  task_id = taskIdRaw || rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/codex\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'codex';\n  prompt = rawText.replace(/^\\/codex\\s*/i, '').trim() || 'Return TAC_CODEX_SMOKE_OK';\n} else if (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n}\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nconst runner_url = `http://172.17.0.1:8765/${endpoint}`;\nreturn [{ json: { action, runner_url, prompt, task_id, chat_id: chatId, source: 'n8n', executor, received_text: rawText } }];"
+        "jsCode": "const input = $input.first()?.json || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst msg = body.message || body.edited_message || {};\nconst chat = body.chat || msg.chat || {};\nconst rawText = String(body.text || body.command || body.prompt || msg.text || '').trim();\nconst chatId = String(body.chat_id || chat.id || '').trim();\nconst taskIdRaw = String(body.task_id || '').trim();\nlet action = 'run';\nlet prompt = rawText;\nlet task_id = taskIdRaw;\nlet executor = String(body.executor || '').trim().toLowerCase() === 'codex' ? 'codex' : 'dry_run';\nlet notify_summary = String(body.summary || body.text || body.message || '').trim();\nlet notify_status = String(body.status || 'PASS').trim();\nif (String(body.action || '').toLowerCase() === 'notify') {\n  action = 'notify';\n  prompt = notify_summary || 'TAC completion notification';\n} else if (/^\\/killall\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'killall') {\n  action = 'killall';\n  prompt = rawText;\n} else if (/^\\/status\\b/i.test(rawText) || String(body.action || '').toLowerCase() === 'status') {\n  action = 'status';\n  task_id = taskIdRaw || rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/codex\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'codex';\n  prompt = rawText.replace(/^\\/codex\\s*/i, '').trim() || 'Return TAC_CODEX_SMOKE_OK';\n} else if (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n}\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nconst runner_url = `http://172.17.0.1:8765/${endpoint}`;\nreturn [{ json: { action, runner_url, prompt, task_id, chat_id: chatId, source: 'n8n', executor, received_text: rawText, notify_summary, notify_status } }];"
       },
       "id": "tac-normalize-command",
       "name": "Normalize TAC Command",
@@ -76,7 +76,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $json || {};\nconst result = response.result || {};\nconst escapeHtml = (value) => String(value)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\nconst status = String(result.status || (response.ok ? 'PASS' : 'UNKNOWN'));\nconst statusLabel = status === 'PASS' ? \"\\uc644\\ub8cc\" : status === 'BLOCKED' ? \"\\ub9c9\\ud798\" : status === 'FAIL' ? \"\\uc2e4\\ud328\" : status;\nconst taskId = String(result.task_id || response.task_id || $node['Normalize TAC Command'].json.task_id || 'unknown');\nconst rawSummary = String(result.summary || response.message || response.error || \"\\ubcf4\\uace0 \\ub0b4\\uc6a9\\uc774 \\ube44\\uc5b4 \\uc788\\uc2b5\\ub2c8\\ub2e4.\");\nconst cleanSummary = rawSummary\n  .replace(/^\\[[A-Z]+\\].*reason=.*$/m, '')\n  .replace(/Codex output:/g, \"\\uc0c1\\uc138 \\ubcf4\\uace0:\")\n  .trim();\nconst summary = escapeHtml(cleanSummary.slice(0, 2850));\nconst text = [\n  \"[Kindred AI Controller]\",\n  \"\\uc0c1\\ud0dc: \" + statusLabel,\n  \"\\uc791\\uc5c5\\ubc88\\ud638: \" + taskId,\n  '',\n  \"\\uacb0\\uacfc \\uc694\\uc57d:\",\n  summary || \"\\uc791\\uc5c5\\uc740 \\ub05d\\ub0ac\\uc9c0\\ub9cc \\uc694\\uc57d\\uc774 \\ube44\\uc5b4 \\uc788\\uc2b5\\ub2c8\\ub2e4.\",\n  '',\n  \"\\ud655\\uc778 \\uc2dc\\uac01: \" + new Date().toISOString()\n].join('\\n').slice(0, 3900);\nreturn [{ json: { ok: !!response.ok, status, task_id: taskId, telegram_text: text, chat_id: $node['Normalize TAC Command'].json.chat_id, runner_response: response } }];"
+        "jsCode": "const command = $node['Normalize TAC Command'].json || {};\nconst isNotify = command.action === 'notify';\nconst response = isNotify ? { ok: true, result: { status: command.notify_status || 'PASS', task_id: command.task_id || 'unknown', summary: command.notify_summary || command.prompt || '' } } : ($json || {});\nconst result = response.result || {};\nconst escapeHtml = (value) => String(value)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\nconst status = String(result.status || (response.ok ? 'PASS' : 'UNKNOWN'));\nconst statusLabel = status === 'PASS' ? \"\\uc644\\ub8cc\" : status === 'BLOCKED' ? \"\\ub9c9\\ud798\" : status === 'FAIL' ? \"\\uc2e4\\ud328\" : status;\nconst taskId = String(result.task_id || response.task_id || $node['Normalize TAC Command'].json.task_id || 'unknown');\nconst rawSummary = String(result.summary || response.message || response.error || \"\\ubcf4\\uace0 \\ub0b4\\uc6a9\\uc774 \\ube44\\uc5b4 \\uc788\\uc2b5\\ub2c8\\ub2e4.\");\nconst cleanSummary = rawSummary\n  .replace(/^\\[[A-Z]+\\].*reason=.*$/m, '')\n  .replace(/Codex output:/g, \"\\uc0c1\\uc138 \\ubcf4\\uace0:\")\n  .trim();\nconst summary = escapeHtml(cleanSummary.slice(0, 2850));\nconst text = [\n  \"[Kindred AI Controller]\",\n  \"\\uc0c1\\ud0dc: \" + statusLabel,\n  \"\\uc791\\uc5c5\\ubc88\\ud638: \" + taskId,\n  '',\n  \"\\uacb0\\uacfc \\uc694\\uc57d:\",\n  summary || \"\\uc791\\uc5c5\\uc740 \\ub05d\\ub0ac\\uc9c0\\ub9cc \\uc694\\uc57d\\uc774 \\ube44\\uc5b4 \\uc788\\uc2b5\\ub2c8\\ub2e4.\",\n  '',\n  \"\\ud655\\uc778 \\uc2dc\\uac01: \" + new Date().toISOString()\n].join('\\n').slice(0, 3900);\nreturn [{ json: { ok: !!response.ok, status, task_id: taskId, telegram_text: text, chat_id: $node['Normalize TAC Command'].json.chat_id, runner_response: response } }];"
       },
       "id": "tac-build-summary",
       "name": "Build Telegram Summary",
@@ -161,6 +161,27 @@
         720,
         80
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "equal",
+              "value2": "notify"
+            }
+          ]
+        }
+      },
+      "id": "tac-if-notify-action",
+      "name": "IF Notify Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        0
+      ]
     }
   ],
   "pinData": {},
@@ -180,7 +201,7 @@
       "main": [
         [
           {
-            "node": "Call TAC Runner",
+            "node": "IF Notify Action",
             "type": "main",
             "index": 0
           }
@@ -243,6 +264,24 @@
         [
           {
             "node": "Respond TAC Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Notify Action": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call TAC Runner",
             "type": "main",
             "index": 0
           }

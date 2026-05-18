@@ -60,6 +60,27 @@ class ServiceContractTests(unittest.TestCase):
             pending = (root / "runtime/queue/pending.jsonl").read_text(encoding="utf-8")
             self.assertIn("hq-service-queue-smoke", pending)
             self.assertTrue((root / "runtime/controller_state.sqlite3").exists())
+            task = json.loads((root / "runtime/queue/hq-service-queue-smoke.json").read_text(encoding="utf-8"))
+            self.assertIn("notification", task)
+            self.assertFalse(task["notification"]["on_completion"])
+
+    def test_state_enqueue_records_telegram_completion_notification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = ControllerState(root)
+            result = state.enqueue(
+                {
+                    "task_id": "hq-service-notify-smoke",
+                    "objective": "service notify smoke",
+                    "workspace_path": "/home/ubuntu/workspace/true-autonomous-controller",
+                    "chat_id": "12345",
+                    "notify_webhook_url": "https://n8n.mykindredai.com/webhook/tac-controller",
+                }
+            )
+            self.assertTrue(result["ok"])
+            task = json.loads((root / "runtime/queue/hq-service-notify-smoke.json").read_text(encoding="utf-8"))
+            self.assertTrue(task["notification"]["on_completion"])
+            self.assertEqual(task["notification"]["chat_id"], "12345")
 
     def test_state_handoff_reads_continuation_ledger(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -15,6 +15,7 @@ schemas/telegram_hq_command.schema.json
 | Command | Safety Class | Live Approval Required | Expected Output |
 | --- | --- | --- | --- |
 | `/run <objective>` | safe_queue | false | task id, queue status, expected runner |
+| `/work <objective>` | safe_queue | false | company-mode receipt, queued work, final completion notification when chat id is present |
 | `/status <task_id>` | safe_read | false | current state, latest report/log path |
 | `/queue` | safe_read | false | pending/running/completed counts |
 | `/pause` | control | false for local state, true for live runner | pause marker |

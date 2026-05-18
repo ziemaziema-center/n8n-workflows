@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-05-18T07:39:14.340611+00:00",
+  "status": "PASS",
+  "command": [
+    "docker",
+    "run",
+    "--rm",
+    "--network",
+    "none",
+    "--memory",
+    "2g",
+    "--cpus",
+    "2",
+    "--entrypoint",
+    "codex",
+    "tac-codex-runner:codex",
+    "--version"
+  ],
+  "returncode": 0,
+  "stdout": "codex-cli 0.130.0",
+  "stderr_tail": "",
+  "network": "none",
+  "secret_mount": false,
+  "live_codex_task_executed": false
+}

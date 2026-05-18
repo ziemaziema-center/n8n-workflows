@@ -15,6 +15,8 @@ RUN apt-get update \
       npm \
     && rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g @openai/codex@0.130.0
+
 RUN useradd -m -u 10001 tacrunner
 USER tacrunner
 

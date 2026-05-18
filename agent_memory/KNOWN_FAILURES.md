@@ -230,3 +230,15 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - failure_mode: `docker build` fails with Docker API named-pipe errors when Docker Desktop is not running.
 - prevention: Check Docker daemon status before treating Docker build failure as a Dockerfile problem; start Docker Desktop only under explicit bounded approval.
 - validation: Docker Desktop was started, daemon version `29.4.0` became available, and `tac-codex-runner:dry-run` built successfully.
+
+## 2026-05-18 - Existing tmux Runner Must Be Restarted After Script Sync
+
+- failure_mode: Updating `hq_tmux_runner_template.sh` on disk does not affect an already-running `tac-hq-runner` session.
+- prevention: After syncing runner scripts, restart only the scoped `tac-hq-runner` session before validating new behavior.
+- validation: The first EC2 queue smoke used the old runner and lacked `notify_path`; after restarting only `tac-hq-runner`, the next smoke wrote `notify_path` and updated state with automatic Telegram notification wording.
+
+## 2026-05-18 - Docker Codex CLI Does Not Mean Docker Codex Auth Is Ready
+
+- failure_mode: A Docker image can contain `codex --version` but still cannot run real Codex tasks until a container-specific auth volume is created.
+- prevention: Separate CLI installation smoke from authenticated execution; do not mount host secrets into the container.
+- validation: Local and EC2 Docker Codex CLI no-network smoke passed without secret mounts; real Docker Codex task execution remains gated by `TAC_CODEX_AUTH_VOLUME`.

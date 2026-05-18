@@ -203,3 +203,16 @@ Append only unless correcting the latest entry.
   - `python scripts/run_offline_validations.py`
   - EC2 `scripts/remote_queue_route_smoke.py`
 - result: PASS. `/queue` now writes a validated queue task and starts/reuses `tac-hq-runner`; the runner processed the smoke task and wrote handoff/state/report artifacts.
+
+## 2026-05-18 - Company-mode queued work with completion notification
+
+- pattern: Route `/work`, `/queue`, and natural Telegram text into the asynchronous queue, include chat notification metadata, let the tmux runner execute the company-style HQ wrapper, then call the n8n notify webhook for final Telegram reporting.
+- validated_by:
+  - `python -m unittest discover -s tests`
+  - `python scripts/run_offline_validations.py`
+  - local `docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .`
+  - local `python scripts/docker_codex_cli_smoke.py`
+  - EC2 Docker Codex CLI smoke
+  - EC2 `/queue -> tac-hq-runner -> company wrapper -> handoff/state/report` smoke
+  - n8n notify webhook smoke without chat id
+- result: PASS. Operator commands can now be queued and completed without the user staying in front of the computer; final Telegram notification is attempted automatically when the real chat id is present.

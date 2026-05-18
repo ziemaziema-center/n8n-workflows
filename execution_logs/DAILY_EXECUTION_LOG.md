@@ -283,3 +283,33 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local Docker Desktop started; local Docker image built; disposable container run completed; active n8n Telegram parser patched; EC2 `tac-service` restarted; EC2 `tac-hq-runner` started/reused; bounded smoke queue items appended. No Upbit, Instagram, AWS, secret, force-push, or production Docker restart.
 - rollback_needed: No immediate rollback.
 - next_action: Build Docker Codex runner execution and run a user-origin Telegram `/queue smoke` from the Telegram app.
+
+## 2026-05-18 16:10 KST - PC Power-Off Resilience Options Review
+- request: Explain three realistic ways to prevent Kindred/TAC automation from stopping when the local PC is powered off.
+- actions: Reviewed project memory and current SESSION_BOOT; compared always-on EC2 runner, managed container/job runner, and local always-on machine/VPN options against the existing Telegram -> n8n -> tmux -> Codex route.
+- validation: PASS. Advisory-only review; no live command, workflow activation, credential read, deployment, Docker restart, AWS mutation, or production state change.
+- telemetry: SUCCESS: Recommended keeping orchestration on the existing EC2 path first, then moving Codex execution into a Docker-isolated runner. FAILURE_PREVENTED: Avoided treating the local Codex desktop session as the durable runtime for long-running automation.
+- side_effects: Documentation/telemetry only.
+- next_action: If approved, implement the recommended path by finishing Docker Codex runner execution on EC2 and routing selected Telegram commands through the persistent `/queue` path.
+
+## 2026-05-18 16:30 KST - Company Mode Runtime And Completion Notification
+- request: Make the controller operate like a company-style HQ/agents system where the user can order work once, leave the computer, and receive a completion update.
+- actions: Added company-mode task runner, completion notifier, Docker Codex CLI image install, `/work` and natural-language queue routing, queue notification metadata, active n8n notify route, and operator runbook. Synced runner/service updates to EC2, built the Docker Codex image locally and on EC2, restarted scoped service/runner sessions, and ran queue smoke.
+- validation: PASS. 59 local tests passed; offline validation passed; local/EC2 Docker Codex CLI smoke passed; n8n notify route returned Korean summary; EC2 queue -> tmux -> company wrapper -> handoff/state/report smoke passed and wrote notifier artifact.
+- telemetry: SUCCESS: Telegram-origin company-mode work can now enter the async queue and produce final notification attempts without the user waiting at the computer. FAILURE_PREVENTED: Existing `tac-hq-runner` sessions must be restarted after runner script sync, and Docker Codex CLI installation must not be mistaken for authenticated Docker Codex execution.
+- side_effects: Local/EC2 Docker image builds, scoped EC2 `tac-service` restart, scoped `tac-hq-runner` restart, active TAC n8n workflow patches. No secret output, Upbit action, Instagram publish, AWS mutation, production Docker restart, or force push.
+- remaining: Real Docker Codex execution needs a container-specific auth volume; real Telegram completion notification needs one user-origin `/work` message so the real chat id is present.
+
+## 2026-05-18 16:20 KST - Monthly Runtime Cost Estimate
+- request: Estimate monthly cost for the recommended PC power-off resilient TAC/Kindred runtime.
+- actions: Checked current public AWS Lightsail bundle pricing and USD/KRW reference rate; separated infrastructure cost from AI/Codex usage cost.
+- validation: PASS. Advisory-only calculation; no live AWS, n8n, Telegram, Docker, credential, or production mutation.
+- telemetry: SUCCESS: Baseline always-on runtime estimate is approximately $12-$24/month if using a 2GB-4GB Linux VPS class, plus AI usage/subscription costs. FAILURE_PREVENTED: Avoided implying local Codex desktop can be the reliable always-on runtime when the PC is powered off.
+- side_effects: Documentation/telemetry only.
+
+## 2026-05-18 16:30 KST - Existing Cloud Storage Vs Compute Review
+- request: Explain whether existing cloud spaces such as iCloud, Google Drive, or Google Cloud can host the always-on Kindred/TAC runtime.
+- actions: Checked current public Apple iCloud+ and Google Cloud documentation; distinguished storage-only products from compute products that can run n8n/TAC/Codex runners.
+- validation: PASS. Advisory-only; no live cloud, credential, workflow, Docker, Telegram, or production mutation.
+- telemetry: SUCCESS: Clarified that iCloud/Google Drive can only support backups/log sync, while Google Cloud Compute Engine or Cloud Run can run the persistent automation. FAILURE_PREVENTED: Avoided designing the durable runtime around consumer file-sync storage that cannot execute background processes.
+- side_effects: Documentation/telemetry only.

@@ -45,6 +45,9 @@ def main() -> int:
                 "scripts/queue_soak_test.py",
                 "scripts/git_checkpoint_manifest.py",
                 "scripts/remote_queue_route_smoke.py",
+                "scripts/hq_company_task_runner.py",
+                "scripts/hq_notify_completion.py",
+                "scripts/docker_codex_cli_smoke.py",
             ]
         ),
         run([sys.executable, "scripts/docker_isolated_runner_plan.py"]),

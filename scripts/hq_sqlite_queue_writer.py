@@ -171,6 +171,10 @@ def default_task(task_id: str) -> dict:
         "max_retries": 3,
         "continuation_ledger_path": "reports/hq_continuation_ledger_2026-05-18.json",
         "final_report_path": "reports/hq_runtime_orchestration_live_gate_report_2026-05-18.md",
+        "notification": {
+            "on_completion": False,
+            "channel": "none",
+        },
     }
 
 

@@ -228,3 +228,11 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Started local Docker Desktop; built local Docker image; ran one disposable local container; restarted scoped EC2 `tac-service`; patched active n8n `tac_telegram_commands` parser; started/reused EC2 `tac-hq-runner`; appended bounded queue smoke items. No Upbit action, Instagram publish, EC2 production Docker restart, AWS mutation, secret output, or force push.
 - rollback: Revert this commit, restore prior `tac_telegram_commands` active version through n8n version history if needed, restart `tac-service`, and stop only `tac-hq-runner` if queue dispatch should pause.
 - next_action: Install/run Codex inside the Docker runner without host secrets, then run user-origin Telegram `/queue smoke` from the Telegram app.
+
+## 2026-05-18 16:30 KST - Company Mode Runtime And Completion Notification
+- request: Finish remaining controller behavior so the user can tell Codex to act like a company with HQ and agents, queue work, leave the computer, and receive completion updates.
+- files_changed: `docker/tac-runner.Dockerfile`, `scripts/hq_company_task_runner.py`, `scripts/hq_notify_completion.py`, `scripts/hq_safe_agent_wrapper_template.sh`, `scripts/hq_tmux_runner_template.sh`, `src/tac/queue_runtime.py`, `src/tac/service.py`, `workflows/tac_telegram_commands.json`, `workflows/tac_controller_webhook.json`, schemas, tests, docs, reports, telemetry.
+- validation: PASS. Local tests 59/59; offline validation PASS; local Docker Codex CLI smoke PASS; EC2 Docker Codex CLI smoke PASS; n8n notify webhook smoke PASS; EC2 queue -> tmux -> company wrapper -> handoff/state/report smoke PASS with notifier artifact.
+- side_effects: Built Docker images locally and on EC2; restarted scoped EC2 `tac-service`; restarted scoped `tac-hq-runner`; patched active TAC n8n workflows. No Upbit action, Instagram publish, AWS mutation, secret output, production Docker restart, or force push.
+- rollback: Revert this commit, restore prior active n8n versions, restart `tac-service`, and stop/restart only `tac-hq-runner`.
+- next_action: User sends a real Telegram `/work smoke test...` message to validate the real chat-id completion notification path.

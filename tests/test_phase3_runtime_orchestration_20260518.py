@@ -15,6 +15,7 @@ class Phase3RuntimeOrchestrationTests(unittest.TestCase):
         dockerfile = (ROOT / "docker/tac-runner.Dockerfile").read_text(encoding="utf-8")
         report = (ROOT / "reports/docker_isolated_runner_scaffold_2026-05-18.md").read_text(encoding="utf-8")
         self.assertIn("USER tacrunner", dockerfile)
+        self.assertIn("@openai/codex@0.130.0", dockerfile)
         self.assertIn("--network=none", report)
         self.assertIn("must not mount", report)
 
@@ -77,6 +78,47 @@ class Phase3RuntimeOrchestrationTests(unittest.TestCase):
         self.assertEqual(result["status"], "CHECKPOINT_READY")
         self.assertTrue(result["pre_run_checkpoint_required"])
         self.assertFalse(result["force_push_allowed"])
+
+    def test_company_task_runner_dry_run_passes(self) -> None:
+        task = {
+            "task_id": "hq-company-runner-unit",
+            "workspace_path": "/home/ubuntu/workspace/true-autonomous-controller",
+            "objective": "Prove company style runner can complete a bounded dry-run.",
+            "target_runner": "dry_run",
+        }
+        completed = subprocess.run(
+            [sys.executable, "scripts/hq_company_task_runner.py", json.dumps(task)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = json.loads((ROOT / "runtime/company_runner/hq-company-runner-unit.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["runner_result"]["runner"], "dry_run_company_hq")
+
+    def test_completion_notifier_skips_without_webhook(self) -> None:
+        task = {
+            "task_id": "hq-notify-skip-unit",
+            "notification": {"on_completion": False},
+        }
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "scripts/hq_notify_completion.py",
+                json.dumps(task),
+                "runtime/reports/missing.md",
+                "runtime/logs/missing.log",
+                "PASS",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout)["status"], "SKIPPED")
 
 
 if __name__ == "__main__":

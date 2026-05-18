@@ -15,7 +15,7 @@
   "properties": {
     "command": {
       "type": "string",
-      "enum": ["/run", "/status", "/queue", "/pause", "/resume", "/killall", "/review", "/retry", "/handoff"]
+      "enum": ["/run", "/work", "/status", "/queue", "/pause", "/resume", "/killall", "/review", "/retry", "/handoff"]
     },
     "args": {
       "type": "object",

@@ -1,7 +1,7 @@
 {
   "task_id": "tac-hq-orchestration-20260518",
   "created_at_kst": "2026-05-18",
-  "current_phase": "phase4_runtime_operating_layer_partial",
+  "current_phase": "phase4_company_mode_runtime_ready_with_docker_auth_gate",
   "operating_rule": "Do not stop the whole task because one live/credential/network item is blocked. Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work. Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.",
   "completed_items": [
     "permanent continuation rule stored in AGENTS.md and SESSION_BOOT.md",
@@ -47,14 +47,24 @@
     "EC2 /queue route wrote queue task and started or reused tac-hq-runner tmux session",
     "EC2 tac-hq-runner processed queued smoke task and wrote handoff/state/report artifacts",
     "3-task queue soak test validated pass, forced retry, deferred gate, and safe continuation",
-    "Git checkpoint manifest generator added and validated without mutating Git"
+    "Git checkpoint manifest generator added and validated without mutating Git",
+    "Docker Codex runner image installs @openai/codex 0.130.0",
+    "Local Docker Codex CLI no-network smoke passed without secret mount",
+    "EC2 Docker Codex CLI no-network smoke passed without secret mount",
+    "Company-style HQ task runner added for queued work",
+    "Completion notifier added for runner -> n8n -> Telegram final report path",
+    "Telegram /work command and natural-language messages now route to asynchronous queue mode",
+    "Queue tasks now carry completion notification metadata when Telegram chat id is present",
+    "tac_controller_webhook active workflow supports notify action for final summaries",
+    "EC2 tac-hq-runner restarted with company wrapper and notifier support",
+    "EC2 queue -> tmux -> company wrapper -> handoff/state/report smoke passed",
+    "Operator company-mode runbook created"
   ],
   "pending_items": [
-    "Install Codex CLI inside the Docker runner image or mount a bounded Codex binary/auth strategy without secrets",
-    "Replace host-mode Codex fallback with Docker-isolated Codex execution for real mutation tasks",
-    "Run user-origin Telegram /queue smoke from the Telegram app to confirm mobile UX, not only n8n active graph and service route",
-    "Add automatic pre-run Git checkpoint and post-pass commit execution for bounded workspaces, beyond manifest generation",
-    "Run multi-hour or overnight unattended queue soak with bounded retries, heartbeat, pause/resume, and /killall verification"
+    "Create/login a container-specific Codex auth volume so Docker can execute real Codex tasks without host secrets",
+    "Run one real user-origin Telegram /work smoke from the Telegram app so the real chat id triggers final completion notification",
+    "Run multi-hour or overnight unattended queue soak with bounded retries, heartbeat, pause/resume, and /killall verification",
+    "Decide whether arbitrary target workspaces should allow automatic pre-run/post-pass Git commits or stay manifest-only"
   ],
   "deferred_gates": [
     {
@@ -109,21 +119,21 @@
     }
   ],
   "next_executable_subtasks": [
-    "Build a Docker Codex runner image that can execute Codex inside the container without mounting host secrets",
-    "Patch tac-hq-runner to call the Docker runner for target_runner=codex and keep dry_run fallback for tests",
-    "Run a real user-origin Telegram /queue command and verify received Telegram reply plus queue/tmux handoff",
-    "Implement actual Git pre-run checkpoint and post-pass commit for bounded workspaces",
-    "Run 3+ task overnight soak with one forced retry, one deferred gate, heartbeat, and kill switch check"
+    "User sends /work smoke test from Telegram to verify real chat-id notification path",
+    "Create Docker-only Codex auth volume and run one containerized Codex task",
+    "Run 3+ queued tasks with one forced retry, one deferred gate, and one successful company-mode task",
+    "Promote Git checkpoint policy from manifest-only to commit-enabled only for approved clean workspaces"
   ],
   "validation_commands": [
     "python -m unittest discover -s tests",
     "python scripts/run_offline_validations.py",
-    "docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:dry-run .",
-    "docker run --rm --network none --memory=2g --cpus=2 -v <disposable_workspace>:/workspace -w /workspace tac-codex-runner:dry-run scripts/docker_container_smoke.py",
-    "python scripts/queue_soak_test.py",
-    "python scripts/git_checkpoint_manifest.py"
+    "docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .",
+    "python scripts/docker_codex_cli_smoke.py",
+    "EC2: docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .",
+    "EC2: python3 scripts/docker_codex_cli_smoke.py",
+    "EC2: python3 scripts/remote_queue_route_smoke.py"
   ],
-  "final_report_path": "reports/phase4_runtime_operating_report_2026-05-18.md",
-  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger. Continue from Docker Codex runner image/auth design and target_runner=codex container execution. If user-origin Telegram validation is available, send /queue smoke from Telegram and verify the mobile reply plus EC2 handoff.",
+  "final_report_path": "reports/company_mode_runtime_completion_report_2026-05-18.md",
+  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, and this ledger. Next verify user-origin Telegram /work smoke, then create a container-specific Codex auth volume for real Docker Codex execution without host secrets.",
   "live_operations_performed": true
 }

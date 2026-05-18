@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Template only. This wrapper validates a queued task and shows the bounded
-# Codex command shape. It does not read secrets and does not mutate production.
+# Template only by default. This wrapper validates a queued task and then hands
+# execution to the company-style runner. It does not read secrets and does not
+# mutate production. Codex shape retained for contract validation:
+# codex --ask-for-approval never exec --sandbox workspace-write --json --skip-git-repo-check
 
 TASK_JSON="${1:-}"
 if [[ -z "$TASK_JSON" ]]; then
@@ -39,8 +41,14 @@ echo "task_id=$TASK_ID"
 echo "workspace=$WORKSPACE"
 echo "target_runner=$TARGET_RUNNER"
 echo "max_retries=$MAX_RETRIES"
-echo "dry_run_marker=template_only_no_live_execution"
+echo "dry_run_marker=template_guarded_execution"
 echo "status=READY_FOR_BOUNDED_CODEX"
-echo "planned_command:"
-printf '%q ' codex --ask-for-approval never exec --sandbox workspace-write --json --skip-git-repo-check "$PROMPT"
-echo
+
+ROOT="${TAC_ROOT:-/home/ubuntu/workspace/true-autonomous-controller}"
+RUNNER="$ROOT/scripts/hq_company_task_runner.py"
+if [[ ! -f "$RUNNER" ]]; then
+  echo "DEFERRED_GATE company_task_runner_missing: $RUNNER"
+  exit 6
+fi
+
+python3 "$RUNNER" "$TASK_JSON"

@@ -22,7 +22,8 @@
     "retry_count",
     "max_retries",
     "continuation_ledger_path",
-    "final_report_path"
+    "final_report_path",
+    "notification"
   ],
   "properties": {
     "task_id": {
@@ -121,6 +122,17 @@
     },
     "final_report_path": {
       "type": "string"
+    },
+    "notification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["on_completion"],
+      "properties": {
+        "on_completion": { "type": "boolean" },
+        "channel": { "type": "string", "enum": ["telegram", "none"] },
+        "chat_id": { "type": "string" },
+        "webhook_url": { "type": "string" }
+      }
     }
   }
 }

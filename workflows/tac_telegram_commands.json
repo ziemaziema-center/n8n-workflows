@@ -26,7 +26,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const update = $input.first()?.json || {};\nconst msg = update.message || update.edited_message || {};\nconst chat = msg.chat || {};\nconst rawText = String(msg.text || '').trim();\nconst chatId = String(chat.id || '').trim();\nlet action = '';\nlet prompt = '';\nlet task_id = '';\nlet executor = 'dry_run';\nlet endpoint = '';\nif (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n} else if (/^\\/codex\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'codex';\n  prompt = rawText.replace(/^\\/codex\\s*/i, '').trim() || 'Return TAC_CODEX_SMOKE_OK';\n} else if (/^\\/queue\\b/i.test(rawText)) {\n  action = 'queue';\n  endpoint = 'queue';\n  prompt = rawText.replace(/^\\/queue\\s*/i, '').trim() || 'Queued TAC runtime task';\n} else if (/^\\/handoff\\b/i.test(rawText)) {\n  action = 'handoff';\n  endpoint = 'handoff';\n} else if (/^\\/status\\b/i.test(rawText)) {\n  action = 'status';\n  task_id = rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/killall\\b/i.test(rawText)) {\n  action = 'killall';\n} else if (rawText && !rawText.startsWith('/')) {\n  action = 'run';\n  executor = 'codex';\n  prompt = [\n    'FOLLOWUP_TASK: true',\n    'Telegram follow-up message. First inspect the latest TAC task/result if needed and continue from the most recent related bounded workspace.',\n    'If this is an approval, execute only the approved bounded scope and keep forbidden live mutations blocked unless explicitly approved.',\n    '',\n    'User message:',\n    rawText,\n  ].join('\\n');\n}\nfunction makeTaskId() {\n  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);\n  const rand = Math.random().toString(16).slice(2, 10).padEnd(8, '0');\n  return `tac-${stamp}-${rand}`;\n}\nif (action === 'run' && !task_id) {\n  task_id = makeTaskId();\n}\nconst supported = !!action && !!chatId;\nendpoint = endpoint || (action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run');\nreturn [{ json: { supported, action, endpoint, queue_mode: action === 'queue', handoff_mode: action === 'handoff', runner_url: `http://172.17.0.1:8765/${endpoint}`, prompt, task_id, chat_id: chatId, executor, received_text: rawText } }];"
+        "jsCode": "const update = $input.first()?.json || {};\nconst msg = update.message || update.edited_message || {};\nconst chat = msg.chat || {};\nconst rawText = String(msg.text || '').trim();\nconst chatId = String(chat.id || '').trim();\nlet action = '';\nlet prompt = '';\nlet task_id = '';\nlet executor = 'dry_run';\nlet endpoint = '';\nif (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n} else if (/^\\/codex\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'codex';\n  prompt = rawText.replace(/^\\/codex\\s*/i, '').trim() || 'Return TAC_CODEX_SMOKE_OK';\n} else if (/^\\/(queue|work)\\b/i.test(rawText)) {\n  action = 'queue';\n  endpoint = 'queue';\n  prompt = rawText.replace(/^\\/(queue|work)\\s*/i, '').trim() || 'Queued TAC runtime task';\n} else if (/^\\/handoff\\b/i.test(rawText)) {\n  action = 'handoff';\n  endpoint = 'handoff';\n} else if (/^\\/status\\b/i.test(rawText)) {\n  action = 'status';\n  task_id = rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/killall\\b/i.test(rawText)) {\n  action = 'killall';\n} else if (rawText && !rawText.startsWith('/')) {\n  action = 'queue';\n  endpoint = 'queue';\n  executor = 'codex';\n  prompt = [\n    'FOLLOWUP_TASK: true',\n    'Telegram follow-up message. First inspect the latest TAC task/result if needed and continue from the most recent related bounded workspace.',\n    'If this is an approval, execute only the approved bounded scope and keep forbidden live mutations blocked unless explicitly approved.',\n    '',\n    'User message:',\n    rawText,\n  ].join('\\n');\n}\nfunction makeTaskId() {\n  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);\n  const rand = Math.random().toString(16).slice(2, 10).padEnd(8, '0');\n  return `tac-${stamp}-${rand}`;\n}\nif ((action === 'run' || action === 'queue') && !task_id) {\n  task_id = makeTaskId();\n}\nconst supported = !!action && !!chatId;\nendpoint = endpoint || (action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run');\nreturn [{ json: { supported, action, endpoint, queue_mode: action === 'queue', handoff_mode: action === 'handoff', runner_url: `http://172.17.0.1:8765/${endpoint}`, prompt, task_id, chat_id: chatId, executor, received_text: rawText } }];"
       },
       "id": "tac-normalize-telegram",
       "name": "Normalize Telegram Command",
@@ -99,6 +99,18 @@
             {
               "name": "target_runner",
               "value": "={{$json.executor === \"codex\" ? \"codex\" : \"dry_run\"}}"
+            },
+            {
+              "name": "chat_id",
+              "value": "={{$json.chat_id}}"
+            },
+            {
+              "name": "notify_webhook_url",
+              "value": "=https://n8n.mykindredai.com/webhook/tac-controller"
+            },
+            {
+              "name": "dispatch",
+              "value": "=true"
             }
           ]
         },
@@ -122,7 +134,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $json || {};\nconst result = response.result || {};\nconst escapeHtml = (value) => String(value)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\nconst status = String(result.status || (response.ok ? 'PASS' : 'UNKNOWN'));\nconst statusLabel = status === 'PASS' ? \"\\uc644\\ub8cc\" : status === 'BLOCKED' ? \"\\ub9c9\\ud798\" : status === 'FAIL' ? \"\\uc2e4\\ud328\" : status;\nconst taskId = String(result.task_id || response.task_id || $node['Normalize Telegram Command'].json.task_id || 'unknown');\nconst rawSummary = String(result.summary || response.message || response.error || \"\\ubcf4\\uace0 \\ub0b4\\uc6a9\\uc774 \\ube44\\uc5b4 \\uc788\\uc2b5\\ub2c8\\ub2e4.\");\nconst cleanSummary = rawSummary\n  .replace(/^\\[[A-Z]+\\].*reason=.*$/m, '')\n  .replace(/Codex output:/g, \"\\uc0c1\\uc138 \\ubcf4\\uace0:\")\n  .trim();\nconst summary = escapeHtml(cleanSummary.slice(0, 2850));\nconst text = [\n  \"[Kindred AI Controller]\",\n  \"\\uc0c1\\ud0dc: \" + statusLabel,\n  \"\\uc791\\uc5c5\\ubc88\\ud638: \" + taskId,\n  '',\n  \"\\uacb0\\uacfc \\uc694\\uc57d:\",\n  summary || \"\\uc791\\uc5c5\\uc740 \\ub05d\\ub0ac\\uc9c0\\ub9cc \\uc694\\uc57d\\uc774 \\ube44\\uc5b4 \\uc788\\uc2b5\\ub2c8\\ub2e4.\",\n  '',\n  \"\\ub2e4\\uc74c\\uc5d0 \\ud655\\uc778\\ud560 \\uc218 \\uc788\\ub294 \\uba85\\ub839:\",\n  `/status ${taskId}`,\n  '/killall'\n].join('\\n').slice(0, 3900);\nreturn [{ json: { status, task_id: taskId, telegram_text: text, chat_id: $node['Normalize Telegram Command'].json.chat_id } }];"
+        "jsCode": "const response = $json || {};\nconst result = response.result || {};\nconst escapeHtml = (value) => String(value)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\nconst queued = String(response.status || '') === 'QUEUED' || !!response.pending_jsonl;\nconst status = String(result.status || (queued ? 'QUEUED' : response.ok ? 'PASS' : 'UNKNOWN'));\nconst statusLabel = status === 'PASS' ? \"\\uc644\\ub8cc\" : status === 'QUEUED' ? \"\\uc811\\uc218/\\uc2e4\\ud589 \\uc911\" : status === 'BLOCKED' ? \"\\ub9c9\\ud798\" : status === 'FAIL' ? \"\\uc2e4\\ud328\" : status;\nconst taskId = String(result.task_id || response.task_id || $node['Normalize Telegram Command'].json.task_id || 'unknown');\nconst rawSummary = String(result.summary || response.message || response.error || (queued ? \"\\uc791\\uc5c5\\uc744 HQ \\ud050\\uc5d0 \\ub123\\uc5c8\\uc2b5\\ub2c8\\ub2e4. \\uc644\\ub8cc\\ub418\\uba74 Telegram\\uc73c\\ub85c \\ub2e4\\uc2dc \\ubcf4\\uace0\\ud569\\ub2c8\\ub2e4.\" : \"\\ubcf4\\uace0 \\ub0b4\\uc6a9\\uc774 \\ube44\\uc5b4 \\uc788\\uc2b5\\ub2c8\\ub2e4.\"));\nconst cleanSummary = rawSummary\n  .replace(/^\\[[A-Z]+\\].*reason=.*$/m, '')\n  .replace(/Codex output:/g, \"\\uc0c1\\uc138 \\ubcf4\\uace0:\")\n  .trim();\nconst summary = escapeHtml(cleanSummary.slice(0, 2850));\nconst text = [\n  \"[Kindred AI Controller]\",\n  \"\\uc0c1\\ud0dc: \" + statusLabel,\n  \"\\uc791\\uc5c5\\ubc88\\ud638: \" + taskId,\n  '',\n  \"\\uacb0\\uacfc \\uc694\\uc57d:\",\n  summary || \"\\uc791\\uc5c5\\uc740 \\ub05d\\ub0ac\\uc9c0\\ub9cc \\uc694\\uc57d\\uc774 \\ube44\\uc5b4 \\uc788\\uc2b5\\ub2c8\\ub2e4.\",\n  '',\n  \"\\ub2e4\\uc74c\\uc5d0 \\ud655\\uc778\\ud560 \\uc218 \\uc788\\ub294 \\uba85\\ub839:\",\n  `/status ${taskId}`,\n  '/killall'\n].join('\\n').slice(0, 3900);\nreturn [{ json: { status, task_id: taskId, telegram_text: text, chat_id: $node['Normalize Telegram Command'].json.chat_id } }];"
       },
       "id": "tac-build-telegram-reply",
       "name": "Build Telegram Reply",
@@ -166,8 +178,8 @@
           "string": [
             {
               "value1": "={{$json.action}}",
-              "operation": "equal",
-              "value2": "run"
+              "operation": "regex",
+              "value2": "^(run|queue)$"
             }
           ]
         }

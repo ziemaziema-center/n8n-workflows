@@ -11,6 +11,7 @@ REPORT_DIR="$ROOT/runtime/reports"
 HANDOFF_DIR="$ROOT/runtime/handoff"
 STATE_DIR="$ROOT/runtime/state"
 WRAPPER="$ROOT/scripts/hq_safe_agent_wrapper_template.sh"
+NOTIFIER="$ROOT/scripts/hq_notify_completion.py"
 STATE_FILE="$STATE_DIR/current_state.json"
 
 mkdir -p "$QUEUE_DIR" "$LOG_DIR" "$REPORT_DIR" "$HANDOFF_DIR" "$STATE_DIR"
@@ -60,10 +61,17 @@ JSON
     result_status="DEFERRED_GATE"
   fi
 
+  notify_path="$REPORT_DIR/${task_id}.notify.json"
+  if [[ -f "$NOTIFIER" ]]; then
+    python3 "$NOTIFIER" "$task_line" "$report_path" "$log_path" "$result_status" > "$notify_path" 2>&1 || true
+  else
+    printf '{"status":"SKIPPED","reason":"notifier_missing"}\n' > "$notify_path"
+  fi
+
   cat > "$HANDOFF_DIR/latest.json" <<JSON
-{"task_id":"$task_id","report_path":"$report_path","log_path":"$log_path","updated_at":"$(date -Iseconds)"}
+{"task_id":"$task_id","report_path":"$report_path","log_path":"$log_path","notify_path":"$notify_path","updated_at":"$(date -Iseconds)"}
 JSON
   cat > "$STATE_FILE" <<JSON
-{"active_task_id":null,"runner_status":"IDLE","current_phase":"handoff_written","last_heartbeat_at":"$(date -Iseconds)","last_log_path":"$log_path","last_validation_result":{"status":"$result_status","command":"bash $WRAPPER","checked_at":"$(date -Iseconds)"},"blocked_gates":[],"safe_next_actions":["read $HANDOFF_DIR/latest.json","send summary through n8n after live approval"],"kill_switch_status":{"enabled":true,"last_triggered_at":null,"command":"/killall"}}
+{"active_task_id":null,"runner_status":"IDLE","current_phase":"handoff_written","last_heartbeat_at":"$(date -Iseconds)","last_log_path":"$log_path","last_validation_result":{"status":"$result_status","command":"bash $WRAPPER","checked_at":"$(date -Iseconds)"},"blocked_gates":[],"safe_next_actions":["read $HANDOFF_DIR/latest.json","Telegram notification is attempted automatically when notification webhook is present"],"kill_switch_status":{"enabled":true,"last_triggered_at":null,"command":"/killall"}}
 JSON
 done

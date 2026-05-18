@@ -1,8 +1,8 @@
 {
   "task_id": "hq-phase3-orchestrator-local-20260518",
   "status": "PASS",
-  "started_at": "2026-05-18T06:41:56.877804+00:00",
-  "finished_at": "2026-05-18T06:41:56.877818+00:00",
+  "started_at": "2026-05-18T07:39:27.956498+00:00",
+  "finished_at": "2026-05-18T07:39:27.956511+00:00",
   "planner": {
     "subtasks": [
       {
@@ -39,7 +39,7 @@
           ],
           "status": "PASS",
           "exit_code": 0,
-          "stdout_tail": " approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session.\"\n        },\n        {\n            \"name\": \"live_instagram_publish\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"live publishing can affect production accounts\",\n            \"required_input\": \"explicit publishing approval and content review gate\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"Build a Docker Codex runner image that can execute Codex inside the container without mounting host secrets\",\n        \"Patch tac-hq-runner to call the Docker runner for target_runner=codex and keep dry_run fallback for tests\",\n        \"Run a real user-origin Telegram /queue command and verify received Telegram reply plus queue/tmux handoff\",\n        \"Implement actual Git pre-run checkpoint and post-pass commit for bounded workspaces\",\n        \"Run 3+ task overnight soak with one forced retry, one deferred gate, heartbeat, and kill switch check\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python scripts/run_offline_validations.py\",\n        \"docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:dry-run .\",\n        \"docker run --rm --network none --memory=2g --cpus=2 -v <disposable_workspace>:/workspace -w /workspace tac-codex-runner:dry-run scripts/docker_container_smoke.py\",\n        \"python scripts/queue_soak_test.py\",\n        \"python scripts/git_checkpoint_manifest.py\"\n    ],\n    \"final_report_path\": \"reports/phase4_runtime_operating_report_2026-05-18.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger. Continue from Docker Codex runner image/auth design and target_runner=codex container execution. If user-origin Telegram validation is available, send /queue smoke from Telegram and verify the mobile reply plus EC2 handoff.\",\n    \"live_operations_performed\": true\n}\n",
+          "stdout_tail": "           \"name\": \"ec2_tmux_live_session_creation\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"would create or mutate a live EC2 tmux runtime session\",\n            \"required_input\": \"explicit EC2 runtime dry-run/live boundary approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session.\"\n        },\n        {\n            \"name\": \"live_instagram_publish\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"live publishing can affect production accounts\",\n            \"required_input\": \"explicit publishing approval and content review gate\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"User sends /work smoke test from Telegram to verify real chat-id notification path\",\n        \"Create Docker-only Codex auth volume and run one containerized Codex task\",\n        \"Run 3+ queued tasks with one forced retry, one deferred gate, and one successful company-mode task\",\n        \"Promote Git checkpoint policy from manifest-only to commit-enabled only for approved clean workspaces\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python scripts/run_offline_validations.py\",\n        \"docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .\",\n        \"python scripts/docker_codex_cli_smoke.py\",\n        \"EC2: docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .\",\n        \"EC2: python3 scripts/docker_codex_cli_smoke.py\",\n        \"EC2: python3 scripts/remote_queue_route_smoke.py\"\n    ],\n    \"final_report_path\": \"reports/company_mode_runtime_completion_report_2026-05-18.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, and this ledger. Next verify user-origin Telegram /work smoke, then create a container-specific Codex auth volume for real Docker Codex execution without host secrets.\",\n    \"live_operations_performed\": true\n}\n",
           "stderr_tail": ""
         },
         {
@@ -53,7 +53,7 @@
           "status": "PASS",
           "exit_code": 0,
           "stdout_tail": "",
-          "stderr_tail": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.223s\n\nOK\n"
+          "stderr_tail": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.232s\n\nOK\n"
         }
       ],
       "review": {
