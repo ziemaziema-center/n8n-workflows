@@ -1,0 +1,30 @@
+{
+  "active_task_id": null,
+  "runner_status": "IDLE",
+  "current_phase": "inactive_runtime_orchestration_draft",
+  "last_heartbeat_at": null,
+  "last_log_path": null,
+  "last_validation_result": {
+    "status": "NOT_RUN",
+    "command": null,
+    "checked_at": null
+  },
+  "blocked_gates": [
+    {
+      "name": "live_ssh_dispatch_to_ec2",
+      "status": "DEFERRED_GATE",
+      "reason": "Live SSH execution is not part of this local/offline draft cycle."
+    }
+  ],
+  "safe_next_actions": [
+    "validate queue schema",
+    "validate inactive n8n workflow draft",
+    "validate Telegram command contract",
+    "dry-run wrapper templates locally"
+  ],
+  "kill_switch_status": {
+    "enabled": true,
+    "last_triggered_at": null,
+    "command": "/killall"
+  }
+}

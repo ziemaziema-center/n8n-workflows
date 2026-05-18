@@ -201,3 +201,8 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User explicitly reported repeated 1-3 minute completions and "blocked/next approval" reports that did not produce enough implementation output.
 - prevention: Store the permanent continuation rule in sendoff/instruction files; require continuation ledger, deferred gate registry, and safe-work continuation tests.
 - rollback_or_fix: Added continuation-first HQ scaffold, deferred gate registry, tmux runtime templates, Instagram growth plan, and regression tests.
+## 2026-05-18 - Runtime orchestration draft must stay inactive
+
+- failure_mode: A queue/SSH/n8n orchestration draft can accidentally look deployable before credential, SSH, and Telegram gates are approved.
+- prevention: Draft workflows must include `active: false`, `meta.draftOnly: true`, no node credentials, no live SSH node, and explicit `DEFERRED_GATE` markers.
+- validation: `tests/test_hq_runtime_orchestration_20260518.py` checks inactive workflow status, dry-run markers, no embedded credentials, and deferred gate registry coverage.

@@ -1,0 +1,100 @@
+{
+  "name": "inactive_hq_ssh_dispatch_draft_2026_05_18",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "tac-hq-dispatch-draft",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "draft-hq-webhook",
+      "name": "Draft HQ Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-900, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first()?.json?.body || $input.first()?.json || {};\nconst text = String(body.text || body.prompt || body.objective || '').trim();\nconst taskId = String(body.task_id || `hq-${new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14)}-draft`);\nconst workspace = String(body.workspace_path || '/home/ubuntu/workspace/true-autonomous-controller');\nconst queueItem = {\n  task_id: taskId,\n  created_at: new Date().toISOString(),\n  requested_by: String(body.requested_by || 'telegram_user'),\n  source_channel: String(body.source_channel || 'n8n_webhook'),\n  priority: String(body.priority || 'normal'),\n  objective: text || 'Draft HQ dispatch task',\n  allowed_scope: ['local_files', 'offline_tests', 'docs', 'templates', 'scaffold', 'dry_run', 'no_live_network', 'no_secrets', 'no_production_mutation'],\n  deferred_gates: [\n    { name: 'live_ssh_dispatch_to_ec2', reason: 'This workflow is inactive draft only.', required_approval: 'Approve live SSH dispatch separately.' }\n  ],\n  target_runner: String(body.target_runner || 'codex'),\n  tmux_session: String(body.tmux_session || 'tac-hq-runner'),\n  workspace_path: workspace,\n  validation_commands: ['python -m unittest discover -s tests', 'python scripts/run_offline_validations.py'],\n  expected_artifacts: ['reports/hq_runtime_orchestration_final_report_2026-05-18.md'],\n  status: 'QUEUED',\n  retry_count: 0,\n  max_retries: 3,\n  continuation_ledger_path: 'reports/hq_continuation_ledger_2026-05-18.json',\n  final_report_path: 'reports/hq_runtime_orchestration_final_report_2026-05-18.md'\n};\nreturn [{ json: { draft_only: true, active_dispatch: false, task_id: taskId, queue_item: queueItem } }];"
+      },
+      "id": "draft-normalize-command",
+      "name": "Normalize Command To Queue Item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json.queue_item;\nconst allowed = item.workspace_path.startsWith('/home/ubuntu/workspace/') && item.allowed_scope.includes('no_secrets') && item.allowed_scope.includes('no_production_mutation');\nreturn [{ json: { ...$json, validation_status: allowed ? 'PASS' : 'DEFERRED_GATE', validation_reason: allowed ? 'safe draft scope' : 'workspace or scope rejected' } }];"
+      },
+      "id": "draft-validate-scope",
+      "name": "Validate Allowed Scope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-420, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = JSON.stringify($json.queue_item).replace(/'/g, `'\"'\"'`);\nconst command = [\n  'cd /home/ubuntu/workspace/true-autonomous-controller',\n  `printf '%s\\\\n' '${q}' >> runtime/queue/pending.jsonl`,\n  `tmux has-session -t ${$json.queue_item.tmux_session} || tmux new-session -d -s ${$json.queue_item.tmux_session} 'bash scripts/hq_tmux_runner_template.sh'`\n].join(' && ');\nreturn [{ json: { ...$json, ssh_command_template: command, ssh_execution: 'DEFERRED_GATE_DRAFT_ONLY' } }];"
+      },
+      "id": "draft-build-ssh-template",
+      "name": "Build SSH Dispatch Template",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-180, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const status = $json.validation_status === 'PASS' ? 'QUEUED_DRAFT' : 'DEFERRED_GATE';\nconst summary = [\n  '[Kindred AI Controller]',\n  `status: ${status}`,\n  `task_id: ${$json.task_id}`,\n  'draft_only: true',\n  'live_ssh_executed: false',\n  'next: import inactive only, then approve live SSH dispatch separately if needed'\n].join('\\n');\nreturn [{ json: { ...$json, status, telegram_summary_template: summary } }];"
+      },
+      "id": "draft-classify-summary",
+      "name": "Classify And Build Summary Template",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "draft-respond",
+      "name": "Respond Draft Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [300, 0]
+    }
+  ],
+  "connections": {
+    "Draft HQ Webhook": {
+      "main": [[{ "node": "Normalize Command To Queue Item", "type": "main", "index": 0 }]]
+    },
+    "Normalize Command To Queue Item": {
+      "main": [[{ "node": "Validate Allowed Scope", "type": "main", "index": 0 }]]
+    },
+    "Validate Allowed Scope": {
+      "main": [[{ "node": "Build SSH Dispatch Template", "type": "main", "index": 0 }]]
+    },
+    "Build SSH Dispatch Template": {
+      "main": [[{ "node": "Classify And Build Summary Template", "type": "main", "index": 0 }]]
+    },
+    "Classify And Build Summary Template": {
+      "main": [[{ "node": "Respond Draft Result", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "inactive-hq-ssh-dispatch-draft-2026-05-18",
+  "meta": {
+    "draftOnly": true,
+    "safeImport": true,
+    "liveSshExecuted": false,
+    "credentialsRequired": false
+  },
+  "id": "inactive-hq-ssh-dispatch-draft-2026-05-18",
+  "tags": []
+}

@@ -163,3 +163,11 @@ Append only unless correcting the latest entry.
 - validation: `tests/test_hq_orchestration_scaffold.py` verifies instruction files, HQ model, continuation ledger, deferred gate registry, tmux scaffold, Instagram growth plan, and safe continuation; full local suite passes 35/35.
 - rollback: Revert the HQ scaffold commit and restore prior Telegram briefing text if the project chooses to return to bounded single-cycle reporting.
 - evidence: Applied on 2026-05-18 KST after user requested company-style HQ/autonomous agent behavior without stopping on one blocked item.
+## 2026-05-18 - Inactive runtime orchestration dispatch layer
+
+- pattern: Build queue/state/Telegram schemas first, generate an inactive n8n dispatch draft, keep dispatch/kill scripts dry-run by default, then validate with offline tests.
+- validated_by:
+  - `python -m unittest discover -s tests`
+  - `python -m unittest tests.test_hq_runtime_orchestration_20260518`
+  - `python scripts/run_offline_validations.py`
+- result: PASS. Runtime orchestration can now be reviewed/imported as a draft without live SSH, n8n activation, Telegram send, secret access, or production mutation.

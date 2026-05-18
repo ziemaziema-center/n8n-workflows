@@ -11,8 +11,11 @@ if [[ -z "$TASK_JSON" ]]; then
 fi
 
 TASK_ID="$(printf '%s' "$TASK_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("task_id","unknown"))')"
-WORKSPACE="$(printf '%s' "$TASK_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("workspace","."))')"
-PROMPT="$(printf '%s' "$TASK_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("prompt",""))')"
+WORKSPACE="$(printf '%s' "$TASK_JSON" | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("workspace_path") or data.get("workspace") or ".")')"
+PROMPT="$(printf '%s' "$TASK_JSON" | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("objective") or data.get("prompt") or "")')"
+TARGET_RUNNER="$(printf '%s' "$TASK_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("target_runner","codex"))')"
+MAX_RETRIES="$(printf '%s' "$TASK_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("max_retries",0))')"
+STATUS="$(printf '%s' "$TASK_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status","QUEUED"))')"
 
 case "$WORKSPACE" in
   /home/ubuntu/workspace/*) ;;
@@ -27,8 +30,16 @@ if printf '%s' "$PROMPT" | grep -Eiq '(force push|rm -rf|sudo|curl .*\|.*sh|secr
   exit 4
 fi
 
+if [[ "$STATUS" != "QUEUED" && "$STATUS" != "RUNNING" ]]; then
+  echo "DEFERRED_GATE invalid_task_status_for_execution: $STATUS"
+  exit 5
+fi
+
 echo "task_id=$TASK_ID"
 echo "workspace=$WORKSPACE"
+echo "target_runner=$TARGET_RUNNER"
+echo "max_retries=$MAX_RETRIES"
+echo "dry_run_marker=template_only_no_live_execution"
 echo "status=READY_FOR_BOUNDED_CODEX"
 echo "planned_command:"
 printf '%q ' codex --ask-for-approval never exec --sandbox workspace-write --json --skip-git-repo-check "$PROMPT"

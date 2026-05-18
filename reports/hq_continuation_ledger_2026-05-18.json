@@ -1,7 +1,7 @@
 {
   "task_id": "tac-hq-orchestration-20260518",
   "created_at_kst": "2026-05-18",
-  "current_phase": "persistent_hq_runtime_scaffold",
+  "current_phase": "inactive_runtime_orchestration_dispatch_layer",
   "operating_rule": "Do not stop the whole task because one live/credential/network item is blocked. Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work. Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.",
   "completed_items": [
     "permanent continuation rule stored in AGENTS.md and SESSION_BOOT.md",
@@ -12,14 +12,24 @@
     "tmux persistent runtime layer scaffold created",
     "safe agent wrapper template created",
     "Instagram 10K growth HQ plan created",
-    "offline validation tests added"
+    "offline validation tests added",
+    "runtime queue schema created at schemas/runtime_queue.schema.json",
+    "runtime queue sample created at runtime/queue/sample_task.json",
+    "runtime state schema created at schemas/runtime_state.schema.json",
+    "runtime state sample created at runtime/state/sample_state.json",
+    "Telegram HQ command schema created at schemas/telegram_hq_command.schema.json",
+    "inactive n8n SSH dispatch workflow draft created at workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json",
+    "runtime dispatch and kill-switch templates hardened for dry-run default",
+    "reviewer retry loop template connected to local ledger update artifact",
+    "runtime orchestration offline tests added"
   ],
   "pending_items": [
-    "wire scaffold into inactive n8n SSH workflow draft",
     "connect controller state DB to runtime task creation",
     "add Telegram non-live renderer for continuation ledger summaries",
-    "add reviewer retry queue file format",
-    "run EC2 dry-run deployment of tmux scaffold without production activation"
+    "add reviewer feedback queue JSONL schema and tests",
+    "add import-only n8n validation guide with screenshots after manual import",
+    "run EC2 dry-run deployment of tmux scaffold without production activation",
+    "add SQLite-backed queue writer that emits runtime/queue task JSON"
   ],
   "deferred_gates": [
     {
@@ -41,6 +51,24 @@
       "required_input": "approved read-only n8n credential usage path"
     },
     {
+      "name": "live_ssh_dispatch_test",
+      "status": "DEFERRED_GATE",
+      "reason": "would execute against production EC2",
+      "required_input": "explicit live SSH dispatch test approval and rollback/log path"
+    },
+    {
+      "name": "telegram_live_send_test",
+      "status": "DEFERRED_GATE",
+      "reason": "would send a real user-facing Telegram message",
+      "required_input": "target chat and exact message approval"
+    },
+    {
+      "name": "ec2_tmux_live_session_creation",
+      "status": "DEFERRED_GATE",
+      "reason": "would create or mutate a live EC2 tmux runtime session",
+      "required_input": "explicit EC2 runtime dry-run/live boundary approval"
+    },
+    {
       "name": "live_instagram_publish",
       "status": "DEFERRED_GATE",
       "reason": "live publishing can affect production accounts",
@@ -48,18 +76,19 @@
     }
   ],
   "next_executable_subtasks": [
-    "Create inactive n8n SSH dispatch workflow draft that writes to queue only",
-    "Add runtime/queue schema and sample tasks for tmux runner",
     "Add local parser that converts continuation ledger into Telegram-ready Korean summary without sending it live",
     "Add reviewer feedback queue JSONL schema and tests",
-    "Prepare EC2 dry-run sync script that copies templates but does not activate services"
+    "Prepare EC2 dry-run sync script that copies templates but does not activate services",
+    "Add SQLite-backed task queue writer that validates against schemas/runtime_queue.schema.json",
+    "Add inactive import validation checklist for workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json"
   ],
   "validation_commands": [
     "python -m unittest discover -s tests",
     "python -m unittest tests.test_hq_orchestration_scaffold",
+    "python -m unittest tests.test_hq_runtime_orchestration_20260518",
     "python scripts/run_offline_validations.py"
   ],
-  "final_report_path": "reports/hq_final_report_2026-05-18.md",
-  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.",
+  "final_report_path": "reports/hq_runtime_orchestration_final_report_2026-05-18.md",
+  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from the Telegram-ready Korean summary renderer and SQLite-backed task queue writer. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.",
   "live_operations_performed": false
 }

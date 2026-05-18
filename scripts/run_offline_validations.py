@@ -23,6 +23,12 @@ def main() -> int:
     checks = [
         run([sys.executable, "-m", "unittest", "discover", "-s", "tests"]),
         run([sys.executable, "-m", "json.tool", "reports/hq_continuation_ledger_2026-05-18.json"]),
+        run([sys.executable, "-m", "json.tool", "schemas/runtime_queue.schema.json"]),
+        run([sys.executable, "-m", "json.tool", "schemas/runtime_state.schema.json"]),
+        run([sys.executable, "-m", "json.tool", "schemas/telegram_hq_command.schema.json"]),
+        run([sys.executable, "-m", "json.tool", "runtime/queue/sample_task.json"]),
+        run([sys.executable, "-m", "json.tool", "runtime/state/sample_state.json"]),
+        run([sys.executable, "-m", "json.tool", "workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_telegram_commands.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_controller_webhook.json"]),
     ]

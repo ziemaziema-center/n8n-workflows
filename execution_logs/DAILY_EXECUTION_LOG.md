@@ -248,3 +248,10 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local/offline only. No live Telegram send, n8n activation, production restart, Instagram publish, Upbit mutation, secret read, AWS mutation, or Docker production operation.
 - rollback_needed: No.
 - next_action: Continue from `reports/hq_continuation_ledger_2026-05-18.json`: create inactive n8n SSH dispatch draft and runtime queue schema.
+## 2026-05-18 13:40 KST - Inactive Runtime Orchestration Dispatch Layer
+- request: Build the inactive runtime orchestration layer after the continuation-first HQ scaffold.
+- actions: Created runtime queue/state schemas and samples; created Telegram HQ command schema; created inactive/importable n8n SSH dispatch draft; documented runtime queue/state/Telegram contracts; hardened dispatch and kill-switch templates for dry-run default; extended reviewer loop template; updated continuation ledger and deferred gate registry; added runtime orchestration offline tests and final report.
+- validation: PASS. `python -m unittest discover -s tests` PASS, 43 tests; `python -m unittest tests.test_hq_runtime_orchestration_20260518` PASS, 8 tests; `python scripts/run_offline_validations.py` PASS.
+- telemetry: SUCCESS: TAC now has a locally validated queue/state/Telegram/n8n draft layer for future persistent runtime orchestration. FAILURE_PREVENTED: live SSH, credentialed n8n, Telegram send, workflow activation, and production mutation remain explicit deferred gates instead of blocking safe local work.
+- side_effects: Local/offline only; no live operation, credential read, secret output, or production mutation.
+- next_action: Build Telegram-ready Korean summary renderer and SQLite-backed validated queue writer.

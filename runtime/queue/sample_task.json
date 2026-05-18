@@ -1,0 +1,41 @@
+{
+  "task_id": "hq-sample-runtime-dispatch-20260518",
+  "created_at": "2026-05-18T00:00:00+09:00",
+  "requested_by": "telegram_user",
+  "source_channel": "telegram",
+  "priority": "normal",
+  "objective": "Create inactive runtime orchestration artifacts and validate offline.",
+  "allowed_scope": [
+    "local_files",
+    "offline_tests",
+    "docs",
+    "templates",
+    "scaffold",
+    "dry_run",
+    "no_live_network",
+    "no_secrets",
+    "no_production_mutation"
+  ],
+  "deferred_gates": [
+    {
+      "name": "live_ssh_dispatch_to_ec2",
+      "reason": "Live SSH execution against production EC2 is deferred.",
+      "required_approval": "Explicit live SSH dispatch test approval."
+    }
+  ],
+  "target_runner": "codex",
+  "tmux_session": "tac-hq-runner",
+  "workspace_path": "/home/ubuntu/workspace/true-autonomous-controller",
+  "validation_commands": [
+    "python -m unittest discover -s tests",
+    "python scripts/run_offline_validations.py"
+  ],
+  "expected_artifacts": [
+    "reports/hq_runtime_orchestration_final_report_2026-05-18.md"
+  ],
+  "status": "QUEUED",
+  "retry_count": 0,
+  "max_retries": 3,
+  "continuation_ledger_path": "reports/hq_continuation_ledger_2026-05-18.json",
+  "final_report_path": "reports/hq_runtime_orchestration_final_report_2026-05-18.md"
+}

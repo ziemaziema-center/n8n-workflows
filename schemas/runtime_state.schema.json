@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mykindredai.local/schemas/runtime_state.schema.json",
+  "title": "TAC Runtime State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "active_task_id",
+    "runner_status",
+    "current_phase",
+    "last_heartbeat_at",
+    "last_log_path",
+    "last_validation_result",
+    "blocked_gates",
+    "safe_next_actions",
+    "kill_switch_status"
+  ],
+  "properties": {
+    "active_task_id": {
+      "type": ["string", "null"]
+    },
+    "runner_status": {
+      "type": "string",
+      "enum": ["IDLE", "RUNNING", "PAUSED", "STOPPING", "STOPPED", "ERROR"]
+    },
+    "current_phase": {
+      "type": "string"
+    },
+    "last_heartbeat_at": {
+      "type": ["string", "null"]
+    },
+    "last_log_path": {
+      "type": ["string", "null"]
+    },
+    "last_validation_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "command", "checked_at"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "NOT_RUN", "DEFERRED_GATE"]
+        },
+        "command": {
+          "type": ["string", "null"]
+        },
+        "checked_at": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "blocked_gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status", "reason"],
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "type": "string", "const": "DEFERRED_GATE" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "safe_next_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "kill_switch_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "last_triggered_at", "command"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "last_triggered_at": { "type": ["string", "null"] },
+        "command": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mykindredai.local/schemas/telegram_hq_command.schema.json",
+  "title": "TAC Telegram HQ Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "args",
+    "safety_class",
+    "live_approval_required",
+    "validation",
+    "expected_output"
+  ],
+  "properties": {
+    "command": {
+      "type": "string",
+      "enum": ["/run", "/status", "/queue", "/pause", "/resume", "/killall", "/review", "/retry", "/handoff"]
+    },
+    "args": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "safety_class": {
+      "type": "string",
+      "enum": ["safe_read", "safe_queue", "control", "review", "deferred_live_gate"]
+    },
+    "live_approval_required": {
+      "type": "boolean"
+    },
+    "validation": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "expected_output": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

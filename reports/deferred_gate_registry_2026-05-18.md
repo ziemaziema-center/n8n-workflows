@@ -64,3 +64,52 @@ Rule:
 - required approval/input: do not read secret value; use presence/metadata only unless a secure path is explicitly defined.
 - safe work continued: config templates with placeholders.
 - next action after approval: use secret via environment only, never print/store.
+
+### 9. n8n credentialed read-only check
+- status: `DEFERRED_GATE`
+- why blocked: authenticated n8n API access is a credential boundary.
+- required approval/input: read-only credential path and exact metadata fields to inspect.
+- safe work continued: inactive workflow draft and local JSON validation.
+- next action after approval: inspect workflow/execution metadata only; no activation or mutation.
+
+### 10. live SSH dispatch test
+- status: `DEFERRED_GATE`
+- why blocked: it executes commands against the EC2 runtime boundary.
+- required approval/input: exact EC2 target, queue item, log path, rollback/kill-switch plan.
+- safe work continued: inactive n8n workflow draft, SSH command template, queue schema, dry-run dispatch template.
+- next action after approval: run one dry-run SSH dispatch that appends a sample queue item only.
+
+### 11. Telegram live send test
+- status: `DEFERRED_GATE`
+- why blocked: it sends a real user-facing message.
+- required approval/input: target chat, exact message, and one-message verification scope.
+- safe work continued: Telegram command schema and summary template placeholders.
+- next action after approval: send one test message, verify receipt, then stop.
+
+### 12. EC2 tmux live session creation
+- status: `DEFERRED_GATE`
+- why blocked: it creates or mutates a live persistent runtime process.
+- required approval/input: tmux session name, bounded workspace path, log path, kill-switch confirmation.
+- safe work continued: tmux runner template, kill-switch template, runtime state schema.
+- next action after approval: create one scoped `tac-hq-runner` session and verify local log/state files only.
+
+### 13. production workflow activation
+- status: `DEFERRED_GATE`
+- why blocked: activation changes production automation behavior.
+- required approval/input: workflow id, trigger, rollback plan, and expected output.
+- safe work continued: inactive/importable workflow draft.
+- next action after approval: import inactive, inspect, then activate only the selected workflow.
+
+### 14. helper deploy/restart
+- status: `DEFERRED_GATE`
+- why blocked: helper deployment/restart changes production service behavior.
+- required approval/input: target helper, rollback point, maintenance window, health-check command.
+- safe work continued: local runtime orchestration scaffold and validation.
+- next action after approval: checkpoint -> dry-run deploy plan -> scoped restart -> health check.
+
+### 15. Upbit IP/auth read-only check
+- status: `DEFERRED_GATE`
+- why blocked: Upbit auth and IP allowlist are external credential boundaries.
+- required approval/input: allowlist confirmation and a read-only-only command path that does not print secrets.
+- safe work continued: schema, local docs, offline validation, no exchange call.
+- next action after approval: perform one current-state read-only check; no order, cancel, retry, or reorder.
