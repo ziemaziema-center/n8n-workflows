@@ -52,6 +52,22 @@ class WorkflowContractTests(unittest.TestCase):
         unsupported_branch = workflow["connections"]["IF Supported Command"]["main"][1]
         self.assertEqual(unsupported_branch[0]["node"], "Build Unsupported Reply")
 
+    def test_telegram_workflow_supports_queue_and_handoff_routes(self):
+        workflow = self.load_workflow("tac_telegram_commands.json")
+        nodes = {node["name"]: node for node in workflow["nodes"]}
+        normalize_code = nodes["Normalize Telegram Command"]["parameters"]["jsCode"]
+        self.assertIn("^\\/queue\\b", normalize_code)
+        self.assertIn("^\\/handoff\\b", normalize_code)
+        self.assertIn("queue_mode: action === 'queue'", normalize_code)
+        self.assertIn("handoff_mode: action === 'handoff'", normalize_code)
+        body_params = {
+            item["name"]: item["value"]
+            for item in nodes["Call TAC Runner"]["parameters"]["bodyParameters"]["parameters"]
+        }
+        self.assertEqual(body_params["objective"], "={{$json.prompt}}")
+        self.assertEqual(body_params["workspace_path"], "=/home/ubuntu/workspace/true-autonomous-controller")
+        self.assertEqual(body_params["source_channel"], "=telegram")
+
     def test_telegram_send_nodes_use_html_parse_mode(self):
         for name in ("tac_telegram_commands.json", "tac_controller_webhook.json"):
             workflow = self.load_workflow(name)

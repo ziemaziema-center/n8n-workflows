@@ -1,7 +1,7 @@
 {
   "task_id": "tac-hq-orchestration-20260518",
   "created_at_kst": "2026-05-18",
-  "current_phase": "inactive_runtime_orchestration_dispatch_layer",
+  "current_phase": "phase4_runtime_operating_layer_partial",
   "operating_rule": "Do not stop the whole task because one live/credential/network item is blocked. Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work. Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.",
   "completed_items": [
     "permanent continuation rule stored in AGENTS.md and SESSION_BOOT.md",
@@ -36,14 +36,25 @@
     "local runtime scripts and schemas synced to EC2 bounded workspace",
     "EC2 tmux Phase 3 E2E dry-run smoke passed with queue -> tmux -> wrapper -> reviewer -> report",
     "Docker-isolated runner scaffold created at docker/tac-runner.Dockerfile",
-    "Phase 3 local planner-executor-reviewer retry orchestrator created and validated"
+    "Phase 3 local planner-executor-reviewer retry orchestrator created and validated",
+    "Docker Desktop daemon started for bounded local build validation",
+    "Docker runner image tac-codex-runner:dry-run built successfully",
+    "Docker runner executed disposable workspace smoke with --network none and no secret mount",
+    "TAC service /queue endpoint added for SQLite-backed runtime queue writes",
+    "TAC service /handoff endpoint added for continuation ledger handoff reads",
+    "tac_telegram_commands active n8n workflow patched to recognize /queue and /handoff routes",
+    "EC2 tac-service redeployed and restarted with /queue and /handoff support",
+    "EC2 /queue route wrote queue task and started or reused tac-hq-runner tmux session",
+    "EC2 tac-hq-runner processed queued smoke task and wrote handoff/state/report artifacts",
+    "3-task queue soak test validated pass, forced retry, deferred gate, and safe continuation",
+    "Git checkpoint manifest generator added and validated without mutating Git"
   ],
   "pending_items": [
-    "replace temporary host-mode Codex fallback with Docker-isolated runner",
-    "build and test Docker image against a disposable workspace copy",
-    "connect active Telegram command route to the new queue/tmux/reviewer loop instead of legacy TAC service dry-run path",
-    "add automatic Git checkpoint before mutating bounded workspaces",
-    "run multi-task overnight queue soak test with bounded retries and kill switch"
+    "Install Codex CLI inside the Docker runner image or mount a bounded Codex binary/auth strategy without secrets",
+    "Replace host-mode Codex fallback with Docker-isolated Codex execution for real mutation tasks",
+    "Run user-origin Telegram /queue smoke from the Telegram app to confirm mobile UX, not only n8n active graph and service route",
+    "Add automatic pre-run Git checkpoint and post-pass commit execution for bounded workspaces, beyond manifest generation",
+    "Run multi-hour or overnight unattended queue soak with bounded retries, heartbeat, pause/resume, and /killall verification"
   ],
   "deferred_gates": [
     {
@@ -98,21 +109,21 @@
     }
   ],
   "next_executable_subtasks": [
-    "Build Docker runner image from docker/tac-runner.Dockerfile and run one disposable workspace dry-run",
-    "Patch tac_telegram_commands to route selected /queue or /handoff commands into the new queue/tmux/reviewer loop",
-    "Add Git pre-run checkpoint/post-pass commit automation for bounded workspace tasks",
-    "Run 3-task queue soak test through tmux runner with one forced retry and one deferred gate",
-    "Promote the inactive n8n dispatch draft only after rollback and kill-switch checks are documented"
+    "Build a Docker Codex runner image that can execute Codex inside the container without mounting host secrets",
+    "Patch tac-hq-runner to call the Docker runner for target_runner=codex and keep dry_run fallback for tests",
+    "Run a real user-origin Telegram /queue command and verify received Telegram reply plus queue/tmux handoff",
+    "Implement actual Git pre-run checkpoint and post-pass commit for bounded workspaces",
+    "Run 3+ task overnight soak with one forced retry, one deferred gate, heartbeat, and kill switch check"
   ],
   "validation_commands": [
     "python -m unittest discover -s tests",
-    "python -m unittest tests.test_hq_orchestration_scaffold",
-    "python -m unittest tests.test_hq_runtime_orchestration_20260518",
-    "python -m unittest tests.test_hq_queue_renderer_20260518",
-    "python -m unittest tests.test_phase3_runtime_orchestration_20260518",
-    "python scripts/run_offline_validations.py"
+    "python scripts/run_offline_validations.py",
+    "docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:dry-run .",
+    "docker run --rm --network none --memory=2g --cpus=2 -v <disposable_workspace>:/workspace -w /workspace tac-codex-runner:dry-run scripts/docker_container_smoke.py",
+    "python scripts/queue_soak_test.py",
+    "python scripts/git_checkpoint_manifest.py"
   ],
-  "final_report_path": "reports/phase3_runtime_orchestration_completion_report_2026-05-18.md",
-  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from Docker image build/disposable workspace dry-run and Git checkpoint automation. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.",
+  "final_report_path": "reports/phase4_runtime_operating_report_2026-05-18.md",
+  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger. Continue from Docker Codex runner image/auth design and target_runner=codex container execution. If user-origin Telegram validation is available, send /queue smoke from Telegram and verify the mobile reply plus EC2 handoff.",
   "live_operations_performed": true
 }

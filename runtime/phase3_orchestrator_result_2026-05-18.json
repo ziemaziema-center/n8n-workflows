@@ -1,8 +1,8 @@
 {
   "task_id": "hq-phase3-orchestrator-local-20260518",
   "status": "PASS",
-  "started_at": "2026-05-18T05:30:43.824179+00:00",
-  "finished_at": "2026-05-18T05:30:43.824192+00:00",
+  "started_at": "2026-05-18T06:41:56.877804+00:00",
+  "finished_at": "2026-05-18T06:41:56.877818+00:00",
   "planner": {
     "subtasks": [
       {
@@ -39,7 +39,7 @@
           ],
           "status": "PASS",
           "exit_code": 0,
-          "stdout_tail": ",\n            \"required_input\": \"explicit EC2 runtime dry-run/live boundary approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session.\"\n        },\n        {\n            \"name\": \"live_instagram_publish\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"live publishing can affect production accounts\",\n            \"required_input\": \"explicit publishing approval and content review gate\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"Build Docker runner image from docker/tac-runner.Dockerfile and run one disposable workspace dry-run\",\n        \"Patch tac_telegram_commands to route selected /queue or /handoff commands into the new queue/tmux/reviewer loop\",\n        \"Add Git pre-run checkpoint/post-pass commit automation for bounded workspace tasks\",\n        \"Run 3-task queue soak test through tmux runner with one forced retry and one deferred gate\",\n        \"Promote the inactive n8n dispatch draft only after rollback and kill-switch checks are documented\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python -m unittest tests.test_hq_orchestration_scaffold\",\n        \"python -m unittest tests.test_hq_runtime_orchestration_20260518\",\n        \"python -m unittest tests.test_hq_queue_renderer_20260518\",\n        \"python -m unittest tests.test_phase3_runtime_orchestration_20260518\",\n        \"python scripts/run_offline_validations.py\"\n    ],\n    \"final_report_path\": \"reports/phase3_runtime_orchestration_completion_report_2026-05-18.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from Docker image build/disposable workspace dry-run and Git checkpoint automation. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.\",\n    \"live_operations_performed\": true\n}\n",
+          "stdout_tail": " approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session.\"\n        },\n        {\n            \"name\": \"live_instagram_publish\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"live publishing can affect production accounts\",\n            \"required_input\": \"explicit publishing approval and content review gate\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"Build a Docker Codex runner image that can execute Codex inside the container without mounting host secrets\",\n        \"Patch tac-hq-runner to call the Docker runner for target_runner=codex and keep dry_run fallback for tests\",\n        \"Run a real user-origin Telegram /queue command and verify received Telegram reply plus queue/tmux handoff\",\n        \"Implement actual Git pre-run checkpoint and post-pass commit for bounded workspaces\",\n        \"Run 3+ task overnight soak with one forced retry, one deferred gate, heartbeat, and kill switch check\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python scripts/run_offline_validations.py\",\n        \"docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:dry-run .\",\n        \"docker run --rm --network none --memory=2g --cpus=2 -v <disposable_workspace>:/workspace -w /workspace tac-codex-runner:dry-run scripts/docker_container_smoke.py\",\n        \"python scripts/queue_soak_test.py\",\n        \"python scripts/git_checkpoint_manifest.py\"\n    ],\n    \"final_report_path\": \"reports/phase4_runtime_operating_report_2026-05-18.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger. Continue from Docker Codex runner image/auth design and target_runner=codex container execution. If user-origin Telegram validation is available, send /queue smoke from Telegram and verify the mobile reply plus EC2 handoff.\",\n    \"live_operations_performed\": true\n}\n",
           "stderr_tail": ""
         },
         {
@@ -53,7 +53,7 @@
           "status": "PASS",
           "exit_code": 0,
           "stdout_tail": "",
-          "stderr_tail": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.206s\n\nOK\n"
+          "stderr_tail": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.223s\n\nOK\n"
         }
       ],
       "review": {

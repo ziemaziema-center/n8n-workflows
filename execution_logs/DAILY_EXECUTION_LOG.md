@@ -273,3 +273,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: One inactive n8n draft workflow exists; one temporary activation/deactivation was performed for smoke testing; one Telegram smoke summary was sent; EC2 bounded workspace received synced scripts/schemas and dry-run runtime artifacts. No production activation, Upbit order/read, Instagram publish, Docker restart, AWS mutation, credential value read, or secret output.
 - rollback_needed: No.
 - next_action: Build Docker-isolated runner image in disposable mode, then wire selected Telegram commands to the new queue/tmux/reviewer path behind a fallback.
+
+## 2026-05-18 15:40 KST - Phase 4 Bounded Runtime Route
+- request: User approved the remaining Phase 4 operating work.
+- actions: Added queue runtime module; added `/queue` and `/handoff` service endpoints; patched Telegram workflow parser for `/queue` and `/handoff`; added Docker container smoke, queue soak, Git checkpoint manifest, EC2 restart, and remote queue route smoke helpers; built Docker runner image; ran disposable no-network Docker smoke; deployed service/scripts to EC2; restarted scoped `tac-service`; patched active n8n Telegram workflow parser; verified `/queue` dispatch starts/reuses `tac-hq-runner` and produces handoff/state/report.
+- validation: PASS. Local tests 55/55 PASS; offline validation runner PASS; Docker build PASS; Docker no-network smoke PASS; EC2 `/queue`/`/handoff` smoke PASS; runner handoff latest task `hq-live-queue-route-smoke-20260518063612` PASS.
+- telemetry: SUCCESS: TAC moved from Phase 3 dry-run pieces into a bounded Phase 4 runtime route where queue dispatch wakes a persistent tmux runner. FAILURE_PREVENTED: missing runner script on EC2 caused initial tmux dispatch to exit; synced full runner script set and revalidated.
+- files_changed: `src/tac/*`, `workflows/tac_telegram_commands.json`, `scripts/*`, `tests/*`, `reports/*`, `runtime/*`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Local Docker Desktop started; local Docker image built; disposable container run completed; active n8n Telegram parser patched; EC2 `tac-service` restarted; EC2 `tac-hq-runner` started/reused; bounded smoke queue items appended. No Upbit, Instagram, AWS, secret, force-push, or production Docker restart.
+- rollback_needed: No immediate rollback.
+- next_action: Build Docker Codex runner execution and run a user-origin Telegram `/queue smoke` from the Telegram app.

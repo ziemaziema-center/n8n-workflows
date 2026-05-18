@@ -49,6 +49,35 @@ class Phase3RuntimeOrchestrationTests(unittest.TestCase):
         self.assertIn("planner", result)
         self.assertIn("final_review", result)
 
+    def test_queue_soak_observes_retry_and_deferred_gate(self) -> None:
+        completed = subprocess.run(
+            [sys.executable, "scripts/queue_soak_test.py"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = json.loads((ROOT / "runtime/queue_soak_result_2026-05-18.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["status"], "PASS")
+        self.assertTrue(result["forced_retry_observed"])
+        self.assertTrue(result["deferred_gate_recorded"])
+        self.assertTrue(result["safe_work_continued"])
+
+    def test_git_checkpoint_manifest_is_non_mutating(self) -> None:
+        completed = subprocess.run(
+            [sys.executable, "scripts/git_checkpoint_manifest.py"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = json.loads((ROOT / "runtime/git_checkpoint_latest.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["status"], "CHECKPOINT_READY")
+        self.assertTrue(result["pre_run_checkpoint_required"])
+        self.assertFalse(result["force_push_allowed"])
+
 
 if __name__ == "__main__":
     unittest.main()

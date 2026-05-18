@@ -218,3 +218,15 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - failure_mode: n8n draft webhook workflows cannot be smoke-tested through the webhook trigger while inactive, but leaving the draft active would accidentally promote a non-production dispatch path.
 - prevention: For draft-only webhook validation, create/import inactive, validate structure, temporarily activate for the single smoke request, then immediately deactivate and verify final `active=false`.
 - validation: Workflow `DoClguwa8aewVM8D` returned `QUEUED_DRAFT` with `live_ssh_executed=false`, then was deactivated and verified inactive.
+
+## 2026-05-18 - EC2 Runner Dispatch Can Start Then Exit If Scripts Are Not Synced
+
+- failure_mode: `/queue` can report tmux dispatch `STARTED` while the `tac-hq-runner` session exits immediately because required runner scripts are missing from the EC2 bounded workspace.
+- prevention: Sync `hq_tmux_runner_template.sh`, wrapper, dispatch, and kill scripts together before enabling queue dispatch; verify `runtime/handoff/latest.json`, `runtime/state/current_state.json`, and `runtime/queue/completed.jsonl` after every dispatch smoke.
+- validation: Initial dispatch started then exited because `hq_tmux_runner_template.sh` was absent; syncing the script set fixed the issue and `tac-hq-runner` processed queue task `hq-live-queue-route-smoke-20260518063612`.
+
+## 2026-05-18 - Docker Daemon May Be Off Even When Docker CLI Exists
+
+- failure_mode: `docker build` fails with Docker API named-pipe errors when Docker Desktop is not running.
+- prevention: Check Docker daemon status before treating Docker build failure as a Dockerfile problem; start Docker Desktop only under explicit bounded approval.
+- validation: Docker Desktop was started, daemon version `29.4.0` became available, and `tac-codex-runner:dry-run` built successfully.

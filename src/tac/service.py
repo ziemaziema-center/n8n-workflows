@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from .controller import ControllerError, run_controller, task_from_prompt, utc_now, validate_task_shape, write_result
+from .controller import ControllerError, run_controller, safe_task_id, task_from_prompt, utc_now, validate_task_shape, write_result
+from .queue_runtime import make_queue_task, write_queue_task
 
 
 class ControllerState:
@@ -73,6 +74,71 @@ class ControllerState:
             return None
         with path.open("r", encoding="utf-8-sig") as handle:
             return json.load(handle)
+
+    def enqueue(self, body: dict[str, Any]) -> dict[str, Any]:
+        task = body.get("queue_task") if isinstance(body.get("queue_task"), dict) else None
+        if task is None:
+            objective = str(body.get("objective") or body.get("prompt") or body.get("text") or "Queued TAC runtime task.")
+            task = make_queue_task(
+                task_id=str(body.get("task_id") or safe_task_id(objective)).replace("tac-", "hq-", 1),
+                objective=objective,
+                requested_by=str(body.get("requested_by") or "telegram"),
+                source_channel=str(body.get("source_channel") or body.get("source") or "telegram"),
+                workspace_path=str(body.get("workspace_path") or "/home/ubuntu/workspace/true-autonomous-controller"),
+                priority=str(body.get("priority") or "normal"),
+                target_runner=str(body.get("target_runner") or "codex"),
+            )
+        result = write_queue_task(task, runtime_root=self.project_root / "runtime")
+        dispatch_requested = str(body.get("dispatch") or "").strip().lower() in {"1", "true", "yes"}
+        dispatch_requested = dispatch_requested or str(body.get("source") or body.get("source_channel") or "") == "telegram"
+        if dispatch_requested:
+            result["dispatch"] = self.dispatch_runner()
+        else:
+            result["dispatch"] = {"requested": False, "live_dispatch_performed": False}
+        return result
+
+    def dispatch_runner(self) -> dict[str, Any]:
+        if shutil.which("tmux") is None:
+            return {
+                "requested": True,
+                "status": "DEFERRED_GATE",
+                "reason": "tmux unavailable on this host",
+                "live_dispatch_performed": False,
+            }
+        session = "tac-hq-runner"
+        has_session = subprocess.run(["tmux", "has-session", "-t", session], capture_output=True, text=True, check=False)
+        if has_session.returncode == 0:
+            return {"requested": True, "status": "ALREADY_RUNNING", "session": session, "live_dispatch_performed": True}
+        command = f"TAC_ROOT={self.project_root} bash {self.project_root / 'scripts' / 'hq_tmux_runner_template.sh'}"
+        started = subprocess.run(
+            ["tmux", "new-session", "-d", "-s", session, command],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return {
+            "requested": True,
+            "status": "STARTED" if started.returncode == 0 else "FAIL",
+            "session": session,
+            "returncode": started.returncode,
+            "stderr_tail": started.stderr[-1000:],
+            "live_dispatch_performed": started.returncode == 0,
+        }
+
+    def handoff(self) -> dict[str, Any]:
+        ledger_path = self.project_root / "reports" / "hq_continuation_ledger_2026-05-18.json"
+        if not ledger_path.exists():
+            return {"ok": False, "status": "MISSING_LEDGER", "ledger_path": str(ledger_path)}
+        with ledger_path.open("r", encoding="utf-8-sig") as handle:
+            ledger = json.load(handle)
+        return {
+            "ok": True,
+            "status": "HANDOFF_READY",
+            "current_phase": ledger.get("current_phase"),
+            "next_executable_subtasks": ledger.get("next_executable_subtasks", []),
+            "final_report_path": ledger.get("final_report_path"),
+            "resume_instruction": ledger.get("resume_instruction"),
+        }
 
 
 def json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict[str, Any]) -> None:
@@ -138,6 +204,9 @@ class ControllerHandler(BaseHTTPRequestHandler):
                 return
             json_response(self, 200, {"ok": True, "result": result})
             return
+        if parsed.path == "/handoff":
+            json_response(self, 200, self.state.handoff())
+            return
         json_response(self, 404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:
@@ -156,6 +225,13 @@ class ControllerHandler(BaseHTTPRequestHandler):
             if parsed.path == "/killall":
                 outcome = kill_scoped_tmux_sessions()
                 json_response(self, 200, {"ok": True, **outcome})
+                return
+            if parsed.path == "/queue":
+                result = self.state.enqueue(body)
+                json_response(self, 200, result)
+                return
+            if parsed.path == "/handoff":
+                json_response(self, 200, self.state.handoff())
                 return
             if parsed.path == "/status":
                 task_id = str(body.get("task_id") or "").strip()

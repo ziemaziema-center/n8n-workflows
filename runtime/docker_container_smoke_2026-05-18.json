@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "checked_at": "2026-05-18T06:26:28.338159+00:00",
+  "container_network_required": false,
+  "secret_mount_required": false,
+  "production_mutation_performed": false,
+  "checks": [
+    {
+      "cmd": [
+        "/usr/bin/python3",
+        "--version"
+      ],
+      "returncode": 0,
+      "stdout_tail": "Python 3.12.3\n",
+      "stderr_tail": ""
+    },
+    {
+      "cmd": [
+        "/usr/bin/python3",
+        "-m",
+        "json.tool",
+        "reports/hq_continuation_ledger_2026-05-18.json"
+      ],
+      "returncode": 0,
+      "stdout_tail": ",\n            \"required_input\": \"explicit EC2 runtime dry-run/live boundary approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session.\"\n        },\n        {\n            \"name\": \"live_instagram_publish\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"live publishing can affect production accounts\",\n            \"required_input\": \"explicit publishing approval and content review gate\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"Build Docker runner image from docker/tac-runner.Dockerfile and run one disposable workspace dry-run\",\n        \"Patch tac_telegram_commands to route selected /queue or /handoff commands into the new queue/tmux/reviewer loop\",\n        \"Add Git pre-run checkpoint/post-pass commit automation for bounded workspace tasks\",\n        \"Run 3-task queue soak test through tmux runner with one forced retry and one deferred gate\",\n        \"Promote the inactive n8n dispatch draft only after rollback and kill-switch checks are documented\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python -m unittest tests.test_hq_orchestration_scaffold\",\n        \"python -m unittest tests.test_hq_runtime_orchestration_20260518\",\n        \"python -m unittest tests.test_hq_queue_renderer_20260518\",\n        \"python -m unittest tests.test_phase3_runtime_orchestration_20260518\",\n        \"python scripts/run_offline_validations.py\"\n    ],\n    \"final_report_path\": \"reports/phase3_runtime_orchestration_completion_report_2026-05-18.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from Docker image build/disposable workspace dry-run and Git checkpoint automation. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.\",\n    \"live_operations_performed\": true\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "cmd": [
+        "/usr/bin/python3",
+        "scripts/hq_phase3_orchestrator.py"
+      ],
+      "returncode": 0,
+      "stdout_tail": "{\"status\": \"PASS\", \"out\": \"/workspace/runtime/phase3_orchestrator_result_2026-05-18.json\"}\n",
+      "stderr_tail": ""
+    }
+  ]
+}

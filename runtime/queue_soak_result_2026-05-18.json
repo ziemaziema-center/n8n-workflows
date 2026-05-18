@@ -1,0 +1,77 @@
+{
+  "status": "PASS",
+  "checked_at": "2026-05-18T06:41:56.988192+00:00",
+  "task_count": 3,
+  "forced_retry_observed": true,
+  "deferred_gate_recorded": true,
+  "safe_work_continued": true,
+  "outcomes": [
+    {
+      "task_id": "hq-soak-pass-20260518",
+      "forced": "pass",
+      "attempts": [
+        {
+          "attempt": 0,
+          "task_id": "hq-soak-pass-20260518",
+          "decision": "PASS",
+          "retry_allowed": false,
+          "reason": "soak smoke pass"
+        }
+      ],
+      "final": {
+        "attempt": 0,
+        "task_id": "hq-soak-pass-20260518",
+        "decision": "PASS",
+        "retry_allowed": false,
+        "reason": "soak smoke pass"
+      }
+    },
+    {
+      "task_id": "hq-soak-retry-20260518",
+      "forced": "retry",
+      "attempts": [
+        {
+          "attempt": 0,
+          "task_id": "hq-soak-retry-20260518",
+          "decision": "FAIL",
+          "retry_allowed": true,
+          "reason": "forced retry smoke"
+        },
+        {
+          "attempt": 1,
+          "task_id": "hq-soak-retry-20260518",
+          "decision": "PASS",
+          "retry_allowed": false,
+          "reason": "soak smoke pass"
+        }
+      ],
+      "final": {
+        "attempt": 1,
+        "task_id": "hq-soak-retry-20260518",
+        "decision": "PASS",
+        "retry_allowed": false,
+        "reason": "soak smoke pass"
+      }
+    },
+    {
+      "task_id": "hq-soak-deferred-20260518",
+      "forced": "deferred",
+      "attempts": [
+        {
+          "attempt": 0,
+          "task_id": "hq-soak-deferred-20260518",
+          "decision": "DEFERRED_GATE",
+          "retry_allowed": false,
+          "reason": "forced deferred gate smoke"
+        }
+      ],
+      "final": {
+        "attempt": 0,
+        "task_id": "hq-soak-deferred-20260518",
+        "decision": "DEFERRED_GATE",
+        "retry_allowed": false,
+        "reason": "forced deferred gate smoke"
+      }
+    }
+  ]
+}

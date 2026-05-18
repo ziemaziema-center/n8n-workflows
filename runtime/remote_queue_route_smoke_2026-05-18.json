@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-05-18T06:41:20.439772+00:00",
+  "health": {
+    "ok": true,
+    "status": 200,
+    "body": {
+      "ok": true,
+      "service": "true-autonomous-controller",
+      "time": "2026-05-18T06:41:20+00:00"
+    }
+  },
+  "queue": {
+    "ok": true,
+    "status": 200,
+    "body": {
+      "ok": true,
+      "status": "QUEUED",
+      "task_id": "hq-live-queue-route-smoke-20260518064120",
+      "task_path": "/home/ubuntu/workspace/true-autonomous-controller/runtime/queue/hq-live-queue-route-smoke-20260518064120.json",
+      "pending_jsonl": "/home/ubuntu/workspace/true-autonomous-controller/runtime/queue/pending.jsonl",
+      "db_path": "/home/ubuntu/workspace/true-autonomous-controller/runtime/controller_state.sqlite3",
+      "live_dispatch_performed": false,
+      "dispatch": {
+        "requested": true,
+        "status": "ALREADY_RUNNING",
+        "session": "tac-hq-runner",
+        "live_dispatch_performed": true
+      }
+    }
+  },
+  "handoff": {
+    "ok": true,
+    "status": 200,
+    "body": {
+      "ok": true,
+      "status": "HANDOFF_READY",
+      "current_phase": "phase4_runtime_operating_layer_partial",
+      "next_executable_subtasks": [
+        "Build a Docker Codex runner image that can execute Codex inside the container without mounting host secrets",
+        "Patch tac-hq-runner to call the Docker runner for target_runner=codex and keep dry_run fallback for tests",
+        "Run a real user-origin Telegram /queue command and verify received Telegram reply plus queue/tmux handoff",
+        "Implement actual Git pre-run checkpoint and post-pass commit for bounded workspaces",
+        "Run 3+ task overnight soak with one forced retry, one deferred gate, heartbeat, and kill switch check"
+      ],
+      "final_report_path": "reports/phase4_runtime_operating_report_2026-05-18.md",
+      "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger. Continue from Docker Codex runner image/auth design and target_runner=codex container execution. If user-origin Telegram validation is available, send /queue smoke from Telegram and verify the mobile reply plus EC2 handoff."
+    }
+  },
+  "live_dispatch_performed": true,
+  "production_mutation_performed": false,
+  "status": "PASS"
+}

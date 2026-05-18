@@ -12,7 +12,7 @@
       ],
       "returncode": 0,
       "stdout_tail": "",
-      "stderr_tail": "..................................................\n----------------------------------------------------------------------\nRan 50 tests in 1.077s\n\nOK\n"
+      "stderr_tail": ".......................................................\n----------------------------------------------------------------------\nRan 55 tests in 2.220s\n\nOK\n"
     },
     {
       "cmd": [
@@ -22,7 +22,7 @@
         "reports/hq_continuation_ledger_2026-05-18.json"
       ],
       "returncode": 0,
-      "stdout_tail": "_restart\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"production mutation remains separately gated\",\n            \"required_input\": \"explicit production deployment approval and rollback point\"\n        },\n        {\n            \"name\": \"upbit_authenticated_read_only_after_ip_allowlist\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"requires authorized IP and credential-safe read-only boundary\",\n            \"required_input\": \"Upbit allowlist confirmation and read-only execution approval\"\n        },\n        {\n            \"name\": \"n8n_authenticated_read_only\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"requires authenticated n8n API access boundary\",\n            \"required_input\": \"approved read-only n8n credential usage path\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"MCP health and minimal workflow metadata read succeeded without mutation.\"\n        },\n        {\n            \"name\": \"live_ssh_dispatch_test\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"would execute against production EC2\",\n            \"required_input\": \"explicit live SSH dispatch test approval and rollback/log path\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"One valid queue JSON line appended under /home/ubuntu/workspace/true-autonomous-controller/runtime/queue.\"\n        },\n        {\n            \"name\": \"telegram_live_send_test\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"would send a real user-facing Telegram message\",\n            \"required_input\": \"target chat and exact message approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"tac_controller_webhook returned PASS and sent one smoke summary through existing n8n Telegram credential.\"\n        },\n        {\n            \"name\": \"ec2_tmux_live_session_creation\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"would create or mutate a live EC2 tmux runtime session\",\n            \"required_input\": \"explicit EC2 runtime dry-run/live boundary approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session.\"\n        },\n        {\n            \"name\": \"live_instagram_publish\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"live publishing can affect production accounts\",\n            \"required_input\": \"explicit publishing approval and content review gate\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"Build Docker runner image from docker/tac-runner.Dockerfile and run one disposable workspace dry-run\",\n        \"Patch tac_telegram_commands to route selected /queue or /handoff commands into the new queue/tmux/reviewer loop\",\n        \"Add Git pre-run checkpoint/post-pass commit automation for bounded workspace tasks\",\n        \"Run 3-task queue soak test through tmux runner with one forced retry and one deferred gate\",\n        \"Promote the inactive n8n dispatch draft only after rollback and kill-switch checks are documented\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python -m unittest tests.test_hq_orchestration_scaffold\",\n        \"python -m unittest tests.test_hq_runtime_orchestration_20260518\",\n        \"python -m unittest tests.test_hq_queue_renderer_20260518\",\n        \"python -m unittest tests.test_phase3_runtime_orchestration_20260518\",\n        \"python scripts/run_offline_validations.py\"\n    ],\n    \"final_report_path\": \"reports/phase3_runtime_orchestration_completion_report_2026-05-18.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from Docker image build/disposable workspace dry-run and Git checkpoint automation. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.\",\n    \"live_operations_performed\": true\n}\n",
+      "stdout_tail": "oduction mutation remains separately gated\",\n            \"required_input\": \"explicit production deployment approval and rollback point\"\n        },\n        {\n            \"name\": \"upbit_authenticated_read_only_after_ip_allowlist\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"requires authorized IP and credential-safe read-only boundary\",\n            \"required_input\": \"Upbit allowlist confirmation and read-only execution approval\"\n        },\n        {\n            \"name\": \"n8n_authenticated_read_only\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"requires authenticated n8n API access boundary\",\n            \"required_input\": \"approved read-only n8n credential usage path\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"MCP health and minimal workflow metadata read succeeded without mutation.\"\n        },\n        {\n            \"name\": \"live_ssh_dispatch_test\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"would execute against production EC2\",\n            \"required_input\": \"explicit live SSH dispatch test approval and rollback/log path\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"One valid queue JSON line appended under /home/ubuntu/workspace/true-autonomous-controller/runtime/queue.\"\n        },\n        {\n            \"name\": \"telegram_live_send_test\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"would send a real user-facing Telegram message\",\n            \"required_input\": \"target chat and exact message approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"tac_controller_webhook returned PASS and sent one smoke summary through existing n8n Telegram credential.\"\n        },\n        {\n            \"name\": \"ec2_tmux_live_session_creation\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"would create or mutate a live EC2 tmux runtime session\",\n            \"required_input\": \"explicit EC2 runtime dry-run/live boundary approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session.\"\n        },\n        {\n            \"name\": \"live_instagram_publish\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"live publishing can affect production accounts\",\n            \"required_input\": \"explicit publishing approval and content review gate\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"Build a Docker Codex runner image that can execute Codex inside the container without mounting host secrets\",\n        \"Patch tac-hq-runner to call the Docker runner for target_runner=codex and keep dry_run fallback for tests\",\n        \"Run a real user-origin Telegram /queue command and verify received Telegram reply plus queue/tmux handoff\",\n        \"Implement actual Git pre-run checkpoint and post-pass commit for bounded workspaces\",\n        \"Run 3+ task overnight soak with one forced retry, one deferred gate, heartbeat, and kill switch check\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python scripts/run_offline_validations.py\",\n        \"docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:dry-run .\",\n        \"docker run --rm --network none --memory=2g --cpus=2 -v <disposable_workspace>:/workspace -w /workspace tac-codex-runner:dry-run scripts/docker_container_smoke.py\",\n        \"python scripts/queue_soak_test.py\",\n        \"python scripts/git_checkpoint_manifest.py\"\n    ],\n    \"final_report_path\": \"reports/phase4_runtime_operating_report_2026-05-18.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger. Continue from Docker Codex runner image/auth design and target_runner=codex container execution. If user-origin Telegram validation is available, send /queue smoke from Telegram and verify the mobile reply plus EC2 handoff.\",\n    \"live_operations_performed\": true\n}\n",
       "stderr_tail": ""
     },
     {
@@ -112,7 +112,11 @@
         "scripts/remote_live_gate_smoke.py",
         "scripts/remote_phase3_e2e_smoke.py",
         "scripts/docker_isolated_runner_plan.py",
-        "scripts/hq_phase3_orchestrator.py"
+        "scripts/hq_phase3_orchestrator.py",
+        "scripts/docker_container_smoke.py",
+        "scripts/queue_soak_test.py",
+        "scripts/git_checkpoint_manifest.py",
+        "scripts/remote_queue_route_smoke.py"
       ],
       "returncode": 0,
       "stdout_tail": "",
@@ -139,10 +143,28 @@
     {
       "cmd": [
         "C:\\Python314\\python.exe",
+        "scripts/queue_soak_test.py"
+      ],
+      "returncode": 0,
+      "stdout_tail": "{\"status\": \"PASS\", \"out\": \"C:\\\\Users\\\\minho\\\\Documents\\\\02_work\\\\03_AI\\\\05_true atonomous_controller\\\\runtime\\\\queue_soak_result_2026-05-18.json\"}\n",
+      "stderr_tail": ""
+    },
+    {
+      "cmd": [
+        "C:\\Python314\\python.exe",
+        "scripts/git_checkpoint_manifest.py"
+      ],
+      "returncode": 0,
+      "stdout_tail": "{\"status\": \"CHECKPOINT_READY\", \"out\": \"C:\\\\Users\\\\minho\\\\Documents\\\\02_work\\\\03_AI\\\\05_true atonomous_controller\\\\runtime\\\\git_checkpoint_latest.json\"}\n",
+      "stderr_tail": ""
+    },
+    {
+      "cmd": [
+        "C:\\Python314\\python.exe",
         "scripts/render_telegram_korean_summary.py"
       ],
       "returncode": 0,
-      "stdout_tail": "{\"ok\": true, \"output_path\": \"C:\\\\Users\\\\minho\\\\Documents\\\\02_work\\\\03_AI\\\\05_true atonomous_controller\\\\runtime\\\\reports\\\\telegram_summary_preview_2026-05-18.txt\", \"characters\": 1784, \"live_telegram_sent\": false}\n",
+      "stdout_tail": "{\"ok\": true, \"output_path\": \"C:\\\\Users\\\\minho\\\\Documents\\\\02_work\\\\03_AI\\\\05_true atonomous_controller\\\\runtime\\\\reports\\\\telegram_summary_preview_2026-05-18.txt\", \"characters\": 1984, \"live_telegram_sent\": false}\n",
       "stderr_tail": ""
     },
     {

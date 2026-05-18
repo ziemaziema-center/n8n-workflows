@@ -43,6 +43,46 @@ class ServiceContractTests(unittest.TestCase):
             saved_task = json.loads(state.task_path("tac-followup").read_text(encoding="utf-8"))
             self.assertEqual(saved_task["workspace"], str(target))
 
+    def test_state_enqueue_writes_queue_and_sqlite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = ControllerState(root)
+            result = state.enqueue(
+                {
+                    "task_id": "hq-service-queue-smoke",
+                    "objective": "service queue smoke",
+                    "workspace_path": "/home/ubuntu/workspace/true-autonomous-controller",
+                }
+            )
+            self.assertTrue(result["ok"])
+            self.assertFalse(result["live_dispatch_performed"])
+            self.assertTrue((root / "runtime/queue/hq-service-queue-smoke.json").exists())
+            pending = (root / "runtime/queue/pending.jsonl").read_text(encoding="utf-8")
+            self.assertIn("hq-service-queue-smoke", pending)
+            self.assertTrue((root / "runtime/controller_state.sqlite3").exists())
+
+    def test_state_handoff_reads_continuation_ledger(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            reports = root / "reports"
+            reports.mkdir()
+            (reports / "hq_continuation_ledger_2026-05-18.json").write_text(
+                json.dumps(
+                    {
+                        "current_phase": "phase4",
+                        "next_executable_subtasks": ["docker dry-run"],
+                        "final_report_path": "reports/phase4.md",
+                        "resume_instruction": "resume here",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            state = ControllerState(root)
+            result = state.handoff()
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["status"], "HANDOFF_READY")
+            self.assertEqual(result["next_executable_subtasks"], ["docker dry-run"])
+
 
 if __name__ == "__main__":
     unittest.main()

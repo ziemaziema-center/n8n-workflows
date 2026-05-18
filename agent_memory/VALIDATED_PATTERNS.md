@@ -192,3 +192,14 @@ Append only unless correcting the latest entry.
   - `python -m unittest discover -s tests`
   - `python scripts/run_offline_validations.py`
 - result: PASS. Phase 3 runtime orchestration dry-run completed with final workflow state inactive, no live SSH from the n8n draft, scoped tmux cleanup, reviewer feedback written, and one Telegram summary smoke.
+
+## 2026-05-18 - Phase 4 bounded runtime route
+
+- pattern: Build Docker image first, run disposable container smoke with `--network none`, then add `/queue` and `/handoff` service endpoints, patch n8n Telegram command parsing, and verify EC2 queue dispatch by checking tmux session, queue completion, state, and handoff files.
+- validated_by:
+  - `docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:dry-run .`
+  - `docker run --rm --network none --memory=2g --cpus=2 ... scripts/docker_container_smoke.py`
+  - `python -m unittest discover -s tests`
+  - `python scripts/run_offline_validations.py`
+  - EC2 `scripts/remote_queue_route_smoke.py`
+- result: PASS. `/queue` now writes a validated queue task and starts/reuses `tac-hq-runner`; the runner processed the smoke task and wrote handoff/state/report artifacts.

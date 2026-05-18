@@ -26,7 +26,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const update = $input.first()?.json || {};\nconst msg = update.message || update.edited_message || {};\nconst chat = msg.chat || {};\nconst rawText = String(msg.text || '').trim();\nconst chatId = String(chat.id || '').trim();\nlet action = '';\nlet prompt = '';\nlet task_id = '';\nlet executor = 'dry_run';\nif (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n} else if (/^\\/codex\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'codex';\n  prompt = rawText.replace(/^\\/codex\\s*/i, '').trim() || 'Return TAC_CODEX_SMOKE_OK';\n} else if (/^\\/status\\b/i.test(rawText)) {\n  action = 'status';\n  task_id = rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/killall\\b/i.test(rawText)) {\n  action = 'killall';\n} else if (rawText && !rawText.startsWith('/')) {\n  action = 'run';\n  executor = 'codex';\n  prompt = [\n    'FOLLOWUP_TASK: true',\n    'Telegram follow-up message. First inspect the latest TAC task/result if needed and continue from the most recent related bounded workspace.',\n    'If this is an approval, execute only the approved bounded scope and keep forbidden live mutations blocked unless explicitly approved.',\n    '',\n    'User message:',\n    rawText,\n  ].join('\\n');\n}\nfunction makeTaskId() {\n  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);\n  const rand = Math.random().toString(16).slice(2, 10).padEnd(8, '0');\n  return `tac-${stamp}-${rand}`;\n}\nif (action === 'run' && !task_id) {\n  task_id = makeTaskId();\n}\nconst supported = !!action && !!chatId;\nconst endpoint = action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run';\nreturn [{ json: { supported, action, endpoint, runner_url: `http://172.17.0.1:8765/${endpoint}`, prompt, task_id, chat_id: chatId, executor, received_text: rawText } }];"
+        "jsCode": "const update = $input.first()?.json || {};\nconst msg = update.message || update.edited_message || {};\nconst chat = msg.chat || {};\nconst rawText = String(msg.text || '').trim();\nconst chatId = String(chat.id || '').trim();\nlet action = '';\nlet prompt = '';\nlet task_id = '';\nlet executor = 'dry_run';\nlet endpoint = '';\nif (/^\\/run\\b/i.test(rawText)) {\n  action = 'run';\n  prompt = rawText.replace(/^\\/run\\s*/i, '').trim() || 'Phase 3 smoke run';\n} else if (/^\\/codex\\b/i.test(rawText)) {\n  action = 'run';\n  executor = 'codex';\n  prompt = rawText.replace(/^\\/codex\\s*/i, '').trim() || 'Return TAC_CODEX_SMOKE_OK';\n} else if (/^\\/queue\\b/i.test(rawText)) {\n  action = 'queue';\n  endpoint = 'queue';\n  prompt = rawText.replace(/^\\/queue\\s*/i, '').trim() || 'Queued TAC runtime task';\n} else if (/^\\/handoff\\b/i.test(rawText)) {\n  action = 'handoff';\n  endpoint = 'handoff';\n} else if (/^\\/status\\b/i.test(rawText)) {\n  action = 'status';\n  task_id = rawText.replace(/^\\/status\\s*/i, '').trim();\n} else if (/^\\/killall\\b/i.test(rawText)) {\n  action = 'killall';\n} else if (rawText && !rawText.startsWith('/')) {\n  action = 'run';\n  executor = 'codex';\n  prompt = [\n    'FOLLOWUP_TASK: true',\n    'Telegram follow-up message. First inspect the latest TAC task/result if needed and continue from the most recent related bounded workspace.',\n    'If this is an approval, execute only the approved bounded scope and keep forbidden live mutations blocked unless explicitly approved.',\n    '',\n    'User message:',\n    rawText,\n  ].join('\\n');\n}\nfunction makeTaskId() {\n  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);\n  const rand = Math.random().toString(16).slice(2, 10).padEnd(8, '0');\n  return `tac-${stamp}-${rand}`;\n}\nif (action === 'run' && !task_id) {\n  task_id = makeTaskId();\n}\nconst supported = !!action && !!chatId;\nendpoint = endpoint || (action === 'killall' ? 'killall' : action === 'status' ? 'status' : 'run');\nreturn [{ json: { supported, action, endpoint, queue_mode: action === 'queue', handoff_mode: action === 'handoff', runner_url: `http://172.17.0.1:8765/${endpoint}`, prompt, task_id, chat_id: chatId, executor, received_text: rawText } }];"
       },
       "id": "tac-normalize-telegram",
       "name": "Normalize Telegram Command",
@@ -79,6 +79,26 @@
             {
               "name": "executor",
               "value": "={{$json.executor}}"
+            },
+            {
+              "name": "objective",
+              "value": "={{$json.prompt}}"
+            },
+            {
+              "name": "workspace_path",
+              "value": "=/home/ubuntu/workspace/true-autonomous-controller"
+            },
+            {
+              "name": "requested_by",
+              "value": "=telegram"
+            },
+            {
+              "name": "source_channel",
+              "value": "=telegram"
+            },
+            {
+              "name": "target_runner",
+              "value": "={{$json.executor === \"codex\" ? \"codex\" : \"dry_run\"}}"
             }
           ]
         },
