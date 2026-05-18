@@ -6,3 +6,7 @@ runtime/tasks/
 runtime/*.sqlite3
 runtime/*.sqlite3-shm
 runtime/*.sqlite3-wal
+runtime/queue/*.json
+!runtime/queue/sample_task.json
+runtime/queue/*.jsonl
+runtime/reports/telegram_summary_preview_*.txt

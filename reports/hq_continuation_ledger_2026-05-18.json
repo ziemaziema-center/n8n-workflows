@@ -21,15 +21,22 @@
     "inactive n8n SSH dispatch workflow draft created at workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json",
     "runtime dispatch and kill-switch templates hardened for dry-run default",
     "reviewer retry loop template connected to local ledger update artifact",
-    "runtime orchestration offline tests added"
+    "runtime orchestration offline tests added",
+    "Telegram-ready Korean summary renderer created at scripts/render_telegram_korean_summary.py",
+    "SQLite-backed queue writer created at scripts/hq_sqlite_queue_writer.py",
+    "reviewer feedback queue schema created at schemas/reviewer_feedback.schema.json",
+    "inactive n8n import validation checklist created",
+    "live SSH dispatch smoke appended one valid queue task on EC2 bounded workspace",
+    "EC2 tmux live session smoke created and cleaned scoped session tac-live-gate-smoke",
+    "n8n read-only health/workflow metadata check passed through MCP",
+    "Telegram live send smoke passed through tac_controller_webhook"
   ],
   "pending_items": [
-    "connect controller state DB to runtime task creation",
-    "add Telegram non-live renderer for continuation ledger summaries",
-    "add reviewer feedback queue JSONL schema and tests",
-    "add import-only n8n validation guide with screenshots after manual import",
-    "run EC2 dry-run deployment of tmux scaffold without production activation",
-    "add SQLite-backed queue writer that emits runtime/queue task JSON"
+    "import inactive n8n SSH dispatch draft through UI and keep inactive",
+    "copy current local runtime scripts/schemas to EC2 bounded workspace in a controlled sync",
+    "connect n8n draft to the queue writer path after import review",
+    "run one end-to-end Telegram -> n8n -> queue -> tmux runner -> reviewer -> Telegram summary smoke",
+    "replace temporary host-mode Codex fallback with Docker-isolated runner"
   ],
   "deferred_gates": [
     {
@@ -48,25 +55,33 @@
       "name": "n8n_authenticated_read_only",
       "status": "DEFERRED_GATE",
       "reason": "requires authenticated n8n API access boundary",
-      "required_input": "approved read-only n8n credential usage path"
+      "required_input": "approved read-only n8n credential usage path",
+      "last_smoke_status": "PASS",
+      "last_smoke_note": "MCP health and minimal workflow metadata read succeeded without mutation."
     },
     {
       "name": "live_ssh_dispatch_test",
       "status": "DEFERRED_GATE",
       "reason": "would execute against production EC2",
-      "required_input": "explicit live SSH dispatch test approval and rollback/log path"
+      "required_input": "explicit live SSH dispatch test approval and rollback/log path",
+      "last_smoke_status": "PASS",
+      "last_smoke_note": "One valid queue JSON line appended under /home/ubuntu/workspace/true-autonomous-controller/runtime/queue."
     },
     {
       "name": "telegram_live_send_test",
       "status": "DEFERRED_GATE",
       "reason": "would send a real user-facing Telegram message",
-      "required_input": "target chat and exact message approval"
+      "required_input": "target chat and exact message approval",
+      "last_smoke_status": "PASS",
+      "last_smoke_note": "tac_controller_webhook returned PASS and sent one smoke summary through existing n8n Telegram credential."
     },
     {
       "name": "ec2_tmux_live_session_creation",
       "status": "DEFERRED_GATE",
       "reason": "would create or mutate a live EC2 tmux runtime session",
-      "required_input": "explicit EC2 runtime dry-run/live boundary approval"
+      "required_input": "explicit EC2 runtime dry-run/live boundary approval",
+      "last_smoke_status": "PASS",
+      "last_smoke_note": "Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session."
     },
     {
       "name": "live_instagram_publish",
@@ -76,19 +91,20 @@
     }
   ],
   "next_executable_subtasks": [
-    "Add local parser that converts continuation ledger into Telegram-ready Korean summary without sending it live",
-    "Add reviewer feedback queue JSONL schema and tests",
-    "Prepare EC2 dry-run sync script that copies templates but does not activate services",
-    "Add SQLite-backed task queue writer that validates against schemas/runtime_queue.schema.json",
-    "Add inactive import validation checklist for workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json"
+    "Import workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json into n8n as inactive and verify no credentials are attached",
+    "Sync local scripts/schemas/reports needed by the runner to /home/ubuntu/workspace/true-autonomous-controller",
+    "Wire the inactive n8n draft to create queue items without activating production automation",
+    "Run one full E2E smoke from Telegram command to queue append to tmux runner to reviewer feedback to Telegram report",
+    "Design Docker-isolated Codex runner replacement for host-mode fallback"
   ],
   "validation_commands": [
     "python -m unittest discover -s tests",
     "python -m unittest tests.test_hq_orchestration_scaffold",
     "python -m unittest tests.test_hq_runtime_orchestration_20260518",
+    "python -m unittest tests.test_hq_queue_renderer_20260518",
     "python scripts/run_offline_validations.py"
   ],
-  "final_report_path": "reports/hq_runtime_orchestration_final_report_2026-05-18.md",
-  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from the Telegram-ready Korean summary renderer and SQLite-backed task queue writer. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.",
-  "live_operations_performed": false
+  "final_report_path": "reports/hq_runtime_orchestration_live_gate_report_2026-05-18.md",
+  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from inactive n8n import review and controlled EC2 sync. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.",
+  "live_operations_performed": true
 }

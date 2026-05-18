@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mykindredai.local/schemas/reviewer_feedback.schema.json",
+  "title": "TAC Reviewer Feedback Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "reviewed_at",
+    "reviewer",
+    "decision",
+    "retry_allowed",
+    "reason",
+    "log_path",
+    "next_action",
+    "live_operation_required"
+  ],
+  "properties": {
+    "task_id": { "type": "string" },
+    "reviewed_at": { "type": "string" },
+    "reviewer": { "type": "string" },
+    "decision": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "DEFERRED_GATE", "HUMAN_APPROVAL_REQUIRED"]
+    },
+    "retry_allowed": { "type": "boolean" },
+    "reason": { "type": "string" },
+    "log_path": { "type": "string" },
+    "next_action": { "type": "string" },
+    "live_operation_required": { "type": "boolean" }
+  }
+}

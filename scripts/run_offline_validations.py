@@ -26,9 +26,22 @@ def main() -> int:
         run([sys.executable, "-m", "json.tool", "schemas/runtime_queue.schema.json"]),
         run([sys.executable, "-m", "json.tool", "schemas/runtime_state.schema.json"]),
         run([sys.executable, "-m", "json.tool", "schemas/telegram_hq_command.schema.json"]),
+        run([sys.executable, "-m", "json.tool", "schemas/reviewer_feedback.schema.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/queue/sample_task.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/state/sample_state.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json"]),
+        run(
+            [
+                sys.executable,
+                "-m",
+                "py_compile",
+                "scripts/render_telegram_korean_summary.py",
+                "scripts/hq_sqlite_queue_writer.py",
+                "scripts/remote_live_gate_smoke.py",
+            ]
+        ),
+        run([sys.executable, "scripts/render_telegram_korean_summary.py"]),
+        run([sys.executable, "scripts/hq_sqlite_queue_writer.py", "--task-id", "hq-offline-validation-queue-writer-20260518"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_telegram_commands.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_controller_webhook.json"]),
     ]

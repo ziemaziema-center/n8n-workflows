@@ -255,3 +255,11 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - telemetry: SUCCESS: TAC now has a locally validated queue/state/Telegram/n8n draft layer for future persistent runtime orchestration. FAILURE_PREVENTED: live SSH, credentialed n8n, Telegram send, workflow activation, and production mutation remain explicit deferred gates instead of blocking safe local work.
 - side_effects: Local/offline only; no live operation, credential read, secret output, or production mutation.
 - next_action: Build Telegram-ready Korean summary renderer and SQLite-backed validated queue writer.
+
+## 2026-05-18 13:55 KST - Queue Renderer And Approved Live Gate Smoke
+- request: Build the next queue/renderer/reviewer layer and execute approved live gate tests.
+- actions: Added Korean Telegram preview renderer; added SQLite-backed runtime queue writer; added reviewer feedback schema/sample/report; added inactive n8n import checklist; added remote live gate smoke helper; updated continuation ledger; ran approved EC2 SSH queue append, EC2 tmux creation/cleanup, n8n read-only check, and Telegram smoke send.
+- validation: PASS. Local tests 47/47 PASS; offline validation runner PASS; live SSH queue append PASS; EC2 tmux smoke PASS; n8n read-only PASS; Telegram smoke task `tac-20260518044042-7651a7d56d` PASS.
+- telemetry: SUCCESS: TAC now has local queue writer, Korean summary preview, reviewer feedback schema, and first scoped live gate smoke evidence. FAILURE_PREVENTED: inline SSH JSON quoting corrupted one generated queue line; helper-based JSON append now validates and backs up before filtering.
+- side_effects: One Telegram smoke message sent; one EC2 queue smoke item appended; one scoped tmux smoke session created and cleaned. No production activation, Upbit call, Docker restart, AWS mutation, credential read, or secret output.
+- next_action: Import inactive n8n dispatch draft as inactive and run full dry-run E2E loop.

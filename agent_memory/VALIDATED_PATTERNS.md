@@ -171,3 +171,13 @@ Append only unless correcting the latest entry.
   - `python -m unittest tests.test_hq_runtime_orchestration_20260518`
   - `python scripts/run_offline_validations.py`
 - result: PASS. Runtime orchestration can now be reviewed/imported as a draft without live SSH, n8n activation, Telegram send, secret access, or production mutation.
+
+## 2026-05-18 - Scoped live gate smoke after local validation
+
+- pattern: Run live gates only after local/offline tests pass; keep each live action one-shot, bounded, and credential-value-free in reports.
+- validated_by:
+  - EC2 SSH connectivity check
+  - `scripts/remote_live_gate_smoke.py all`
+  - n8n MCP health/minimal workflow metadata reads
+  - one `tac_controller_webhook` Telegram smoke send
+- result: PASS. Live SSH queue append, EC2 tmux session creation/cleanup, n8n read-only check, and one Telegram smoke send succeeded without production activation or secret output.

@@ -206,3 +206,9 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - failure_mode: A queue/SSH/n8n orchestration draft can accidentally look deployable before credential, SSH, and Telegram gates are approved.
 - prevention: Draft workflows must include `active: false`, `meta.draftOnly: true`, no node credentials, no live SSH node, and explicit `DEFERRED_GATE` markers.
 - validation: `tests/test_hq_runtime_orchestration_20260518.py` checks inactive workflow status, dry-run markers, no embedded credentials, and deferred gate registry coverage.
+
+## 2026-05-18 - Inline SSH JSON quoting can corrupt queue lines
+
+- failure_mode: Building a complex JSON queue item directly inside an inline SSH shell command can strip quotes/newlines and append invalid JSON.
+- prevention: Use a copied Python helper for remote queue smoke tests, validate the final queue line with `json.loads`, and keep a backup before filtering generated bad lines.
+- validation: `scripts/remote_live_gate_smoke.py` filtered one invalid generated line, appended a valid queue smoke item, and reported `queue_append=PASS`.
