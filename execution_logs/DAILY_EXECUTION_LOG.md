@@ -238,3 +238,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Updated local `~/.codex/config.toml` with backup; created ignored SQLite runtime DB; repaired local `.docker` ACL; started Docker Desktop; no production workflow, Telegram bot, n8n credential, Docker container, or live trading state changed.
 - rollback_needed: No.
 - next_action: Start a new Codex session to load `tac-docker` and `tac-state-db`; keep Docker mutation disabled until an explicitly approved bounded container execution.
+
+## 2026-05-18 12:20 KST - Continuation-First HQ Orchestration Scaffold
+- request: Execute the full HQ/autonomous controller prompt so TAC stops acting like a short blocked-item report generator and starts preserving company-style orchestration, continuation handoff, deferred gates, tmux runtime scaffold, and Instagram growth planning.
+- actions: Added permanent continuation rule to instruction/sendoff files; changed Codex prompt and Telegram received briefing toward continuation ledger/deferred gate behavior; created HQ operating model, continuation ledger, deferred gate registry, tmux persistent runtime scaffold, safe wrapper template, Instagram 10K growth HQ plan, final report, and offline validation runner; added regression tests.
+- validation: PASS. Full local tests 35/35 PASS; `python scripts/run_offline_validations.py` PASS; `reports/hq_continuation_ledger_2026-05-18.json` JSON parse PASS; `workflows/tac_telegram_commands.json` JSON parse PASS.
+- telemetry: SUCCESS: Safe local/offline work continued despite live/credential/network deferred gates. FAILURE: Previous controller behavior could end too early after one blocked item; permanent continuation rule now prevents that regression.
+- files_changed: `AGENTS.md`, `SESSION_BOOT.md`, `src/tac/controller.py`, `workflows/tac_telegram_commands.json`, `tests/test_phase3_controller.py`, `tests/test_workflow_contract.py`, `tests/test_hq_orchestration_scaffold.py`, `scripts/hq_tmux_runner_template.sh`, `scripts/hq_safe_agent_wrapper_template.sh`, `scripts/run_offline_validations.py`, `docs/TRUE_AUTONOMOUS_CONTROLLER_MASTER_SENDOFF_2026-05-18.md`, `reports/*`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Local/offline only. No live Telegram send, n8n activation, production restart, Instagram publish, Upbit mutation, secret read, AWS mutation, or Docker production operation.
+- rollback_needed: No.
+- next_action: Continue from `reports/hq_continuation_ledger_2026-05-18.json`: create inactive n8n SSH dispatch draft and runtime queue schema.

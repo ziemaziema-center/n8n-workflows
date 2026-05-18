@@ -10,6 +10,13 @@ Required baseline:
 - validation-first execution
 - additive-only modifications
 - post-task telemetry
+- continuation-first execution when one item is blocked
+
+Permanent continuation rule:
+- Do not stop the whole task because one live/credential/network item is blocked.
+- Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work.
+- Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.
+- 한국어 기준: live/credential/network 항목 하나가 막혀도 전체 작업을 멈추지 말고, 안전한 로컬/오프라인/문서/테스트/스캐폴드/템플릿/검증 작업은 계속 진행한다. 막힌 항목만 deferred gate로 남긴 뒤 다음 실행 가능한 작업으로 넘어간다.
 
 Before work:
 - Read `agent_memory/KNOWN_FAILURES.md`.
@@ -63,3 +70,5 @@ Immediate milestone:
 Telegram -> n8n -> tmux runner -> Codex runner -> log capture -> Telegram summary
 
 Optimize for safe persistent orchestration, not maximum autonomy.
+
+Do not behave like a short audit report generator. Behave like the bounded HQ layer: plan, split work, execute safe parts, review, fix, validate, record gates, and hand off the next executable step.

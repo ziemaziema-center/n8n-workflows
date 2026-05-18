@@ -156,3 +156,10 @@ Append only unless correcting the latest entry.
 - validation: `tests/test_mcp_servers.py` verifies `tac-docker` tool listing and `tac-state-db` SQLite init/task recording; full local suite passes 28/28.
 - rollback: Remove the relevant `[mcp_servers.*]` block from `~/.codex/config.toml`, delete the local server scripts, and remove docs/tests if the server is no longer wanted.
 - evidence: Applied on 2026-05-17 KST for `tac-docker` and `tac-state-db`.
+
+## Pattern: Continuation-First HQ Cycle
+- applies_to: Multi-hour or broad TAC tasks that include live/credential/network blockers.
+- procedure: Store a permanent continuation rule, split blocked live surfaces into deferred gates, keep executing safe local/offline/docs/tests/scaffold work, write a machine-readable continuation ledger, and validate that safe work continued despite gates.
+- validation: `tests/test_hq_orchestration_scaffold.py` verifies instruction files, HQ model, continuation ledger, deferred gate registry, tmux scaffold, Instagram growth plan, and safe continuation; full local suite passes 35/35.
+- rollback: Revert the HQ scaffold commit and restore prior Telegram briefing text if the project chooses to return to bounded single-cycle reporting.
+- evidence: Applied on 2026-05-18 KST after user requested company-style HQ/autonomous agent behavior without stopping on one blocked item.

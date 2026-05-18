@@ -116,6 +116,9 @@ class Phase3ControllerTests(unittest.TestCase):
         self.assertIn("Return the final report in Korean", task["commands"][0]["argv"][-1])
         self.assertIn("Return the final report in Korean", task["commands"][0]["argv"][-1])
         self.assertIn("\uacb0\ub860, \uc608\uc0c1 \uc2dc\uac04/\uc2e4\uc81c \uc18c\uc694", task["commands"][0]["argv"][-1])
+        self.assertIn("Do not stop the whole task", task["commands"][0]["argv"][-1])
+        self.assertIn("DEFERRED_GATE", task["commands"][0]["argv"][-1])
+        self.assertIn("continuation ledger", task["commands"][0]["argv"][-1])
         validate_task_shape(task)
 
     def test_task_from_prompt_extracts_upbit_workspace_alias(self):

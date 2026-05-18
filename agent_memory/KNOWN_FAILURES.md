@@ -193,3 +193,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Non-escalated Docker checks failed, while escalated user-context checks showed Docker Desktop daemon available after `.docker` ACL repair.
 - prevention: For Docker MCP runtime validation, verify both the local MCP protocol and Docker daemon access from the user context; do not treat sandboxed Docker failure as final daemon failure.
 - rollback_or_fix: Restored current-user ACL on `C:\Users\minho\.docker`, started Docker Desktop, and validated `tac-docker` MCP `docker_status` against Docker Desktop 4.69.0.
+
+## 2026-05-18 12:20 KST - One Blocked Item Must Not End The Whole HQ Cycle
+- symptom: User experienced TAC runs as short audit reports that stopped after one blocked live/credential/network item.
+- cause: Safety language was interpreted as "stop everything" instead of "gate only the unsafe surface and continue safe work."
+- affected_files: `AGENTS.md`, `SESSION_BOOT.md`, `src/tac/controller.py`, `workflows/tac_telegram_commands.json`, `reports/*`.
+- detection_method: User explicitly reported repeated 1-3 minute completions and "blocked/next approval" reports that did not produce enough implementation output.
+- prevention: Store the permanent continuation rule in sendoff/instruction files; require continuation ledger, deferred gate registry, and safe-work continuation tests.
+- rollback_or_fix: Added continuation-first HQ scaffold, deferred gate registry, tmux runtime templates, Instagram growth plan, and regression tests.

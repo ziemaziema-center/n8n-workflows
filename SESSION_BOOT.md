@@ -33,6 +33,17 @@ ChatGPT HQ Project
 
 Autonomy does not mean no approvals. Correct model: bounded autonomy.
 
+## Permanent Continuation Rule
+
+Do not stop the whole task because one live/credential/network item is blocked. Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work. Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.
+
+한국어 기준:
+- live/credential/network 항목 하나가 막혔다고 전체 작업을 멈추지 않는다.
+- 안전한 local/offline/documentation/test/scaffold/wrapper/config-template/validation 작업은 계속 진행한다.
+- 막힌 항목은 `DEFERRED_GATE`로 기록하고 즉시 다음 실행 가능한 subtask로 넘어간다.
+- `BLOCKED`는 전체 중단이 아니라 해당 게이트만 중단이라는 뜻이다.
+- 최종 보고는 완료한 safe work, deferred gates, 다음 실행 가능한 작업을 분리해서 말한다.
+
 Default permissions:
 - local workspace edits: auto allowed
 - tests/builds: auto allowed

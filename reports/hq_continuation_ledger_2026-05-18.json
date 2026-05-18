@@ -1,0 +1,65 @@
+{
+  "task_id": "tac-hq-orchestration-20260518",
+  "created_at_kst": "2026-05-18",
+  "current_phase": "persistent_hq_runtime_scaffold",
+  "operating_rule": "Do not stop the whole task because one live/credential/network item is blocked. Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work. Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.",
+  "completed_items": [
+    "permanent continuation rule stored in AGENTS.md and SESSION_BOOT.md",
+    "master sendoff document created",
+    "HQ operating model created",
+    "continuation ledger created",
+    "deferred gate registry created",
+    "tmux persistent runtime layer scaffold created",
+    "safe agent wrapper template created",
+    "Instagram 10K growth HQ plan created",
+    "offline validation tests added"
+  ],
+  "pending_items": [
+    "wire scaffold into inactive n8n SSH workflow draft",
+    "connect controller state DB to runtime task creation",
+    "add Telegram non-live renderer for continuation ledger summaries",
+    "add reviewer retry queue file format",
+    "run EC2 dry-run deployment of tmux scaffold without production activation"
+  ],
+  "deferred_gates": [
+    {
+      "name": "helper_production_deploy_or_restart",
+      "status": "DEFERRED_GATE",
+      "reason": "production mutation remains separately gated",
+      "required_input": "explicit production deployment approval and rollback point"
+    },
+    {
+      "name": "upbit_authenticated_read_only_after_ip_allowlist",
+      "status": "DEFERRED_GATE",
+      "reason": "requires authorized IP and credential-safe read-only boundary",
+      "required_input": "Upbit allowlist confirmation and read-only execution approval"
+    },
+    {
+      "name": "n8n_authenticated_read_only",
+      "status": "DEFERRED_GATE",
+      "reason": "requires authenticated n8n API access boundary",
+      "required_input": "approved read-only n8n credential usage path"
+    },
+    {
+      "name": "live_instagram_publish",
+      "status": "DEFERRED_GATE",
+      "reason": "live publishing can affect production accounts",
+      "required_input": "explicit publishing approval and content review gate"
+    }
+  ],
+  "next_executable_subtasks": [
+    "Create inactive n8n SSH dispatch workflow draft that writes to queue only",
+    "Add runtime/queue schema and sample tasks for tmux runner",
+    "Add local parser that converts continuation ledger into Telegram-ready Korean summary without sending it live",
+    "Add reviewer feedback queue JSONL schema and tests",
+    "Prepare EC2 dry-run sync script that copies templates but does not activate services"
+  ],
+  "validation_commands": [
+    "python -m unittest discover -s tests",
+    "python -m unittest tests.test_hq_orchestration_scaffold",
+    "python scripts/run_offline_validations.py"
+  ],
+  "final_report_path": "reports/hq_final_report_2026-05-18.md",
+  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.",
+  "live_operations_performed": false
+}

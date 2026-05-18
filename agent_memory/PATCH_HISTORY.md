@@ -188,3 +188,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Created ignored local DB file `runtime/controller_state.sqlite3`; repaired local `.docker` directory ACL; started Docker Desktop; no container was started; direct Telegram MCP was intentionally not added.
 - rollback: Remove the two TAC MCP blocks from `~/.codex/config.toml`, delete `runtime/controller_state.sqlite3`, remove remote `n8n-workflows-backup`, and revert this commit.
 - next_action: Start a new Codex session to load the newly registered MCP tool namespaces; keep Docker mutation disabled until an explicitly approved bounded container run.
+
+## 2026-05-18 12:20 KST - Continuation-First HQ Orchestration Scaffold
+- request: Stop ending broad tasks after one blocked item; make TAC behave like a company-style HQ that keeps doing safe local/offline work, records gates, validates, and hands off the next executable cycle.
+- files_changed: `AGENTS.md`, `SESSION_BOOT.md`, `src/tac/controller.py`, `workflows/tac_telegram_commands.json`, `tests/test_phase3_controller.py`, `tests/test_workflow_contract.py`, `tests/test_hq_orchestration_scaffold.py`, `scripts/hq_tmux_runner_template.sh`, `scripts/hq_safe_agent_wrapper_template.sh`, `scripts/run_offline_validations.py`, `docs/TRUE_AUTONOMOUS_CONTROLLER_MASTER_SENDOFF_2026-05-18.md`, `reports/*`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Local Git commit `328283d` before continuation-first HQ scaffold.
+- validation: PASS. Full local tests 35/35 PASS; `python scripts/run_offline_validations.py` PASS; continuation ledger JSON parse PASS; `tac_telegram_commands.json` parse PASS.
+- side_effects: Local/offline artifacts only; no live Telegram send, n8n activation, production restart, Instagram publish, Upbit action, secret read, AWS mutation, or Docker production operation.
+- rollback: Revert this commit and restore prior controller prompt/workflow briefing if continuation-first behavior is rejected.
+- next_action: Implement inactive n8n SSH dispatch draft and runtime queue schema from `reports/hq_continuation_ledger_2026-05-18.json`.
