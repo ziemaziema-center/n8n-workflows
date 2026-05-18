@@ -38,8 +38,13 @@ def main() -> int:
                 "scripts/render_telegram_korean_summary.py",
                 "scripts/hq_sqlite_queue_writer.py",
                 "scripts/remote_live_gate_smoke.py",
+                "scripts/remote_phase3_e2e_smoke.py",
+                "scripts/docker_isolated_runner_plan.py",
+                "scripts/hq_phase3_orchestrator.py",
             ]
         ),
+        run([sys.executable, "scripts/docker_isolated_runner_plan.py"]),
+        run([sys.executable, "scripts/hq_phase3_orchestrator.py"]),
         run([sys.executable, "scripts/render_telegram_korean_summary.py"]),
         run([sys.executable, "scripts/hq_sqlite_queue_writer.py", "--task-id", "hq-offline-validation-queue-writer-20260518"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_telegram_commands.json"]),

@@ -29,14 +29,21 @@
     "live SSH dispatch smoke appended one valid queue task on EC2 bounded workspace",
     "EC2 tmux live session smoke created and cleaned scoped session tac-live-gate-smoke",
     "n8n read-only health/workflow metadata check passed through MCP",
-    "Telegram live send smoke passed through tac_controller_webhook"
+    "Telegram live send smoke passed through tac_controller_webhook",
+    "inactive n8n SSH dispatch draft imported to n8n as workflow DoClguwa8aewVM8D and returned to inactive",
+    "inactive n8n SSH dispatch draft validated with n8n workflow validator",
+    "inactive n8n draft webhook smoke returned QUEUED_DRAFT without live SSH execution",
+    "local runtime scripts and schemas synced to EC2 bounded workspace",
+    "EC2 tmux Phase 3 E2E dry-run smoke passed with queue -> tmux -> wrapper -> reviewer -> report",
+    "Docker-isolated runner scaffold created at docker/tac-runner.Dockerfile",
+    "Phase 3 local planner-executor-reviewer retry orchestrator created and validated"
   ],
   "pending_items": [
-    "import inactive n8n SSH dispatch draft through UI and keep inactive",
-    "copy current local runtime scripts/schemas to EC2 bounded workspace in a controlled sync",
-    "connect n8n draft to the queue writer path after import review",
-    "run one end-to-end Telegram -> n8n -> queue -> tmux runner -> reviewer -> Telegram summary smoke",
-    "replace temporary host-mode Codex fallback with Docker-isolated runner"
+    "replace temporary host-mode Codex fallback with Docker-isolated runner",
+    "build and test Docker image against a disposable workspace copy",
+    "connect active Telegram command route to the new queue/tmux/reviewer loop instead of legacy TAC service dry-run path",
+    "add automatic Git checkpoint before mutating bounded workspaces",
+    "run multi-task overnight queue soak test with bounded retries and kill switch"
   ],
   "deferred_gates": [
     {
@@ -91,20 +98,21 @@
     }
   ],
   "next_executable_subtasks": [
-    "Import workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json into n8n as inactive and verify no credentials are attached",
-    "Sync local scripts/schemas/reports needed by the runner to /home/ubuntu/workspace/true-autonomous-controller",
-    "Wire the inactive n8n draft to create queue items without activating production automation",
-    "Run one full E2E smoke from Telegram command to queue append to tmux runner to reviewer feedback to Telegram report",
-    "Design Docker-isolated Codex runner replacement for host-mode fallback"
+    "Build Docker runner image from docker/tac-runner.Dockerfile and run one disposable workspace dry-run",
+    "Patch tac_telegram_commands to route selected /queue or /handoff commands into the new queue/tmux/reviewer loop",
+    "Add Git pre-run checkpoint/post-pass commit automation for bounded workspace tasks",
+    "Run 3-task queue soak test through tmux runner with one forced retry and one deferred gate",
+    "Promote the inactive n8n dispatch draft only after rollback and kill-switch checks are documented"
   ],
   "validation_commands": [
     "python -m unittest discover -s tests",
     "python -m unittest tests.test_hq_orchestration_scaffold",
     "python -m unittest tests.test_hq_runtime_orchestration_20260518",
     "python -m unittest tests.test_hq_queue_renderer_20260518",
+    "python -m unittest tests.test_phase3_runtime_orchestration_20260518",
     "python scripts/run_offline_validations.py"
   ],
-  "final_report_path": "reports/hq_runtime_orchestration_live_gate_report_2026-05-18.md",
-  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from inactive n8n import review and controlled EC2 sync. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.",
+  "final_report_path": "reports/phase3_runtime_orchestration_completion_report_2026-05-18.md",
+  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, then open this ledger and execute next_executable_subtasks in order. Start from Docker image build/disposable workspace dry-run and Git checkpoint automation. If one item is blocked, record it as DEFERRED_GATE and continue the next safe subtask.",
   "live_operations_performed": true
 }

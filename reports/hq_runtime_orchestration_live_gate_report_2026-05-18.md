@@ -98,3 +98,13 @@ Mutation:
 ## Next Exact Task
 
 Import `workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json` into n8n as inactive only, verify no credentials attach, sync the current local scripts/schemas to EC2 bounded workspace, then run one end-to-end inactive/dry-run loop from Telegram to queue to tmux runner to reviewer feedback to Telegram summary.
+
+## Follow-up Completion
+
+Completed in the next Phase 3 cycle:
+
+- n8n draft import: PASS, workflow `DoClguwa8aewVM8D`, final state inactive.
+- n8n draft webhook smoke: PASS, returned `QUEUED_DRAFT`, no live SSH execution.
+- EC2 sync: PASS.
+- EC2 tmux Phase 3 E2E dry-run: PASS.
+- Telegram final smoke report: PASS, task `tac-20260518052543-e86afda736`.

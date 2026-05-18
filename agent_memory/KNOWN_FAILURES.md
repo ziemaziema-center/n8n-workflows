@@ -212,3 +212,9 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - failure_mode: Building a complex JSON queue item directly inside an inline SSH shell command can strip quotes/newlines and append invalid JSON.
 - prevention: Use a copied Python helper for remote queue smoke tests, validate the final queue line with `json.loads`, and keep a backup before filtering generated bad lines.
 - validation: `scripts/remote_live_gate_smoke.py` filtered one invalid generated line, appended a valid queue smoke item, and reported `queue_append=PASS`.
+
+## 2026-05-18 - n8n Webhook Draft Tests Require Immediate Deactivation
+
+- failure_mode: n8n draft webhook workflows cannot be smoke-tested through the webhook trigger while inactive, but leaving the draft active would accidentally promote a non-production dispatch path.
+- prevention: For draft-only webhook validation, create/import inactive, validate structure, temporarily activate for the single smoke request, then immediately deactivate and verify final `active=false`.
+- validation: Workflow `DoClguwa8aewVM8D` returned `QUEUED_DRAFT` with `live_ssh_executed=false`, then was deactivated and verified inactive.

@@ -181,3 +181,14 @@ Append only unless correcting the latest entry.
   - n8n MCP health/minimal workflow metadata reads
   - one `tac_controller_webhook` Telegram smoke send
 - result: PASS. Live SSH queue append, EC2 tmux session creation/cleanup, n8n read-only check, and one Telegram smoke send succeeded without production activation or secret output.
+
+## 2026-05-18 - Phase 3 dry-run queue to reviewer loop
+
+- pattern: Import the n8n dispatch workflow as inactive, validate it, run a single draft webhook smoke, sync scripts/schemas to the EC2 bounded workspace, then run queue -> tmux -> safe wrapper -> reviewer -> report as a scoped dry-run.
+- validated_by:
+  - n8n workflow validator for `DoClguwa8aewVM8D`
+  - n8n draft webhook smoke returning `QUEUED_DRAFT`
+  - `scripts/remote_phase3_e2e_smoke.py` on EC2
+  - `python -m unittest discover -s tests`
+  - `python scripts/run_offline_validations.py`
+- result: PASS. Phase 3 runtime orchestration dry-run completed with final workflow state inactive, no live SSH from the n8n draft, scoped tmux cleanup, reviewer feedback written, and one Telegram summary smoke.

@@ -11,8 +11,9 @@
       "id": "draft-hq-webhook",
       "name": "Draft HQ Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [-900, 0]
+      "typeVersion": 2.1,
+      "position": [-900, 0],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -63,7 +64,7 @@
       "id": "draft-respond",
       "name": "Respond Draft Result",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
+      "typeVersion": 1.5,
       "position": [300, 0]
     }
   ],
