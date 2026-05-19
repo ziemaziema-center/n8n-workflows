@@ -227,3 +227,13 @@ Append only unless correcting the latest entry.
   - `python -m json.tool schemas/runtime_event.schema.json`
   - `python -m json.tool workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json`
 - result: PASS. TAC now has local runtime primitives for queue lifecycle, runner heartbeat, retry budget decisions, telemetry JSONL events, and machine-readable handoff generation.
+
+## 2026-05-19 - YUNA Growth Brain As Experiment System
+
+- pattern: Treat broad Instagram growth requests as an HQ brain upgrade, not a one-off content suggestion. Store agent roles, behavioral triggers, experiment schema, sample experiment, sendoff, and validation tests before patching the live SNS workspace.
+- validated_by:
+  - `python -m unittest discover -s tests`
+  - `python scripts/run_offline_validations.py`
+  - `python -m json.tool schemas/yuna_growth_experiment.schema.json`
+  - `python -m json.tool runtime/yuna_growth_experiments/sample_experiment.json`
+- result: PASS. The account brain now optimizes for follows, comments, saves, shares, DM replies, profile visits, and average watch time rather than views alone.

@@ -1,0 +1,63 @@
+{
+  "experiment_id": "yuna-growth-20260519-price-shock-comment-loop",
+  "created_at_kst": "2026-05-19",
+  "status": "DRAFT",
+  "owner": "YUNA Growth HQ",
+  "hypothesis": "A reel that exposes one hidden total-price trap and asks viewers to comment their price/composition/shipping fee will create more comments, private replies, saves, and follows than a generic deal announcement.",
+  "audience": {
+    "primary_persona": "Korean vape-liquid buyer comparing online deals",
+    "pain": "Deals look cheap until composition, shipping, device fit, or refill timing changes the real value.",
+    "desire": "A simple trusted calculator that tells them whether a deal is actually worth buying.",
+    "follow_reason": "Follow YUNA to get a repeated price-check table before buying."
+  },
+  "content_angle": "One deal that looks cheap but loses after shipping/composition is recalculated.",
+  "hook_pattern": "price-shock plus correction",
+  "behavioral_trigger": "loss aversion, curiosity gap, authority shortcut, social proof through comments",
+  "expected_action": ["comment", "dm_reply", "save", "follow"],
+  "cta": "댓글에 가격/구성/배송비 남기면 YUNA가 점수표로 다시 계산합니다. 매일 딜 거르려면 팔로우.",
+  "risk_gate": {
+    "requires_live_publish": true,
+    "requires_credential_read": false,
+    "requires_manual_approval": true,
+    "notes": "This sample is a draft. It must not publish or send live DM without the normal Instagram approval workflow."
+  },
+  "success_metrics": {
+    "primary": ["follows_per_1000_reach", "comments_per_1000_reach", "dm_replies_per_1000_reach"],
+    "secondary": ["save_rate", "share_rate", "profile_visits", "average_watch_time"],
+    "minimum_signal_threshold": "Keep variants that improve comment rate or follows per reach by at least 25 percent over the prior 7-day median."
+  },
+  "data_needed": [
+    "reel_id",
+    "posted_at",
+    "hook_variant",
+    "views",
+    "accounts_reached",
+    "follows",
+    "comments",
+    "saves",
+    "shares",
+    "profile_visits",
+    "average_watch_time",
+    "public_reply_sent",
+    "private_reply_sent",
+    "yuna_score"
+  ],
+  "variants": [
+    {
+      "variant_id": "A",
+      "first_frame": "싼 척하는 전담액상 딜, 배송비 넣으면 점수 바뀝니다",
+      "opening_line": "이 가격, 유나가 다시 계산하면 생각보다 안 쌉니다.",
+      "caption_cta": "댓글에 가격/구성/배송비 남기면 YUNA 점수표로 답장합니다. 이런 계산 계속 보려면 팔로우.",
+      "comment_prompt": "가격 / 구성 / 배송비를 한 줄로 남겨주세요."
+    },
+    {
+      "variant_id": "B",
+      "first_frame": "전담액상 살 때 이 숫자 안 보면 손해",
+      "opening_line": "할인율 말고 실제 ml당 비용으로 봐야 합니다.",
+      "caption_cta": "저장해두고 살 때마다 비교하세요. 댓글 남기면 YUNA가 계산표 보냅니다.",
+      "comment_prompt": "브랜드명 없이 가격, 용량, 배송비만 남겨도 됩니다."
+    }
+  ],
+  "decision_rule": "After at least 3 approved posts or 72 hours, compare primary metrics against the 7-day median; keep the stronger hook family and generate 5 new variants from the winner.",
+  "live_operations_performed": false
+}

@@ -102,7 +102,7 @@ class RuntimeOrchestrationDraftTests(unittest.TestCase):
         self.assertIn("inactive n8n SSH dispatch workflow draft", completed)
         self.assertEqual(
             ledger["final_report_path"],
-            "reports/autonomous_runtime_buildout_report_2026-05-19.md",
+            "reports/yuna_brain_growth_system_2026-05-19.md",
         )
         registry = (ROOT / "reports/deferred_gate_registry_2026-05-18.md").read_text(encoding="utf-8")
         for gate in [

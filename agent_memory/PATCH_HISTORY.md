@@ -244,3 +244,11 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local/offline only. No live SSH, Telegram send, Instagram publish, Upbit operation, production Docker restart, AWS mutation, credential read, secret output, or force push.
 - rollback: Revert this commit to return to the previous company-mode runtime notification scaffold.
 - next_action: Run a bounded 5-6 hour queue soak or apply the SNS growth experiment system to the Instagram automation workspace without live publishing.
+
+## 2026-05-19 KST - YUNA Growth Brain HQ System
+- request: User asked to use deep research, HQ and agents, 15-year SNS marketing strategy, and behavioral analysis to make the Instagram account brain stronger for followers and signups, with at least a serious extended work cycle.
+- files_changed: `schemas/yuna_growth_experiment.schema.json`, `runtime/yuna_growth_experiments/sample_experiment.json`, `reports/yuna_brain_hq_agent_operating_model_2026-05-19.md`, `reports/yuna_brain_growth_system_2026-05-19.md`, `docs/YUNA_BRAIN_SENDOFF_2026-05-19.md`, `tests/test_yuna_growth_brain_20260519.py`, `scripts/run_offline_validations.py`, `reports/hq_continuation_ledger_2026-05-18.json`, telemetry files.
+- validation: PASS. `python -m unittest discover -s tests` ran 71 tests; `python scripts/run_offline_validations.py` PASS; YUNA schema and sample JSON parse PASS.
+- side_effects: Local/offline only. No live Instagram publishing, manual DM/comment send, credential read, production workflow mutation, AWS mutation, or secret output.
+- rollback: Revert this patch to remove the YUNA growth brain system artifacts.
+- next_action: Apply the YUNA brain sendoff to the SNS automation workspace so approval candidates show hook family, behavioral trigger, follow reason, comment CTA, save CTA, and success metric.

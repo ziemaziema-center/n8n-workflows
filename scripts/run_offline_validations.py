@@ -28,8 +28,10 @@ def main() -> int:
         run([sys.executable, "-m", "json.tool", "schemas/telegram_hq_command.schema.json"]),
         run([sys.executable, "-m", "json.tool", "schemas/reviewer_feedback.schema.json"]),
         run([sys.executable, "-m", "json.tool", "schemas/runtime_event.schema.json"]),
+        run([sys.executable, "-m", "json.tool", "schemas/yuna_growth_experiment.schema.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/queue/sample_task.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/state/sample_state.json"]),
+        run([sys.executable, "-m", "json.tool", "runtime/yuna_growth_experiments/sample_experiment.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json"]),
         run(

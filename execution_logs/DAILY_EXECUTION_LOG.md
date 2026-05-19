@@ -329,3 +329,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - telemetry: SUCCESS: YUNA comment scoring can now automatically reply publicly and send the YUNA score/private reply flow when Instagram comment webhook events arrive. FAILURE_PREVENTED: `Telegram Operator Alert` remained disabled because it is not required for automatic comment/DM activation and would add extra operator notifications.
 - side_effects: Live n8n workflow activation and live Instagram comment/private reply capability enabled. No credentials were read or printed, no manual execution was triggered, no live test comment/DM was sent by Codex, and no unrelated workflow was modified.
 - next_action: Wait for the next real Instagram comment event, then inspect execution/log rows for `public_reply_sent`, `private_reply_sent`, `yuna_score`, `yuna_verdict`, and any Graph API error.
+
+## 2026-05-19 KST - YUNA Growth Brain HQ System
+- request: User asked to deepen the Instagram account brain using research, HQ/agents, senior SNS marketing, and behavioral analysis so more people follow, comment, save, DM, and join.
+- actions: Checked current TAC memory and YUNA activation state; researched current Instagram recommendation/insight guidance; created YUNA HQ agent operating model, growth brain report, future sendoff, experiment schema, sample experiment, and regression tests; updated offline validation runner and continuation ledger.
+- validation: PASS. `python -m unittest discover -s tests` ran 71 tests; `python scripts/run_offline_validations.py` PASS; YUNA schema and sample JSON parse PASS.
+- telemetry: SUCCESS: YUNA growth work now has a structured experiment brain instead of only a static 10K plan. FAILURE_PREVENTED: Views alone are no longer accepted as the main success metric.
+- files_changed: `schemas/yuna_growth_experiment.schema.json`, `runtime/yuna_growth_experiments/sample_experiment.json`, `reports/yuna_brain_hq_agent_operating_model_2026-05-19.md`, `reports/yuna_brain_growth_system_2026-05-19.md`, `docs/YUNA_BRAIN_SENDOFF_2026-05-19.md`, `tests/test_yuna_growth_brain_20260519.py`, `scripts/run_offline_validations.py`, `reports/hq_continuation_ledger_2026-05-18.json`, `agent_memory/*`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- side_effects: Local/offline only. No live publishing, manual DM/comment send, credential read, production workflow mutation, secret output, or force push.
+- rollback_needed: No.
+- next_action: Patch the SNS automation workspace with YUNA experiment metadata in approval candidates and reporting.
