@@ -321,3 +321,11 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - telemetry: SUCCESS: TAC now has local primitives for stateful runtime continuity and audit events before longer unattended operation. FAILURE_PREVENTED: Ledger final report path contract was updated after the ledger advanced to the new buildout report.
 - side_effects: Local/offline only. No live SSH, live Telegram send, live Instagram publish, Upbit operation, production Docker restart, AWS mutation, credential read, secret output, or force push.
 - next_action: Run a bounded 5-6 hour soak with heartbeat/retry/handoff checks, or use the Instagram growth experiment system to upgrade the SNS automation project without live publishing.
+
+## 2026-05-19 KST - YUNA Comment DM Opener Activation
+- request: User confirmed Instagram profile bio submit and profile image upload, then approved activating `actual_05_instagram_comment_dm_opener` automatic public comment reply and private DM opener.
+- actions: Located n8n workflow `actual_05_instagram_comment_dm_opener` (`Afve1lyQgvUIpgsg`); verified YUNA scoring logic was present; enabled `Public Reply` and `Private Reply DM Opener`; activated the workflow; verified active graph shows workflow active with both reply nodes enabled.
+- validation: PASS. n8n update validation accepted operations before applying; update applied 3 operations; active workflow now has `active=true`, `activeVersionId=050012f8-27c1-4a32-937f-292b122ddab5`, `Public Reply.disabled=false`, and `Private Reply DM Opener.disabled=false`.
+- telemetry: SUCCESS: YUNA comment scoring can now automatically reply publicly and send the YUNA score/private reply flow when Instagram comment webhook events arrive. FAILURE_PREVENTED: `Telegram Operator Alert` remained disabled because it is not required for automatic comment/DM activation and would add extra operator notifications.
+- side_effects: Live n8n workflow activation and live Instagram comment/private reply capability enabled. No credentials were read or printed, no manual execution was triggered, no live test comment/DM was sent by Codex, and no unrelated workflow was modified.
+- next_action: Wait for the next real Instagram comment event, then inspect execution/log rows for `public_reply_sent`, `private_reply_sent`, `yuna_score`, `yuna_verdict`, and any Graph API error.
