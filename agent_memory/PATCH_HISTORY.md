@@ -252,3 +252,11 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local/offline only. No live Instagram publishing, manual DM/comment send, credential read, production workflow mutation, AWS mutation, or secret output.
 - rollback: Revert this patch to remove the YUNA growth brain system artifacts.
 - next_action: Apply the YUNA brain sendoff to the SNS automation workspace so approval candidates show hook family, behavioral trigger, follow reason, comment CTA, save CTA, and success metric.
+
+## YUNA_GROWTH_BRAIN_EXTERNAL_SNS_APPLY_20260519
+
+- External SNS planning workspace patched and live `clean_01_generator` Build Simulation Content node deployed.
+- Added YUNA growth brain candidate metadata, Telegram approval summary block, and validator assertions.
+- Validation passed locally and deployment script reported PASS.
+- Preview webhook returned HTTP 200, but n8n saved execution list did not yet show a fresh run after deploy.
+- No Instagram publish, comment, DM, credential print, or production Docker restart was performed.

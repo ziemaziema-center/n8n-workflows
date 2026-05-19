@@ -339,3 +339,11 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Local/offline only. No live publishing, manual DM/comment send, credential read, production workflow mutation, secret output, or force push.
 - rollback_needed: No.
 - next_action: Patch the SNS automation workspace with YUNA experiment metadata in approval candidates and reporting.
+
+## YUNA_GROWTH_BRAIN_EXTERNAL_SNS_APPLY_20260519
+
+- External SNS planning workspace patched and live `clean_01_generator` Build Simulation Content node deployed.
+- Added YUNA growth brain candidate metadata, Telegram approval summary block, and validator assertions.
+- Validation passed locally and deployment script reported PASS.
+- Preview webhook returned HTTP 200, but n8n saved execution list did not yet show a fresh run after deploy.
+- No Instagram publish, comment, DM, credential print, or production Docker restart was performed.
