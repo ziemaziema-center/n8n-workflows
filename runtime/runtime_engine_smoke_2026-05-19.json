@@ -1,0 +1,12 @@
+{
+  "event_count": 1,
+  "handoff_next_actions": [
+    "run long queue soak"
+  ],
+  "lifecycle_count": 3,
+  "live_operations_performed": false,
+  "retry_next_status": "QUEUED",
+  "runner_status": "RUNNING",
+  "status": "PASS",
+  "task_status": "PASS"
+}

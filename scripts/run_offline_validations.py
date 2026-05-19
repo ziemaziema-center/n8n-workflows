@@ -27,9 +27,11 @@ def main() -> int:
         run([sys.executable, "-m", "json.tool", "schemas/runtime_state.schema.json"]),
         run([sys.executable, "-m", "json.tool", "schemas/telegram_hq_command.schema.json"]),
         run([sys.executable, "-m", "json.tool", "schemas/reviewer_feedback.schema.json"]),
+        run([sys.executable, "-m", "json.tool", "schemas/runtime_event.schema.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/queue/sample_task.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/state/sample_state.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json"]),
+        run([sys.executable, "-m", "json.tool", "workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json"]),
         run(
             [
                 sys.executable,
@@ -48,6 +50,8 @@ def main() -> int:
                 "scripts/hq_company_task_runner.py",
                 "scripts/hq_notify_completion.py",
                 "scripts/docker_codex_cli_smoke.py",
+                "scripts/runtime_engine_smoke.py",
+                "src/tac/runtime_engine.py",
             ]
         ),
         run([sys.executable, "scripts/docker_isolated_runner_plan.py"]),
@@ -56,6 +60,7 @@ def main() -> int:
         run([sys.executable, "scripts/git_checkpoint_manifest.py"]),
         run([sys.executable, "scripts/render_telegram_korean_summary.py"]),
         run([sys.executable, "scripts/hq_sqlite_queue_writer.py", "--task-id", "hq-offline-validation-queue-writer-20260518"]),
+        run([sys.executable, "scripts/runtime_engine_smoke.py"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_telegram_commands.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_controller_webhook.json"]),
     ]

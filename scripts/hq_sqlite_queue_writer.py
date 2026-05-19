@@ -141,6 +141,8 @@ def default_task(task_id: str) -> dict:
         "created_at": utc_now(),
         "requested_by": "local_hq",
         "source_channel": "local_hq",
+        "owner": "HQ",
+        "department": "runtime_orchestration",
         "priority": "normal",
         "objective": "Validate SQLite-backed TAC queue writer without live dispatch.",
         "allowed_scope": [
@@ -169,6 +171,24 @@ def default_task(task_id: str) -> dict:
         "status": "QUEUED",
         "retry_count": 0,
         "max_retries": 3,
+        "lifecycle": [
+            {
+                "from": None,
+                "to": "QUEUED",
+                "actor": "hq_sqlite_queue_writer",
+                "reason": "default local queue task created",
+                "at": utc_now(),
+            }
+        ],
+        "continuation": {
+            "resume_from": "sqlite_queue_writer",
+            "next_executable_subtasks": ["validate local queue", "review result", "write report"],
+            "handoff_required": True,
+        },
+        "telemetry": {
+            "event_log_path": "telemetry/runtime_events.jsonl",
+            "audit_log_path": "telemetry/audit_events.jsonl",
+        },
         "continuation_ledger_path": "reports/hq_continuation_ledger_2026-05-18.json",
         "final_report_path": "reports/hq_runtime_orchestration_live_gate_report_2026-05-18.md",
         "notification": {

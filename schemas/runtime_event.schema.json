@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mykindredai.local/schemas/runtime_event.schema.json",
+  "title": "TAC Runtime Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "task_id",
+    "event_type",
+    "actor",
+    "status",
+    "message",
+    "metadata",
+    "created_at",
+    "live_operation",
+    "secret_values_included"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "TASK_QUEUED",
+        "TASK_STARTED",
+        "HEARTBEAT",
+        "VALIDATION",
+        "REVIEW",
+        "RETRY",
+        "DEFERRED_GATE",
+        "FINAL_REPORT",
+        "NOTIFY"
+      ]
+    },
+    "actor": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["QUEUED", "RUNNING", "PASS", "FAIL", "DEFERRED_GATE", "CANCELLED", "INFO"]
+    },
+    "message": { "type": "string" },
+    "metadata": { "type": "object" },
+    "created_at": { "type": "string" },
+    "live_operation": { "type": "boolean" },
+    "secret_values_included": { "type": "boolean" }
+  }
+}

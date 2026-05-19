@@ -216,3 +216,14 @@ Append only unless correcting the latest entry.
   - EC2 `/queue -> tac-hq-runner -> company wrapper -> handoff/state/report` smoke
   - n8n notify webhook smoke without chat id
 - result: PASS. Operator commands can now be queued and completed without the user staying in front of the computer; final Telegram notification is attempted automatically when the real chat id is present.
+
+## 2026-05-19 - Local runtime engine state and telemetry expansion
+
+- pattern: Add state-transition and telemetry primitives before attempting longer unattended runtime, then validate queue lifecycle, heartbeat, retry decision, handoff, and inactive n8n draft contracts offline.
+- validated_by:
+  - `python -m unittest discover -s tests`
+  - `python scripts/run_offline_validations.py`
+  - `python scripts/runtime_engine_smoke.py`
+  - `python -m json.tool schemas/runtime_event.schema.json`
+  - `python -m json.tool workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json`
+- result: PASS. TAC now has local runtime primitives for queue lifecycle, runner heartbeat, retry budget decisions, telemetry JSONL events, and machine-readable handoff generation.

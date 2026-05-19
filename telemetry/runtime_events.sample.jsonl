@@ -1,0 +1,1 @@
+{"actor":"HQ","created_at":"2026-05-19T00:00:00+09:00","event_id":"hq-sample:TASK_QUEUED:2026-05-19T00:00:00+09:00","event_type":"TASK_QUEUED","live_operation":false,"message":"sample queue event","metadata":{"source":"sample"},"secret_values_included":false,"status":"QUEUED","task_id":"hq-sample"}

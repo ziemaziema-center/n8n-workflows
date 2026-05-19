@@ -313,3 +313,11 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - validation: PASS. Advisory-only; no live cloud, credential, workflow, Docker, Telegram, or production mutation.
 - telemetry: SUCCESS: Clarified that iCloud/Google Drive can only support backups/log sync, while Google Cloud Compute Engine or Cloud Run can run the persistent automation. FAILURE_PREVENTED: Avoided designing the durable runtime around consumer file-sync storage that cannot execute background processes.
 - side_effects: Documentation/telemetry only.
+
+## 2026-05-19 KST - Autonomous Runtime Engine Buildout
+- request: Build out the practical autonomous runtime orchestration platform from the current company-mode queue/runner foundation.
+- actions: Stored the major-task runtime estimate/continuation rule; added runtime state transition, heartbeat, retry decision, telemetry event, and continuation handoff module; expanded queue schema/sample with owner, department, lifecycle, continuation, and telemetry pointers; added runtime event schema and sample JSONL telemetry; added inactive n8n runtime orchestration pack draft; added runtime state machine, autonomous buildout, and Instagram growth experiment reports; expanded offline validation and tests.
+- validation: PASS. `python -m unittest discover -s tests` ran 66 tests; `python scripts/run_offline_validations.py` PASS; `python scripts/runtime_engine_smoke.py` PASS; JSON parse checks for runtime event schema and inactive n8n runtime pack PASS.
+- telemetry: SUCCESS: TAC now has local primitives for stateful runtime continuity and audit events before longer unattended operation. FAILURE_PREVENTED: Ledger final report path contract was updated after the ledger advanced to the new buildout report.
+- side_effects: Local/offline only. No live SSH, live Telegram send, live Instagram publish, Upbit operation, production Docker restart, AWS mutation, credential read, secret output, or force push.
+- next_action: Run a bounded 5-6 hour soak with heartbeat/retry/handoff checks, or use the Instagram growth experiment system to upgrade the SNS automation project without live publishing.

@@ -9,6 +9,8 @@
     "created_at",
     "requested_by",
     "source_channel",
+    "owner",
+    "department",
     "priority",
     "objective",
     "allowed_scope",
@@ -21,6 +23,9 @@
     "status",
     "retry_count",
     "max_retries",
+    "lifecycle",
+    "continuation",
+    "telemetry",
     "continuation_ledger_path",
     "final_report_path",
     "notification"
@@ -41,6 +46,14 @@
     "source_channel": {
       "type": "string",
       "enum": ["telegram", "n8n_webhook", "local_hq", "scheduled", "manual"]
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "department": {
+      "type": "string",
+      "enum": ["runtime_orchestration", "growth", "automation", "review", "ops", "docs"]
     },
     "priority": {
       "type": "string",
@@ -116,6 +129,43 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 3
+    },
+    "lifecycle": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "actor", "reason", "at"],
+        "properties": {
+          "from": { "type": ["string", "null"] },
+          "to": { "type": "string" },
+          "actor": { "type": "string" },
+          "reason": { "type": "string" },
+          "at": { "type": "string" }
+        }
+      }
+    },
+    "continuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resume_from", "next_executable_subtasks", "handoff_required"],
+      "properties": {
+        "resume_from": { "type": "string" },
+        "next_executable_subtasks": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "handoff_required": { "type": "boolean" }
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_log_path", "audit_log_path"],
+      "properties": {
+        "event_log_path": { "type": "string" },
+        "audit_log_path": { "type": "string" }
+      }
     },
     "continuation_ledger_path": {
       "type": "string"

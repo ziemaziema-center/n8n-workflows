@@ -1,0 +1,201 @@
+{
+  "name": "inactive_hq_runtime_orchestration_pack_2026-05-19",
+  "active": false,
+  "meta": {
+    "draftOnly": true,
+    "liveSshExecuted": false,
+    "credentialsRequired": false,
+    "purpose": "Local/importable draft for queue ingestion, validation routing, reviewer routing, retry routing, final report, and escalation routing."
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "path": "tac-runtime-draft",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "runtime-draft-webhook",
+      "name": "Draft Webhook Ingress",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { action: 'queue_ingestion', status: 'DRAFT_ONLY', live_operation: false, deferred_gate: 'DEFERRED_GATE_DRAFT_ONLY', body: $json.body || $json } }];"
+      },
+      "id": "normalize-queue-ingestion",
+      "name": "Normalize Queue Ingestion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.live_operation}}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "if-allowed-scope",
+      "name": "IF Allowed Scope",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, queue_persistence: 'DRAFT_NO_WRITE', next_route: 'validation' } }];"
+      },
+      "id": "queue-persistence-draft",
+      "name": "Queue Persistence Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, validation_status: 'NOT_RUN_DRAFT', next_route: 'reviewer' } }];"
+      },
+      "id": "validation-routing-draft",
+      "name": "Validation Routing Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, reviewer_decision: 'PASS_DRAFT', retry_allowed: false, next_route: 'final_report' } }];"
+      },
+      "id": "reviewer-routing-draft",
+      "name": "Reviewer Routing Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, retry_status: 'NO_RETRY_DRAFT', max_retries: 3, next_route: 'final_report' } }];"
+      },
+      "id": "retry-routing-draft",
+      "name": "Retry Routing Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, final_report: 'DRAFT final report only. No Telegram send.', live_telegram_send: false } }];"
+      },
+      "id": "final-report-draft",
+      "name": "Final Report Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, escalation: 'HUMAN_APPROVAL_REQUIRED', reason: 'live operation or credential surface blocked' } }];"
+      },
+      "id": "escalation-routing-draft",
+      "name": "Escalation Routing Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 120]
+    }
+  ],
+  "connections": {
+    "Draft Webhook Ingress": {
+      "main": [
+        [
+          {
+            "node": "Normalize Queue Ingestion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Queue Ingestion": {
+      "main": [
+        [
+          {
+            "node": "IF Allowed Scope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Allowed Scope": {
+      "main": [
+        [
+          {
+            "node": "Queue Persistence Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalation Routing Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue Persistence Draft": {
+      "main": [
+        [
+          {
+            "node": "Validation Routing Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation Routing Draft": {
+      "main": [
+        [
+          {
+            "node": "Reviewer Routing Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reviewer Routing Draft": {
+      "main": [
+        [
+          {
+            "node": "Retry Routing Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry Routing Draft": {
+      "main": [
+        [
+          {
+            "node": "Final Report Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "draft-runtime-pack-2026-05-19"
+}

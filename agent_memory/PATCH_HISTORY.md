@@ -236,3 +236,11 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - side_effects: Built Docker images locally and on EC2; restarted scoped EC2 `tac-service`; restarted scoped `tac-hq-runner`; patched active TAC n8n workflows. No Upbit action, Instagram publish, AWS mutation, secret output, production Docker restart, or force push.
 - rollback: Revert this commit, restore prior active n8n versions, restart `tac-service`, and stop/restart only `tac-hq-runner`.
 - next_action: User sends a real Telegram `/work smoke test...` message to validate the real chat-id completion notification path.
+
+## 2026-05-19 KST - Autonomous Runtime Engine Buildout
+- request: Continue building the autonomous runtime orchestration platform; store the major-task runtime rule; expand queue, state, n8n draft, Telegram ops contracts, reviewer/retry, telemetry, continuation, Instagram growth scaffolding, offline validation, reports, and Git hygiene.
+- files_changed: `AGENTS.md`, `SESSION_BOOT.md`, `src/tac/runtime_engine.py`, `src/tac/queue_runtime.py`, `schemas/runtime_queue.schema.json`, `schemas/runtime_event.schema.json`, `runtime/queue/sample_task.json`, `telemetry/runtime_events.sample.jsonl`, `scripts/runtime_engine_smoke.py`, `scripts/hq_sqlite_queue_writer.py`, `scripts/run_offline_validations.py`, `workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json`, `reports/*2026-05-19.md`, `tests/test_runtime_engine_20260519.py`, and related ledger/telemetry files.
+- validation: PASS. `python -m unittest discover -s tests` ran 66 tests; `python scripts/run_offline_validations.py` PASS; runtime engine smoke PASS; runtime event schema and inactive n8n runtime pack JSON parse PASS.
+- side_effects: Local/offline only. No live SSH, Telegram send, Instagram publish, Upbit operation, production Docker restart, AWS mutation, credential read, secret output, or force push.
+- rollback: Revert this commit to return to the previous company-mode runtime notification scaffold.
+- next_action: Run a bounded 5-6 hour queue soak or apply the SNS growth experiment system to the Instagram automation workspace without live publishing.

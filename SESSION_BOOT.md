@@ -56,6 +56,17 @@ Default permissions:
 
 ## Tool Semantics To Verify Before Use
 
+## Permanent Major-Task Runtime Rule
+
+For every new major task:
+- Estimate realistic expected completion/runtime duration first.
+- Execute immediately after the estimate.
+- Use the full available runtime intelligently and do not stop early while safe executable work remains.
+- Do not end the whole task because one live, credential, or network surface is blocked.
+- Convert blocked surfaces into `DEFERRED_GATE` records, then continue to the next executable subtask.
+- Before session end, update continuation ledger, deferred gates, next executable subtasks, final report, and exact resume prompt.
+- Preserve additive-only modifications, rollback safety, and deterministic auditability.
+
 Codex CLI safe default:
 
 ```text

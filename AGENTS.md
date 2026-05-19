@@ -19,6 +19,7 @@ Permanent continuation rule:
 - 한국어 기준: live/credential/network 항목 하나가 막혀도 전체 작업을 멈추지 말고, 안전한 로컬/오프라인/문서/테스트/스캐폴드/템플릿/검증 작업은 계속 진행한다. 막힌 항목만 deferred gate로 남긴 뒤 다음 실행 가능한 작업으로 넘어간다.
 
 Before work:
+- For a new major task, estimate realistic expected completion/runtime duration first.
 - Read `agent_memory/KNOWN_FAILURES.md`.
 - Read `agent_memory/VALIDATED_PATTERNS.md`.
 - Read `agent_memory/PATCH_HISTORY.md`.
@@ -27,6 +28,7 @@ Before work:
 After work:
 - Append `execution_logs/DAILY_EXECUTION_LOG.md`.
 - Append FAILURE/SUCCESS telemetry where relevant.
+- Update continuation ledger, deferred gates, next executable subtasks, final report, and exact resume prompt before ending a major task.
 - Prefer complete, validated changes over partial patches.
 
 ## Non-Negotiable Safety

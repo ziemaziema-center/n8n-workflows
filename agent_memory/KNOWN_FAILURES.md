@@ -242,3 +242,9 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - failure_mode: A Docker image can contain `codex --version` but still cannot run real Codex tasks until a container-specific auth volume is created.
 - prevention: Separate CLI installation smoke from authenticated execution; do not mount host secrets into the container.
 - validation: Local and EC2 Docker Codex CLI no-network smoke passed without secret mounts; real Docker Codex task execution remains gated by `TAC_CODEX_AUTH_VOLUME`.
+
+## 2026-05-19 - Ledger Final Report Path Tests Must Follow Continuation Updates
+
+- failure_mode: A test can hard-code the previous final report path and fail after the continuation ledger advances to a new buildout report.
+- prevention: When the ledger `final_report_path` is intentionally advanced, update the corresponding contract test in the same patch and rerun the full suite.
+- validation: The test initially expected the company-mode report; after updating it to the autonomous runtime buildout report, 66 tests and offline validation passed.

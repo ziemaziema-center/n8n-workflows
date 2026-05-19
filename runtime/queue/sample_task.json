@@ -3,6 +3,8 @@
   "created_at": "2026-05-18T00:00:00+09:00",
   "requested_by": "telegram_user",
   "source_channel": "telegram",
+  "owner": "HQ",
+  "department": "runtime_orchestration",
   "priority": "normal",
   "objective": "Create inactive runtime orchestration artifacts and validate offline.",
   "allowed_scope": [
@@ -36,6 +38,28 @@
   "status": "QUEUED",
   "retry_count": 0,
   "max_retries": 3,
+  "lifecycle": [
+    {
+      "from": null,
+      "to": "QUEUED",
+      "actor": "sample",
+      "reason": "sample task created",
+      "at": "2026-05-18T00:00:00+09:00"
+    }
+  ],
+  "continuation": {
+    "resume_from": "queue",
+    "next_executable_subtasks": [
+      "run bounded task",
+      "review output",
+      "write final report"
+    ],
+    "handoff_required": true
+  },
+  "telemetry": {
+    "event_log_path": "telemetry/runtime_events.jsonl",
+    "audit_log_path": "telemetry/audit_events.jsonl"
+  },
   "continuation_ledger_path": "reports/hq_continuation_ledger_2026-05-18.json",
   "final_report_path": "reports/hq_runtime_orchestration_final_report_2026-05-18.md",
   "notification": {

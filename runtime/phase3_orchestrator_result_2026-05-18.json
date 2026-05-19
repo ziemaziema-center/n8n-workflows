@@ -1,8 +1,8 @@
 {
   "task_id": "hq-phase3-orchestrator-local-20260518",
   "status": "PASS",
-  "started_at": "2026-05-18T07:39:27.956498+00:00",
-  "finished_at": "2026-05-18T07:39:27.956511+00:00",
+  "started_at": "2026-05-19T09:59:15.784482+00:00",
+  "finished_at": "2026-05-19T09:59:15.784496+00:00",
   "planner": {
     "subtasks": [
       {
@@ -39,7 +39,7 @@
           ],
           "status": "PASS",
           "exit_code": 0,
-          "stdout_tail": "           \"name\": \"ec2_tmux_live_session_creation\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"would create or mutate a live EC2 tmux runtime session\",\n            \"required_input\": \"explicit EC2 runtime dry-run/live boundary approval\",\n            \"last_smoke_status\": \"PASS\",\n            \"last_smoke_note\": \"Created scoped tac-live-gate-smoke tmux session, wrote marker, then cleaned the session.\"\n        },\n        {\n            \"name\": \"live_instagram_publish\",\n            \"status\": \"DEFERRED_GATE\",\n            \"reason\": \"live publishing can affect production accounts\",\n            \"required_input\": \"explicit publishing approval and content review gate\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"User sends /work smoke test from Telegram to verify real chat-id notification path\",\n        \"Create Docker-only Codex auth volume and run one containerized Codex task\",\n        \"Run 3+ queued tasks with one forced retry, one deferred gate, and one successful company-mode task\",\n        \"Promote Git checkpoint policy from manifest-only to commit-enabled only for approved clean workspaces\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python scripts/run_offline_validations.py\",\n        \"docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .\",\n        \"python scripts/docker_codex_cli_smoke.py\",\n        \"EC2: docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .\",\n        \"EC2: python3 scripts/docker_codex_cli_smoke.py\",\n        \"EC2: python3 scripts/remote_queue_route_smoke.py\"\n    ],\n    \"final_report_path\": \"reports/company_mode_runtime_completion_report_2026-05-18.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, and this ledger. Next verify user-origin Telegram /work smoke, then create a container-specific Codex auth volume for real Docker Codex execution without host secrets.\",\n    \"live_operations_performed\": true\n}\n",
+          "stdout_tail": "atus\": \"DEFERRED_GATE\",\n            \"reason\": \"Docker image contains Codex CLI, but real Codex task execution inside the container needs a container-specific auth volume\",\n            \"required_input\": \"create/login Docker-only Codex auth volume without mounting host secrets\"\n        }\n    ],\n    \"next_executable_subtasks\": [\n        \"Run 5-6 hour overnight queue soak with heartbeat, retry, pause/resume, /killall, final notification, and report checks\",\n        \"Create Docker-only Codex auth volume and run one containerized Codex task\",\n        \"Run 3+ queued tasks with one forced retry, one deferred gate, and one successful company-mode task\",\n        \"Promote Git checkpoint policy from manifest-only to commit-enabled only for approved clean workspaces\",\n        \"Use the Instagram growth experiment report to upgrade the SNS automation approval and analytics loop\"\n    ],\n    \"validation_commands\": [\n        \"python -m unittest discover -s tests\",\n        \"python scripts/run_offline_validations.py\",\n        \"docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .\",\n        \"python scripts/docker_codex_cli_smoke.py\",\n        \"EC2: docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .\",\n        \"EC2: python3 scripts/docker_codex_cli_smoke.py\",\n        \"EC2: python3 scripts/remote_queue_route_smoke.py\",\n        \"python scripts/runtime_engine_smoke.py\",\n        \"python -m json.tool schemas/runtime_event.schema.json\",\n        \"python -m json.tool workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json\"\n    ],\n    \"final_report_path\": \"reports/autonomous_runtime_buildout_report_2026-05-19.md\",\n    \"resume_instruction\": \"Read AGENTS.md, SESSION_BOOT.md, agent_memory files, this ledger, and reports/autonomous_runtime_buildout_report_2026-05-19.md. Next run a bounded 5-6 hour queue soak or apply the SNS growth experiment system to the Instagram automation workspace without live publishing.\",\n    \"live_operations_performed\": true\n}\n",
           "stderr_tail": ""
         },
         {
@@ -53,7 +53,7 @@
           "status": "PASS",
           "exit_code": 0,
           "stdout_tail": "",
-          "stderr_tail": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.232s\n\nOK\n"
+          "stderr_tail": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.225s\n\nOK\n"
         }
       ],
       "review": {

@@ -29,6 +29,8 @@ def make_queue_task(
         "created_at": utc_now(),
         "requested_by": requested_by,
         "source_channel": source_channel,
+        "owner": "HQ",
+        "department": "runtime_orchestration",
         "priority": priority,
         "objective": objective.strip() or "Queued TAC runtime task.",
         "allowed_scope": [
@@ -60,6 +62,24 @@ def make_queue_task(
         "status": "QUEUED",
         "retry_count": 0,
         "max_retries": 3,
+        "lifecycle": [
+            {
+                "from": None,
+                "to": "QUEUED",
+                "actor": "tac_queue_runtime",
+                "reason": "task created and validated",
+                "at": utc_now(),
+            }
+        ],
+        "continuation": {
+            "resume_from": "queue",
+            "next_executable_subtasks": ["run bounded task", "review output", "write final report"],
+            "handoff_required": True,
+        },
+        "telemetry": {
+            "event_log_path": "telemetry/runtime_events.jsonl",
+            "audit_log_path": "telemetry/audit_events.jsonl",
+        },
         "continuation_ledger_path": "reports/hq_continuation_ledger_2026-05-18.json",
         "final_report_path": "reports/phase4_runtime_operating_report_2026-05-18.md",
         "notification": notification or {"on_completion": False},
@@ -72,6 +92,8 @@ def validate_queue_task(task: dict[str, Any]) -> None:
         "created_at",
         "requested_by",
         "source_channel",
+        "owner",
+        "department",
         "priority",
         "objective",
         "allowed_scope",
@@ -84,6 +106,9 @@ def validate_queue_task(task: dict[str, Any]) -> None:
         "status",
         "retry_count",
         "max_retries",
+        "lifecycle",
+        "continuation",
+        "telemetry",
         "continuation_ledger_path",
         "final_report_path",
         "notification",
