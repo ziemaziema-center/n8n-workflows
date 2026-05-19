@@ -347,3 +347,10 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - Validation passed locally and deployment script reported PASS.
 - Preview webhook returned HTTP 200, but n8n saved execution list did not yet show a fresh run after deploy.
 - No Instagram publish, comment, DM, credential print, or production Docker restart was performed.
+
+## ACTUAL05_YUNA_COMMENT_DM_ACTIVATED_20260519
+
+- Confirmed `actual_05_instagram_comment_dm_opener` is live active in n8n.
+- Confirmed active graph contains YUNA Deal Index scoring marker, public reply, private reply, and dedupe guard.
+- Did not force a live Instagram comment/DM event; latest saved executions are prior webhook test runs.
+- No credential value was printed.
