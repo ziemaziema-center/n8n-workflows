@@ -354,3 +354,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - Confirmed active graph contains YUNA Deal Index scoring marker, public reply, private reply, and dedupe guard.
 - Did not force a live Instagram comment/DM event; latest saved executions are prior webhook test runs.
 - No credential value was printed.
+
+## YUNA_PRODUCT_TAXONOMY_MIX_LIVE_20260522
+
+- Applied and live-deployed YUNA product taxonomy mix to `clean_01_generator` Build Simulation Content.
+- Categories: e-liquid, disposable device, disposable cartridge/pod, reusable device.
+- Ratio: device 1 / e-liquid 10 / disposable device 7 / disposable cartridge 3.
+- Local JS syntax and deployment validator passed.
+- Live n8n active version confirmed: `7ddbeac2-ca84-4e50-8aa3-679fe5fdfc43`.
+- Webhook returned HTTP 200, but saved execution list did not yet show a fresh post-deploy run.
+- No Instagram publish, credential output, clean03/clean04 mutation, Docker/nginx/server mutation, or AWS mutation was performed.
