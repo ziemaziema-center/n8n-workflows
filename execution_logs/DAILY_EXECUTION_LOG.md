@@ -364,3 +364,10 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - Live n8n active version confirmed: `7ddbeac2-ca84-4e50-8aa3-679fe5fdfc43`.
 - Webhook returned HTTP 200, but saved execution list did not yet show a fresh post-deploy run.
 - No Instagram publish, credential output, clean03/clean04 mutation, Docker/nginx/server mutation, or AWS mutation was performed.
+
+## YUNA_INSTAGRAM_SESSION_HANDOFF_20260522
+
+- Created `docs/YUNA_INSTAGRAM_SESSION_HANDOFF_2026-05-22.md`.
+- Extracted YUNA/Instagram-only session state into a standalone handoff packet for the next Codex session.
+- Included live workflow IDs, active versions, product taxonomy, posting ratio, reports, remaining gaps, and exact continuation prompt.
+- Documentation only; no live Instagram/n8n/credential/Docker/server/AWS mutation.
