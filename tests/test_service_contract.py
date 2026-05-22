@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from src.tac.controller import task_from_prompt
-from src.tac.service import ControllerState
+from src.tac.service import ControllerState, kill_scoped_tmux_sessions
 
 
 class ServiceContractTests(unittest.TestCase):
@@ -59,10 +59,18 @@ class ServiceContractTests(unittest.TestCase):
             self.assertTrue((root / "runtime/queue/hq-service-queue-smoke.json").exists())
             pending = (root / "runtime/queue/pending.jsonl").read_text(encoding="utf-8")
             self.assertIn("hq-service-queue-smoke", pending)
+            events = (root / "runtime/controller_state.sqlite3")
+            self.assertTrue(events.exists())
             self.assertTrue((root / "runtime/controller_state.sqlite3").exists())
             task = json.loads((root / "runtime/queue/hq-service-queue-smoke.json").read_text(encoding="utf-8"))
             self.assertIn("notification", task)
             self.assertFalse(task["notification"]["on_completion"])
+
+    def test_queue_writer_uses_lock_marker(self):
+        source = (Path(__file__).resolve().parents[1] / "src/tac/queue_runtime.py").read_text(encoding="utf-8")
+        self.assertIn("def queue_lock", source)
+        self.assertIn("BEGIN IMMEDIATE", source)
+        self.assertIn(".pending.lock", source)
 
     def test_state_enqueue_records_telegram_completion_notification(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -103,6 +111,13 @@ class ServiceContractTests(unittest.TestCase):
             self.assertTrue(result["ok"])
             self.assertEqual(result["status"], "HANDOFF_READY")
             self.assertEqual(result["next_executable_subtasks"], ["docker dry-run"])
+
+    def test_kill_switch_avoids_process_wide_pkill(self):
+        source = (Path(__file__).resolve().parents[1] / "src/tac/service.py").read_text(encoding="utf-8")
+        self.assertNotIn('"pkill"', source)
+        self.assertIn("tac-hq-runner", source)
+        result = kill_scoped_tmux_sessions()
+        self.assertIn("killed_process_patterns", result)
 
 
 if __name__ == "__main__":

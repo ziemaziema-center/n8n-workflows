@@ -190,7 +190,7 @@ def run_task(task: dict[str, Any]) -> dict[str, Any]:
         docker_result = run_codex_docker(prompt, workspace, timeout) if docker_first else {"status": "SKIPPED"}
         if docker_result.get("status") == "PASS":
             runner_result = docker_result
-        elif os.environ.get("TAC_ALLOW_HOST_CODEX_FALLBACK", "1") == "1":
+        elif os.environ.get("TAC_ALLOW_HOST_CODEX_FALLBACK", "0") == "1":
             host_result = run_codex_host(prompt, workspace, timeout)
             runner_result = {**host_result, "docker_attempt": docker_result}
         else:

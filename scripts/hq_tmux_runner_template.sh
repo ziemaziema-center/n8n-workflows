@@ -13,6 +13,7 @@ STATE_DIR="$ROOT/runtime/state"
 WRAPPER="$ROOT/scripts/hq_safe_agent_wrapper_template.sh"
 NOTIFIER="$ROOT/scripts/hq_notify_completion.py"
 STATE_FILE="$STATE_DIR/current_state.json"
+LOCK_FILE="$QUEUE_DIR/pending.lock"
 
 mkdir -p "$QUEUE_DIR" "$LOG_DIR" "$REPORT_DIR" "$HANDOFF_DIR" "$STATE_DIR"
 touch "$QUEUE_DIR/pending.jsonl" "$QUEUE_DIR/running.jsonl" "$QUEUE_DIR/completed.jsonl" "$QUEUE_DIR/failed.jsonl"
@@ -25,9 +26,33 @@ while true; do
     continue
   fi
 
-  task_line="$(head -n 1 "$QUEUE_DIR/pending.jsonl")"
-  tail -n +2 "$QUEUE_DIR/pending.jsonl" > "$QUEUE_DIR/pending.jsonl.tmp"
-  mv "$QUEUE_DIR/pending.jsonl.tmp" "$QUEUE_DIR/pending.jsonl"
+  # Protect dequeue from multi-runner races. flock is preferred; mkdir lock is
+  # the fallback for minimal Linux environments.
+  if command -v flock >/dev/null 2>&1; then
+    task_line="$(
+      flock "$LOCK_FILE" bash -c '
+        set -euo pipefail
+        queue="$1"
+        if [[ ! -s "$queue" ]]; then
+          exit 0
+        fi
+        head -n 1 "$queue"
+        tail -n +2 "$queue" > "$queue.tmp"
+        mv "$queue.tmp" "$queue"
+      ' _ "$QUEUE_DIR/pending.jsonl"
+    )"
+  else
+    while ! mkdir "$LOCK_FILE.d" 2>/dev/null; do sleep 0.2; done
+    task_line="$(head -n 1 "$QUEUE_DIR/pending.jsonl")"
+    tail -n +2 "$QUEUE_DIR/pending.jsonl" > "$QUEUE_DIR/pending.jsonl.tmp"
+    mv "$QUEUE_DIR/pending.jsonl.tmp" "$QUEUE_DIR/pending.jsonl"
+    rmdir "$LOCK_FILE.d"
+  fi
+
+  if [[ -z "${task_line:-}" ]]; then
+    sleep "${TAC_QUEUE_POLL_SEC:-5}"
+    continue
+  fi
 
   task_id="$(printf '%s' "$task_line" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("task_id","unknown"))')"
   printf '%s\n' "$task_line" >> "$QUEUE_DIR/running.jsonl"

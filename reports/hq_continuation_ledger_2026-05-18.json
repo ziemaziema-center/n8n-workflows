@@ -1,7 +1,7 @@
 {
   "task_id": "tac-hq-orchestration-20260518",
   "created_at_kst": "2026-05-18",
-  "current_phase": "phase4_company_mode_runtime_ready_with_yuna_growth_brain",
+  "current_phase": "phase4_company_mode_runtime_ready_with_tac_scorecard_92",
   "operating_rule": "Do not stop the whole task because one live/credential/network item is blocked. Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work. Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.",
   "completed_items": [
     "permanent continuation rule stored in AGENTS.md and SESSION_BOOT.md",
@@ -74,13 +74,24 @@
     "YUNA sample growth experiment created at runtime/yuna_growth_experiments/sample_experiment.json",
     "YUNA brain sendoff created at docs/YUNA_BRAIN_SENDOFF_2026-05-19.md",
     "YUNA brain growth system report created at reports/yuna_brain_growth_system_2026-05-19.md",
-    "YUNA growth brain offline tests added and validation runner expanded"
+    "YUNA growth brain offline tests added and validation runner expanded",
+    "TAC agent council scorecard created with 10 sectors and 100 point scoring",
+    "Baseline TAC repository/runtime readiness scored at 81/100",
+    "Strict independent read-only audit scored current TAC at 76/100 before second-loop risk fixes",
+    "Post-improvement TAC repository/runtime readiness scored at 92/100",
+    "Five-language README created for operator-facing project usage",
+    "Permanent five-language README policy stored in AGENTS.md and SESSION_BOOT.md",
+    "Scorecard schema, scorecard generator, and README policy tests added",
+    "Offline validation runner expanded to include TAC scorecard validation",
+    "Queue writes hardened with local lock and SQLite BEGIN IMMEDIATE transaction",
+    "tmux runner dequeue hardened with flock or mkdir lock fallback",
+    "HTTP kill switch narrowed to TAC tmux sessions and broad process-wide pkill removed",
+    "Host Codex fallback disabled by default and service startup sandbox default changed to workspace-write"
   ],
   "pending_items": [
     "Create/login a container-specific Codex auth volume so Docker can execute real Codex tasks without host secrets",
     "Run multi-hour or overnight unattended queue soak with bounded retries, heartbeat, pause/resume, and /killall verification",
     "Decide whether arbitrary target workspaces should allow automatic pre-run/post-pass Git commits or stay manifest-only",
-    "Run a 3-cycle local runtime simulation across queue lifecycle, heartbeat, reviewer decision, retry, telemetry append, and final report rendering",
     "Apply YUNA brain growth metadata to the SNS automation workspace clean_01 candidate generation and approval template without live publishing",
     "Add manual or credentialed metrics capture for follows, comments, saves, shares, DM replies, profile visits, and average watch time after approval"
   ],
@@ -161,9 +172,11 @@
     "python -m json.tool schemas/runtime_event.schema.json",
     "python -m json.tool workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json",
     "python -m json.tool schemas/yuna_growth_experiment.schema.json",
-    "python -m json.tool runtime/yuna_growth_experiments/sample_experiment.json"
+    "python -m json.tool runtime/yuna_growth_experiments/sample_experiment.json",
+    "python scripts/tac_scorecard.py",
+    "python -m json.tool schemas/tac_scorecard.schema.json"
   ],
-  "final_report_path": "reports/yuna_brain_growth_system_2026-05-19.md",
-  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, this ledger, docs/YUNA_BRAIN_SENDOFF_2026-05-19.md, and reports/yuna_brain_growth_system_2026-05-19.md. Next apply the YUNA brain growth experiment metadata to the SNS automation workspace without live publishing.",
+  "final_report_path": "reports/tac_scorecard_2026-05-22.md",
+  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, this ledger, README.md, reports/tac_scorecard_2026-05-22.md, and reports/tac_agent_council_review_2026-05-22.md. Next hardening task: run the 5-6 hour overnight queue soak, then create a Docker-only Codex auth volume for real containerized Codex execution.",
   "live_operations_performed": true
 }

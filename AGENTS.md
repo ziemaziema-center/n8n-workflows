@@ -16,6 +16,7 @@ Permanent continuation rule:
 - Do not stop the whole task because one live/credential/network item is blocked.
 - Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work.
 - Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.
+- Clean Korean rule: live/credential/network 항목 하나가 막혀도 전체 작업을 멈추지 말고, 안전한 local/offline/documentation/test/scaffold/template/validation 작업은 계속 진행한다. 막힌 항목만 deferred gate로 남긴 뒤 다음 실행 가능한 작업으로 넘어간다.
 - 한국어 기준: live/credential/network 항목 하나가 막혀도 전체 작업을 멈추지 말고, 안전한 로컬/오프라인/문서/테스트/스캐폴드/템플릿/검증 작업은 계속 진행한다. 막힌 항목만 deferred gate로 남긴 뒤 다음 실행 가능한 작업으로 넘어간다.
 
 Before work:
@@ -74,3 +75,14 @@ Telegram -> n8n -> tmux runner -> Codex runner -> log capture -> Telegram summar
 Optimize for safe persistent orchestration, not maximum autonomy.
 
 Do not behave like a short audit report generator. Behave like the bounded HQ layer: plan, split work, execute safe parts, review, fix, validate, record gates, and hand off the next executable step.
+
+## Permanent README Language Policy
+
+When creating or modifying any README file in this project, include all five language sections in the same file:
+- English
+- French
+- Spanish
+- Korean
+- Chinese
+
+Apply this automatically even when the user does not repeat the instruction. Third-party vendored README files are the only exception.

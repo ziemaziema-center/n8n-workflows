@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -160,6 +163,37 @@ def ensure_db(conn: sqlite3.Connection) -> None:
     )
 
 
+@contextmanager
+def queue_lock(runtime_root: Path):
+    lock_path = runtime_root / "queue" / ".pending.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    deadline = time.monotonic() + 10
+    fd: int | None = None
+    while time.monotonic() < deadline:
+        try:
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, f"{os.getpid()} {utc_now()}\n".encode("utf-8"))
+            break
+        except FileExistsError:
+            try:
+                if time.time() - lock_path.stat().st_mtime > 60:
+                    lock_path.unlink()
+                    continue
+            except OSError:
+                pass
+            time.sleep(0.05)
+    if fd is None:
+        raise TimeoutError(f"timed out waiting for queue lock: {lock_path}")
+    try:
+        yield
+    finally:
+        os.close(fd)
+        try:
+            lock_path.unlink()
+        except FileNotFoundError:
+            pass
+
+
 def write_queue_task(task: dict[str, Any], *, runtime_root: Path) -> dict[str, Any]:
     validate_queue_task(task)
     queue_dir = runtime_root / "queue"
@@ -168,13 +202,15 @@ def write_queue_task(task: dict[str, Any], *, runtime_root: Path) -> dict[str, A
     task_path = queue_dir / f"{task['task_id']}.json"
     pending_path = queue_dir / "pending.jsonl"
     task_line = json.dumps(task, ensure_ascii=False, sort_keys=True)
-    task_path.write_text(json.dumps(task, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
-    with pending_path.open("a", encoding="utf-8") as handle:
-        handle.write(task_line + "\n")
-    conn = sqlite3.connect(db_path)
-    try:
-        ensure_db(conn)
-        conn.execute(
+    with queue_lock(runtime_root):
+        task_path.write_text(json.dumps(task, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+        with pending_path.open("a", encoding="utf-8") as handle:
+            handle.write(task_line + "\n")
+        conn = sqlite3.connect(db_path)
+        try:
+            ensure_db(conn)
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
             """
             INSERT INTO tasks(task_id, source, workspace, status, requested_at, summary, risk_level, approvals_json, metadata_json)
             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -198,7 +234,7 @@ def write_queue_task(task: dict[str, Any], *, runtime_root: Path) -> dict[str, A
                 json.dumps({"queue_file": str(task_path), "target_runner": task["target_runner"]}, sort_keys=True),
             ),
         )
-        conn.execute(
+            conn.execute(
             """
             INSERT INTO task_events(task_id, ts, event_type, actor, message, metadata_json)
             VALUES(?, ?, ?, ?, ?, ?)
@@ -208,13 +244,13 @@ def write_queue_task(task: dict[str, Any], *, runtime_root: Path) -> dict[str, A
                 utc_now(),
                 "QUEUED",
                 "tac_service_queue_endpoint",
-                "validated task and appended to runtime queue",
-                json.dumps({"pending_jsonl": str(pending_path)}, sort_keys=True),
+                "validated task and appended to runtime queue under lock",
+                json.dumps({"pending_jsonl": str(pending_path), "lock": str(queue_dir / ".pending.lock")}, sort_keys=True),
             ),
         )
-        conn.commit()
-    finally:
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
     return {
         "ok": True,
         "status": "QUEUED",

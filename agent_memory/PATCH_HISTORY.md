@@ -283,3 +283,17 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - Created `docs/YUNA_INSTAGRAM_SESSION_HANDOFF_2026-05-22.md`.
 - Extracted YUNA/Instagram-only state from the current session: brand direction, workflow IDs, live versions, growth brain, taxonomy mix, reports, validation, known gaps, and exact next prompt.
 - Documentation only; no n8n workflow, Instagram publish, credential, Docker, server, or AWS state changed.
+
+## TAC_SCORECARD_AND_RUNTIME_HARDENING_20260522
+
+- Created a 10-sector TAC readiness scorecard with strict external audit baseline `76/100`, local baseline `81/100`, and post-improvement repository/runtime readiness score `92/100`.
+- Added root `README.md` with English, French, Spanish, Korean, and Chinese operator instructions.
+- Stored the permanent five-language README policy in `AGENTS.md`, `SESSION_BOOT.md`, and `docs/TAC_OPERATOR_README_POLICY_2026-05-22.md`.
+- Added `scripts/tac_scorecard.py`, `schemas/tac_scorecard.schema.json`, `reports/tac_scorecard_2026-05-22.*`, and `reports/tac_agent_council_review_2026-05-22.md`.
+- Hardened queue writes with a local `.pending.lock` and SQLite `BEGIN IMMEDIATE`.
+- Hardened tmux dequeue with `flock` or mkdir-lock fallback.
+- Narrowed `/killall` service behavior to TAC tmux sessions and removed broad process-wide `pkill`.
+- Disabled host Codex fallback by default and changed TAC service startup default sandbox to `workspace-write`.
+- Added regression tests for scorecard, multilingual README policy, runner safety, queue locking, and updated the offline validation runner.
+- Validation: PASS. `python -m unittest discover -s tests` ran 82 tests. `python scripts/run_offline_validations.py` PASS.
+- Remaining gates: Docker-only Codex auth volume, 5-6 hour unattended soak, production n8n workflow maintenance, and Git auto-commit policy for arbitrary target workspaces.

@@ -1,0 +1,173 @@
+{
+  "task_id": "tac-scorecard-20260522",
+  "generated_at": "2026-05-22T06:43:38.794673+00:00",
+  "scoring_scope": "Repository and runtime-readiness evidence for the True Autonomous Controller, not a claim that every production live gate has been exhausted.",
+  "target_score": 90,
+  "baseline_total": 81,
+  "strict_external_audit_total": 76,
+  "improved_total": 92,
+  "target_hit": true,
+  "sectors": [
+    {
+      "name": "Telegram command intake and operator UX",
+      "baseline_score": 9,
+      "improved_score": 9,
+      "reason": "Telegram /work, /queue, /handoff, /status, and Korean receipt/final report paths exist and have live smoke history.",
+      "evidence": [
+        "workflows/tac_telegram_commands.json",
+        "docs/OPERATOR_COMPANY_MODE_RUNBOOK_2026-05-18.md"
+      ],
+      "remaining_risk": "Needs more long-run user-origin command samples across real project types.",
+      "evidence_present": true
+    },
+    {
+      "name": "n8n orchestration layer",
+      "baseline_score": 8,
+      "improved_score": 9,
+      "reason": "Active command workflow and inactive runtime orchestration drafts exist; draft import and queue routing have been validated.",
+      "evidence": [
+        "workflows/tac_controller_webhook.json",
+        "workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json"
+      ],
+      "remaining_risk": "Old n8n node-shape warnings should be cleaned when production workflow maintenance is approved.",
+      "evidence_present": true
+    },
+    {
+      "name": "Queue and state persistence",
+      "baseline_score": 9,
+      "improved_score": 10,
+      "reason": "SQLite queue writer, queue schema, state schema, handoff endpoint, sample state, continuation ledger, and lock-protected pending queue writes are present.",
+      "evidence": [
+        "scripts/hq_sqlite_queue_writer.py",
+        "schemas/runtime_queue.schema.json",
+        "schemas/runtime_state.schema.json",
+        "src/tac/queue_runtime.py"
+      ],
+      "remaining_risk": "Longer queue retention and compaction policy can still be added, but the main race-risk gap now has a local lock and SQLite immediate transaction.",
+      "evidence_present": true
+    },
+    {
+      "name": "tmux and runtime runner execution",
+      "baseline_score": 8,
+      "improved_score": 9,
+      "reason": "tmux templates, company-mode runner, remote queue smoke, runtime engine smoke, and lock-protected dequeue template exist.",
+      "evidence": [
+        "scripts/hq_company_task_runner.py",
+        "scripts/hq_tmux_runner_template.sh",
+        "scripts/runtime_engine_smoke.py"
+      ],
+      "remaining_risk": "5-6 hour unattended soak remains the main hardening gate.",
+      "evidence_present": true
+    },
+    {
+      "name": "Codex execution and sandbox isolation",
+      "baseline_score": 7,
+      "improved_score": 8,
+      "reason": "Docker runner image and no-network Codex CLI smoke are present, with host fallback explicitly gated.",
+      "evidence": [
+        "docker/tac-runner.Dockerfile",
+        "scripts/docker_codex_cli_smoke.py",
+        "reports/docker_isolated_runner_scaffold_2026-05-18.md"
+      ],
+      "remaining_risk": "Real containerized Codex task execution still needs Docker-only auth volume setup.",
+      "evidence_present": true
+    },
+    {
+      "name": "Reviewer, retry, and escalation loop",
+      "baseline_score": 8,
+      "improved_score": 9,
+      "reason": "Reviewer feedback schema, reviewer loop template, retry smoke, deferred gate handling, and phase3 orchestrator exist.",
+      "evidence": [
+        "scripts/hq_reviewer_loop_template.py",
+        "schemas/reviewer_feedback.schema.json",
+        "scripts/hq_phase3_orchestrator.py"
+      ],
+      "remaining_risk": "Independent LLM reviewer quality is still scaffolded rather than fully production-proven.",
+      "evidence_present": true
+    },
+    {
+      "name": "Safety, rollback, and kill switch",
+      "baseline_score": 9,
+      "improved_score": 10,
+      "reason": "Hard safety rules, kill switch template, git checkpoint manifest, no-secret defaults, deferred gates, and service kill-switch narrowing are stored.",
+      "evidence": [
+        "AGENTS.md",
+        "scripts/hq_kill_switch_template.sh",
+        "scripts/git_checkpoint_manifest.py",
+        "reports/deferred_gate_registry_2026-05-18.md",
+        "src/tac/service.py"
+      ],
+      "remaining_risk": "Automatic pre-run/post-pass Git commits per arbitrary target workspace remain policy-gated.",
+      "evidence_present": true
+    },
+    {
+      "name": "Telemetry and auditability",
+      "baseline_score": 9,
+      "improved_score": 10,
+      "reason": "Runtime event schema, JSONL telemetry sample, execution logs, patch history, and generated scorecard create deterministic audit trails.",
+      "evidence": [
+        "schemas/runtime_event.schema.json",
+        "telemetry/runtime_events.sample.jsonl",
+        "execution_logs/DAILY_EXECUTION_LOG.md",
+        "agent_memory/PATCH_HISTORY.md"
+      ],
+      "remaining_risk": "A dashboard can be added later, but append-only audit foundations are strong.",
+      "evidence_present": true
+    },
+    {
+      "name": "Operator documentation and multilingual README policy",
+      "baseline_score": 7,
+      "improved_score": 10,
+      "reason": "This run adds a unified README and permanent five-language README policy in project boot rules.",
+      "evidence": [
+        "README.md",
+        "AGENTS.md",
+        "SESSION_BOOT.md"
+      ],
+      "remaining_risk": "Future README edits must keep the policy enforced by tests.",
+      "evidence_present": true
+    },
+    {
+      "name": "Long-run continuation readiness",
+      "baseline_score": 7,
+      "improved_score": 8,
+      "reason": "Continuation ledger, handoff endpoint, queue soak test, runtime state model, and exact resume prompts exist.",
+      "evidence": [
+        "reports/hq_continuation_ledger_2026-05-18.json",
+        "scripts/queue_soak_test.py",
+        "reports/runtime_state_machine_2026-05-19.md"
+      ],
+      "remaining_risk": "A real 5-6 hour overnight soak has not yet been completed.",
+      "evidence_present": true
+    }
+  ],
+  "agent_council": [
+    "HQ Master Controller",
+    "AI Systems Expert",
+    "Automation Architect",
+    "Computer Systems Engineer",
+    "AI Professor",
+    "Safety Reviewer",
+    "QA/Test Engineer",
+    "Telemetry Engineer",
+    "Operator UX Lead",
+    "Final Reporter"
+  ],
+  "remaining_deferred_gates": [
+    "Docker-only Codex auth volume for real containerized Codex tasks",
+    "5-6 hour unattended overnight soak",
+    "automatic Git commit policy for arbitrary target workspaces",
+    "production workflow maintenance and activation changes"
+  ],
+  "implemented_gap_fixes": [
+    "Added root README with five-language operator instructions.",
+    "Stored permanent five-language README policy in AGENTS.md and SESSION_BOOT.md.",
+    "Added reproducible 10-sector scorecard generator and schema.",
+    "Added queue locking and SQLite BEGIN IMMEDIATE transaction for pending queue writes.",
+    "Added flock/mkdir lock protection to the tmux runner dequeue template.",
+    "Narrowed service kill switch to TAC tmux sessions and intentionally removed process-wide pkill.",
+    "Changed host Codex fallback default to disabled; Docker-first remains preferred.",
+    "Changed TAC service startup default sandbox from danger-full-access to workspace-write.",
+    "Added regression tests for scorecard, multilingual README policy, runner safety, and queue locking."
+  ]
+}

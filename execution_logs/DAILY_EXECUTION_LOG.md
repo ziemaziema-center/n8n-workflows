@@ -371,3 +371,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - Extracted YUNA/Instagram-only session state into a standalone handoff packet for the next Codex session.
 - Included live workflow IDs, active versions, product taxonomy, posting ratio, reports, remaining gaps, and exact continuation prompt.
 - Documentation only; no live Instagram/n8n/credential/Docker/server/AWS mutation.
+
+## TAC_SCORECARD_AND_RUNTIME_HARDENING_20260522
+
+- request: User asked TAC HQ and expert agents to objectively score the autonomous controller across 10 sectors, improve it until the target score reached 90, save the result, update README in five languages, and push to GitHub.
+- actions: Created root multilingual README, permanent README language policy, TAC scorecard generator/schema/reports, agent council review, queue lock, tmux dequeue lock, narrowed kill switch, safer Codex fallback defaults, and regression tests.
+- scoring: strict external audit baseline `76/100`; local pre-improvement baseline `81/100`; post-improvement repository/runtime readiness `92/100`.
+- validation: PASS. `python -m unittest discover -s tests` ran 82 tests. `python scripts/run_offline_validations.py` PASS.
+- telemetry: SUCCESS: TAC now has reproducible 10-sector score governance and permanent multilingual README policy. FAILURE_PREVENTED: broad process-wide kill and queue race risks were reduced.
+- side_effects: Local repository changes only so far. No live n8n activation, production deploy, secret read, AWS mutation, Instagram publish, Upbit action, or force push performed.
+- next_action: Commit and push, then schedule or run the 5-6 hour unattended queue soak as the next hardening proof.
