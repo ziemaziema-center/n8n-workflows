@@ -381,3 +381,12 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - telemetry: SUCCESS: TAC now has reproducible 10-sector score governance and permanent multilingual README policy. FAILURE_PREVENTED: broad process-wide kill and queue race risks were reduced.
 - side_effects: Local repository changes only so far. No live n8n activation, production deploy, secret read, AWS mutation, Instagram publish, Upbit action, or force push performed.
 - next_action: Commit and push, then schedule or run the 5-6 hour unattended queue soak as the next hardening proof.
+
+## TAC_DOCKER_AUTH_AND_SOAK_STARTED_20260524
+
+- request: Create Docker-only Codex auth volume, validate containerized Codex execution, then start 5-6 hour unattended soak.
+- actions: Built/reused `tac-codex-runner:codex`, created `tac-codex-auth`, completed Codex device auth, verified container login, ran direct Docker Codex exec smoke, added `scripts/unattended_soak_runner.py`, normalized EC2 shell scripts to LF, and started tmux session `tac-unattended-soak-20260524`.
+- validation: PASS for Docker-only Codex auth smoke. PASS for queue preflight task `tac-soak-preflight3-20260524-000` with `runner_result.runner = docker_codex` and host fallback disabled.
+- long_run_status: RUNNING. 360-minute soak started on EC2 with heartbeat file `runtime/soak/tac-unattended-soak-20260524.heartbeat.jsonl`.
+- telemetry: SUCCESS: Docker-only Codex auth volume is no longer just a deferred gate; authenticated container Codex execution has been proven. SOAK_PENDING: final 5-6 hour result is still running.
+- side_effects: EC2 Docker volume created, one device login completed, bounded Docker Codex smoke executed, tmux soak session started. No production deploy, n8n activation, secret output, AWS mutation, Instagram publish, Upbit action, or force push.

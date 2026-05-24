@@ -297,3 +297,13 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - Added regression tests for scorecard, multilingual README policy, runner safety, queue locking, and updated the offline validation runner.
 - Validation: PASS. `python -m unittest discover -s tests` ran 82 tests. `python scripts/run_offline_validations.py` PASS.
 - Remaining gates: Docker-only Codex auth volume, 5-6 hour unattended soak, production n8n workflow maintenance, and Git auto-commit policy for arbitrary target workspaces.
+
+## TAC_DOCKER_AUTH_AND_SOAK_STARTED_20260524
+
+- Created and verified Docker-only Codex auth volume `tac-codex-auth` on EC2.
+- Device auth completed inside the Docker volume; container `codex login status` reports ChatGPT login.
+- Direct Docker Codex exec smoke returned `DOCKER_CODEX_AUTH_VOLUME_OK`.
+- Queue preflight task `tac-soak-preflight3-20260524-000` completed PASS through `runner_result.runner = docker_codex`.
+- Started 360-minute tmux soak session `tac-unattended-soak-20260524` with host Codex fallback disabled and Docker auth volume enabled.
+- Evidence is written under `/home/ubuntu/workspace/true-autonomous-controller/runtime/soak`.
+- Validation caveat: nested Docker Codex container cannot run Docker/tmux itself and has limited write access to ubuntu-owned workspace paths; host runner records authoritative soak artifacts.
