@@ -218,6 +218,14 @@ Append only unless correcting the latest entry.
   - EC2 `scripts/remote_queue_route_smoke.py`
 - result: PASS. `/queue` now writes a validated queue task and starts/reuses `tac-hq-runner`; the runner processed the smoke task and wrote handoff/state/report artifacts.
 
+## Pattern: Daily Marketing HQ Schedule Activation
+
+- applies_to: Promoting a draft local-business SNS growth routine into a scheduled TAC queue route.
+- procedure: Import the inactive audit draft, import a separate active n8n schedule workflow, restart only n8n when needed for workflow registration, run one bounded queue smoke through `tac-hq-runner`, verify company report, markdown report, handoff, and notifier artifact, then redact chat ids in stored notifier response tails.
+- validation: Active workflow `WorldvapeGrowth20260525` listed in n8n; smoke task `worldvape-daily-growth-smoke-20260525094702` completed PASS; notifier returned HTTP 200; `tac-hq-runner` remained running.
+- rollback: Deactivate `WorldvapeGrowth20260525`, stop scoped `tac-hq-runner` if desired, and restore pending queue from the timestamped backup if the deferred old queue lines are needed.
+- evidence: Applied on 2026-05-25 KST for Worldvape Gwangwoon daily Marketing HQ operations.
+
 ## 2026-05-18 - Company-mode queued work with completion notification
 
 - pattern: Route `/work`, `/queue`, and natural Telegram text into the asynchronous queue, include chat notification metadata, let the tmux runner execute the company-style HQ wrapper, then call the n8n notify webhook for final Telegram reporting.

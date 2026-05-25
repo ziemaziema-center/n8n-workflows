@@ -417,3 +417,15 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - telemetry: SUCCESS: TAC now has the offline/draft structure for a recurring local-business SNS growth loop instead of a one-off YUNA report. FAILURE_PREVENTED: live publish, credentialed metric fetch, live scraping, n8n activation, and production restart remain deferred gates.
 - side_effects: Local/offline only. No live Instagram publish, credential read, n8n activation, production restart, AWS mutation, or external scraping was performed.
 - next_action: Import `workflows/inactive_worldvape_daily_growth_ops_2026-05-25.json` into n8n as inactive, validate mapping, then explicitly approve activation when ready.
+
+## WORLDVAPE_DAILY_GROWTH_LIVE_VERIFICATION_20260525
+
+- request: After user approval, complete the final queued smoke verification for the Worldvape Gwangwoon Marketing HQ daily routine.
+- result: PASS with n8n CLI manual-execute caveat.
+- live_state: n8n workflow `WorldvapeGrowth20260525` is active; scoped `tac-hq-runner` is running.
+- smoke: `worldvape-daily-growth-smoke-20260525094702` was processed by `tac-hq-runner` and completed PASS.
+- notification: notifier artifact was created and webhook returned HTTP 200.
+- fix: EC2 runner shell scripts were normalized from CRLF to LF; local `.gitattributes` was added to prevent recurrence.
+- privacy_hardening: `scripts/hq_notify_completion.py` now redacts chat ids in stored response tails; existing smoke artifact was redacted.
+- queue_handling: 36 unrelated stale pending lines were moved to a deferred backup before focused smoke verification.
+- safety: No Instagram publish, no comment/DM send, no credential output, no AWS mutation, no unrelated workflow mutation, no force push, and no destructive deletion.

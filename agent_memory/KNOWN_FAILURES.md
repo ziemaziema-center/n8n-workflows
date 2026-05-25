@@ -219,6 +219,15 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - prevention: For draft-only webhook validation, create/import inactive, validate structure, temporarily activate for the single smoke request, then immediately deactivate and verify final `active=false`.
 - validation: Workflow `DoClguwa8aewVM8D` returned `QUEUED_DRAFT` with `live_ssh_executed=false`, then was deactivated and verified inactive.
 
+## 2026-05-25 - EC2 Runner Shell Scripts Must Stay LF
+
+- symptom: `tac-hq-runner` did not stay running and foreground execution failed with `set: pipefail\r: invalid option name`.
+- cause: Shell scripts synced from Windows had CRLF line endings.
+- affected_files: EC2 `scripts/hq_tmux_runner_template.sh` and related runner shell scripts; local `.gitattributes`.
+- detection_method: Foreground `bash scripts/hq_tmux_runner_template.sh` on EC2 showed the CRLF parse error.
+- prevention: Keep repository `.gitattributes` with `*.sh text eol=lf`; normalize runner scripts after Windows-to-Linux sync before starting tmux.
+- rollback_or_fix: Normalized EC2 runner shell scripts to LF, started `tac-hq-runner`, and verified the Worldvape smoke task completed PASS.
+
 ## 2026-05-18 - EC2 Runner Dispatch Can Start Then Exit If Scripts Are Not Synced
 
 - failure_mode: `/queue` can report tmux dispatch `STARTED` while the `tac-hq-runner` session exits immediately because required runner scripts are missing from the EC2 bounded workspace.

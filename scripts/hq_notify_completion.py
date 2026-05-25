@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -16,6 +17,16 @@ def read_report(path: Path) -> str:
     if not path.exists():
         return "작업 보고서 파일을 찾지 못했습니다."
     return path.read_text(encoding="utf-8", errors="replace")[:3000]
+
+
+CHAT_ID_PATTERN = re.compile(r'("chat_id"\s*:\s*")-?\d{6,20}(")')
+ESCAPED_CHAT_ID_PATTERN = re.compile(r'(\\"chat_id\\"\s*:\s*\\")-?\d{6,20}(\\" )'.replace(" ", ""))
+
+
+def redact_response_body(value: str) -> str:
+    value = CHAT_ID_PATTERN.sub(r'\1REDACTED_CHAT_ID\2', value)
+    value = ESCAPED_CHAT_ID_PATTERN.sub(r'\1REDACTED_CHAT_ID\2', value)
+    return value
 
 
 def notify(task: dict[str, Any], report_path: Path, log_path: Path, status: str) -> dict[str, Any]:
@@ -51,7 +62,7 @@ def notify(task: dict[str, Any], report_path: Path, log_path: Path, status: str)
     try:
         with urllib.request.urlopen(req, timeout=20) as response:
             body = response.read().decode("utf-8", errors="replace")
-            return {"status": "PASS", "http_status": response.status, "body_tail": body[-1000:]}
+            return {"status": "PASS", "http_status": response.status, "body_tail": redact_response_body(body[-1000:])}
     except urllib.error.URLError as exc:
         return {"status": "FAIL", "reason": str(exc)}
 

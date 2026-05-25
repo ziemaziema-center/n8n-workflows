@@ -340,3 +340,19 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - The routine covers daily metrics review, competitor pattern notes, four YUNA candidates, behavioral ranking, Telegram approval packaging, and learning memory.
 - Live gates remain deferred: Instagram publish, credentialed metric fetch, live competitor scraping, n8n activation, and production restart.
 - No live Instagram publish, credential read, n8n activation, production restart, AWS mutation, or external scraping was performed.
+
+## WORLDVAPE_DAILY_GROWTH_LIVE_VERIFICATION_20260525
+
+- Imported the inactive Worldvape daily growth audit draft into n8n.
+- Imported and activated live schedule workflow `WorldvapeGrowth20260525` / `worldvape_daily_growth_ops_ACTIVE_2026-05-25`.
+- Schedule target: daily 08:20 KST.
+- Restarted only the `n8n` container for workflow registration.
+- Found `tac-hq-runner` was not processing because EC2 runner shell scripts had CRLF line endings; normalized them to LF.
+- Started scoped `tac-hq-runner` and verified smoke task `worldvape-daily-growth-smoke-20260525094702` completed PASS.
+- Verified generated company runner JSON, markdown report, log, handoff, and notifier artifact.
+- Verified notifier HTTP status 200.
+- Added `.gitattributes` to keep shell scripts LF.
+- Patched `scripts/hq_notify_completion.py` to redact chat ids from stored webhook response tails.
+- Added notifier redaction regression tests.
+- Deferred 36 unrelated stale pending queue lines into an EC2 backup file before the focused smoke run.
+- No Instagram publish, comment/DM send, credential output, AWS mutation, force push, or destructive deletion was performed.
