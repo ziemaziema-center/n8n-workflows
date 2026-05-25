@@ -30,11 +30,14 @@ def main() -> int:
         run([sys.executable, "-m", "json.tool", "schemas/runtime_event.schema.json"]),
         run([sys.executable, "-m", "json.tool", "schemas/yuna_growth_experiment.schema.json"]),
         run([sys.executable, "-m", "json.tool", "schemas/tac_scorecard.schema.json"]),
+        run([sys.executable, "-m", "json.tool", "schemas/worldvape_daily_growth_routine.schema.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/queue/sample_task.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/state/sample_state.json"]),
         run([sys.executable, "-m", "json.tool", "runtime/yuna_growth_experiments/sample_experiment.json"]),
+        run([sys.executable, "-m", "json.tool", "runtime/worldvape_growth/sample_daily_routine.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/inactive_hq_ssh_dispatch_draft_2026-05-18.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json"]),
+        run([sys.executable, "-m", "json.tool", "workflows/inactive_worldvape_daily_growth_ops_2026-05-25.json"]),
         run(
             [
                 sys.executable,
@@ -56,6 +59,7 @@ def main() -> int:
                 "scripts/runtime_engine_smoke.py",
                 "scripts/tac_scorecard.py",
                 "scripts/create_bounded_workspace_archive.py",
+                "scripts/worldvape_daily_growth_task_builder.py",
                 "src/tac/runtime_engine.py",
             ]
         ),
@@ -67,6 +71,7 @@ def main() -> int:
         run([sys.executable, "scripts/render_telegram_korean_summary.py"]),
         run([sys.executable, "scripts/hq_sqlite_queue_writer.py", "--task-id", "hq-offline-validation-queue-writer-20260518"]),
         run([sys.executable, "scripts/runtime_engine_smoke.py"]),
+        run([sys.executable, "scripts/worldvape_daily_growth_task_builder.py", "--date", "2026-05-25"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_telegram_commands.json"]),
         run([sys.executable, "-m", "json.tool", "workflows/tac_controller_webhook.json"]),
     ]

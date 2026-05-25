@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Worldvape Gwangwoon Daily Growth Routine",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "routine_id",
+    "brand",
+    "location",
+    "created_at_kst",
+    "status",
+    "cadence",
+    "hq_roles",
+    "daily_cycle",
+    "competitor_monitoring",
+    "content_pipeline",
+    "approval_gate",
+    "metrics",
+    "learning_loop",
+    "deferred_gates",
+    "live_operations_performed"
+  ],
+  "properties": {
+    "routine_id": {
+      "type": "string",
+      "pattern": "^worldvape-gwangwoon-daily-growth-[0-9]{8}$"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "created_at_kst": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["DRAFT", "READY_FOR_IMPORT", "READY_FOR_APPROVAL", "RUNNING", "PAUSED", "DEFERRED_GATE"]
+    },
+    "cadence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frequency", "timezone", "suggested_time_local", "operator_review_window"],
+      "properties": {
+        "frequency": { "type": "string" },
+        "timezone": { "type": "string" },
+        "suggested_time_local": { "type": "string" },
+        "operator_review_window": { "type": "string" }
+      }
+    },
+    "hq_roles": {
+      "type": "array",
+      "minItems": 4,
+      "items": { "type": "string" }
+    },
+    "daily_cycle": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["step", "owner", "output"],
+        "properties": {
+          "step": { "type": "string" },
+          "owner": { "type": "string" },
+          "output": { "type": "string" }
+        }
+      }
+    },
+    "competitor_monitoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_classes", "capture_fields", "do_not_do"],
+      "properties": {
+        "source_classes": { "type": "array", "items": { "type": "string" } },
+        "capture_fields": { "type": "array", "items": { "type": "string" } },
+        "do_not_do": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "content_pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_count", "required_candidate_fields", "topic_mix", "approval_output"],
+      "properties": {
+        "candidate_count": { "type": "integer", "minimum": 1 },
+        "required_candidate_fields": { "type": "array", "items": { "type": "string" } },
+        "topic_mix": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "approval_output": { "type": "string" }
+      }
+    },
+    "approval_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_before_publish", "channel", "publish_without_approval"],
+      "properties": {
+        "required_before_publish": { "type": "boolean" },
+        "channel": { "type": "string" },
+        "publish_without_approval": { "type": "boolean" }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "secondary", "decision_threshold"],
+      "properties": {
+        "primary": { "type": "array", "items": { "type": "string" } },
+        "secondary": { "type": "array", "items": { "type": "string" } },
+        "decision_threshold": { "type": "string" }
+      }
+    },
+    "learning_loop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["daily_update", "weekly_update", "memory_target"],
+      "properties": {
+        "daily_update": { "type": "string" },
+        "weekly_update": { "type": "string" },
+        "memory_target": { "type": "string" }
+      }
+    },
+    "deferred_gates": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "live_operations_performed": {
+      "type": "boolean"
+    }
+  }
+}

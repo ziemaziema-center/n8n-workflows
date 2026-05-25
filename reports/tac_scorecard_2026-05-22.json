@@ -1,6 +1,6 @@
 {
   "task_id": "tac-scorecard-20260522",
-  "generated_at": "2026-05-25T06:40:14.367167+00:00",
+  "generated_at": "2026-05-25T08:29:42.470268+00:00",
   "scoring_scope": "Repository and runtime-readiness evidence for the True Autonomous Controller, not a claim that every production live gate has been exhausted.",
   "target_score": 90,
   "baseline_total": 81,

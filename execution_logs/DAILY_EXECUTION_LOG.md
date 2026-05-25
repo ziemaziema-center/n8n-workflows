@@ -408,3 +408,12 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - telemetry: SUCCESS: TAC can now accept real project work through the queue/tmux/Docker-Codex path and create project-level reports/artifacts. FAILURE_PREVENTED: approval-only company prompts and Docker workspace write permission gaps were fixed.
 - side_effects: SNS safe archive was synced to EC2. No Upbit exchange action, Instagram publish, production n8n activation, production restart, AWS mutation, credential value read/output, or force push occurred.
 - next_action: Continue project-specific safe work from the portfolio registry commands, or explicitly approve one deferred live gate at a time.
+
+## WORLDVAPE_GWANGWOON_DAILY_GROWTH_ROUTINE_20260525
+
+- request: Build a TAC routine that automatically supports 월드베이프 광운대점 Instagram/SNS growth by analyzing competitors/content/performance, generating YUNA candidates, requesting approval before posting, and learning from results.
+- actions: Added a daily growth routine schema, sample routine JSON, TAC queue task builder, inactive n8n schedule draft, Korean operator report, future sendoff, regression tests, and offline validation coverage.
+- validation: PASS. `python -m unittest tests.test_worldvape_daily_growth_ops_20260525` ran 5 tests; `python -m unittest discover -s tests` ran 90 tests; `python scripts/run_offline_validations.py` PASS.
+- telemetry: SUCCESS: TAC now has the offline/draft structure for a recurring local-business SNS growth loop instead of a one-off YUNA report. FAILURE_PREVENTED: live publish, credentialed metric fetch, live scraping, n8n activation, and production restart remain deferred gates.
+- side_effects: Local/offline only. No live Instagram publish, credential read, n8n activation, production restart, AWS mutation, or external scraping was performed.
+- next_action: Import `workflows/inactive_worldvape_daily_growth_ops_2026-05-25.json` into n8n as inactive, validate mapping, then explicitly approve activation when ready.

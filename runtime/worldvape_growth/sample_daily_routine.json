@@ -1,0 +1,134 @@
+{
+  "routine_id": "worldvape-gwangwoon-daily-growth-20260525",
+  "brand": "월드베이프 광운대점",
+  "location": "광운대 상권",
+  "created_at_kst": "2026-05-25",
+  "status": "DRAFT",
+  "cadence": {
+    "frequency": "daily",
+    "timezone": "Asia/Seoul",
+    "suggested_time_local": "08:20",
+    "operator_review_window": "morning approval before publish"
+  },
+  "hq_roles": [
+    "HQ Master Controller",
+    "SNS Marketing Strategist",
+    "Behavioral Psychology Analyst",
+    "YUNA Content Strategist",
+    "Competitor Monitor",
+    "Data Analyst",
+    "Automation Engineer",
+    "Safety Reviewer"
+  ],
+  "daily_cycle": [
+    {
+      "step": "collect_yesterday_metrics",
+      "owner": "Data Analyst",
+      "output": "previous reel reach, follows, comments, saves, shares, profile visits, DM replies"
+    },
+    {
+      "step": "scan_competitor_patterns",
+      "owner": "Competitor Monitor",
+      "output": "hook patterns, offer framing, posting time, comment triggers, repeated winning formats"
+    },
+    {
+      "step": "generate_yuna_candidates",
+      "owner": "YUNA Content Strategist",
+      "output": "four approval candidates with hook, score angle, CTA, topic category, expected behavior"
+    },
+    {
+      "step": "review_and_rank",
+      "owner": "Behavioral Psychology Analyst",
+      "output": "ranked candidates by follow reason, comment probability, save value, local relevance"
+    },
+    {
+      "step": "send_for_operator_approval",
+      "owner": "Telegram Ops",
+      "output": "Korean approval summary with why this can bring followers/customers"
+    },
+    {
+      "step": "record_result_and_learn",
+      "owner": "HQ Master Controller",
+      "output": "daily learning note and next-day generation constraints"
+    }
+  ],
+  "competitor_monitoring": {
+    "source_classes": [
+      "local vape shop Instagram accounts",
+      "Korean vape magazine accounts",
+      "deal and price-comparison reels",
+      "nearby university/local lifestyle accounts"
+    ],
+    "capture_fields": [
+      "account",
+      "post_url_or_id",
+      "posted_at",
+      "hook",
+      "offer_type",
+      "visual_pattern",
+      "cta",
+      "comment_trigger",
+      "visible_engagement",
+      "idea_to_adapt_without_copying"
+    ],
+    "do_not_do": [
+      "do not copy captions or creative assets",
+      "do not scrape credential-gated data without approval",
+      "do not publish automatically without approval",
+      "do not target minors or make prohibited nicotine claims"
+    ]
+  },
+  "content_pipeline": {
+    "candidate_count": 4,
+    "required_candidate_fields": [
+      "first_frame_hook",
+      "yuna_score_angle",
+      "product_category",
+      "local_customer_reason",
+      "comment_cta",
+      "save_cta",
+      "follow_reason",
+      "risk_notes"
+    ],
+    "topic_mix": {
+      "e_liquid_price_score": 10,
+      "disposable_device_price_score": 7,
+      "disposable_cartridge_price_score": 3,
+      "reusable_device_total_cost": 1
+    },
+    "approval_output": "Telegram-ready Korean summary with one best candidate and three alternates"
+  },
+  "approval_gate": {
+    "required_before_publish": true,
+    "channel": "Telegram",
+    "publish_without_approval": false
+  },
+  "metrics": {
+    "primary": [
+      "follows_per_1000_reach",
+      "profile_visits_per_1000_reach",
+      "comments_per_1000_reach",
+      "dm_replies_per_1000_reach"
+    ],
+    "secondary": [
+      "save_rate",
+      "share_rate",
+      "average_watch_time",
+      "approval_accept_rate"
+    ],
+    "decision_threshold": "keep a hook family only if it improves a primary metric by 20 percent or creates a clear customer visit/DM signal"
+  },
+  "learning_loop": {
+    "daily_update": "record winner, loser, reason, metric deltas, and next-day constraint",
+    "weekly_update": "promote winning hook families and retire weak topic patterns",
+    "memory_target": "runtime/worldvape_growth/daily_growth_memory.jsonl"
+  },
+  "deferred_gates": [
+    "live_instagram_publish",
+    "credentialed_instagram_metric_fetch",
+    "live_competitor_scraping",
+    "n8n_workflow_activation",
+    "production_service_restart"
+  ],
+  "live_operations_performed": false
+}

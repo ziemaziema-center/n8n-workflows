@@ -86,14 +86,22 @@
     "Queue writes hardened with local lock and SQLite BEGIN IMMEDIATE transaction",
     "tmux runner dequeue hardened with flock or mkdir lock fallback",
     "HTTP kill switch narrowed to TAC tmux sessions and broad process-wide pkill removed",
-    "Host Codex fallback disabled by default and service startup sandbox default changed to workspace-write"
+    "Host Codex fallback disabled by default and service startup sandbox default changed to workspace-write",
+    "Worldvape Gwangwoon daily growth routine schema created at schemas/worldvape_daily_growth_routine.schema.json",
+    "Worldvape Gwangwoon sample daily routine created at runtime/worldvape_growth/sample_daily_routine.json",
+    "Worldvape daily growth queue task builder created at scripts/worldvape_daily_growth_task_builder.py",
+    "Inactive n8n draft created for daily Worldvape growth operations",
+    "Worldvape Gwangwoon growth sendoff and operator report created",
+    "Worldvape daily growth offline tests added and validation runner expanded"
   ],
   "pending_items": [
     "Create/login a container-specific Codex auth volume so Docker can execute real Codex tasks without host secrets",
     "Run multi-hour or overnight unattended queue soak with bounded retries, heartbeat, pause/resume, and /killall verification",
     "Decide whether arbitrary target workspaces should allow automatic pre-run/post-pass Git commits or stay manifest-only",
     "Apply YUNA brain growth metadata to the SNS automation workspace clean_01 candidate generation and approval template without live publishing",
-    "Add manual or credentialed metrics capture for follows, comments, saves, shares, DM replies, profile visits, and average watch time after approval"
+    "Add manual or credentialed metrics capture for follows, comments, saves, shares, DM replies, profile visits, and average watch time after approval",
+    "Import inactive_worldvape_daily_growth_ops_2026-05-25.json into n8n as inactive and review field mapping",
+    "After explicit approval, connect the daily draft to TAC /queue and Telegram approval summary"
   ],
   "deferred_gates": [
     {
@@ -158,7 +166,9 @@
     "Create Docker-only Codex auth volume and run one containerized Codex task",
     "Run 3+ queued tasks with one forced retry, one deferred gate, and one successful company-mode task",
     "Promote Git checkpoint policy from manifest-only to commit-enabled only for approved clean workspaces",
-    "Use the YUNA brain sendoff and growth schema to upgrade the SNS automation approval and analytics loop"
+    "Use the YUNA brain sendoff and growth schema to upgrade the SNS automation approval and analytics loop",
+    "Import and validate the inactive Worldvape daily growth n8n draft without activation",
+    "Generate the first Worldvape daily growth queue task with scripts/worldvape_daily_growth_task_builder.py"
   ],
   "validation_commands": [
     "python -m unittest discover -s tests",
@@ -173,6 +183,10 @@
     "python -m json.tool workflows/inactive_hq_runtime_orchestration_pack_2026-05-19.json",
     "python -m json.tool schemas/yuna_growth_experiment.schema.json",
     "python -m json.tool runtime/yuna_growth_experiments/sample_experiment.json",
+    "python -m json.tool schemas/worldvape_daily_growth_routine.schema.json",
+    "python -m json.tool runtime/worldvape_growth/sample_daily_routine.json",
+    "python -m json.tool workflows/inactive_worldvape_daily_growth_ops_2026-05-25.json",
+    "python scripts/worldvape_daily_growth_task_builder.py --date 2026-05-25",
     "python scripts/tac_scorecard.py",
     "python -m json.tool schemas/tac_scorecard.schema.json"
   ],

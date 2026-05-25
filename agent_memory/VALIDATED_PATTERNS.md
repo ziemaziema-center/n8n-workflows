@@ -164,6 +164,13 @@ Append only unless correcting the latest entry.
 - rollback: Remove generated bounded workspace copies and runtime reports if requested; revert local runner/test changes through Git; do not touch production n8n/Instagram/Upbit state.
 - evidence: Applied on 2026-05-25 KST with Upbit onboarding, SNS/Instagram onboarding, flight-deal discovery, and deterministic TAC portfolio registry generation.
 
+## Pattern: Daily Local-Business SNS Growth Routine
+- applies_to: Turning a local business Instagram/SNS account into a recurring TAC-operated growth loop without immediate live publishing.
+- procedure: Store a machine-readable daily routine schema and sample; create a queue task builder for TAC; create an inactive n8n schedule draft; require four approval candidates with hook, YUNA score angle, local customer reason, CTA, follow reason, and risk notes; keep publish, credentialed metrics, live scraping, and workflow activation as deferred gates.
+- validation: JSON schema/sample parse, inactive n8n draft parses and has no credentials, task builder emits a bounded TAC queue task, offline tests assert approval gate and learning loop markers.
+- rollback: Revert the routine files and tests; no live n8n, Instagram, or credential state needs rollback because the routine is draft/offline by default.
+- evidence: Applied on 2026-05-25 KST for 월드베이프 광운대점 daily Instagram/SNS growth operations.
+
 ## Pattern: Continuation-First HQ Cycle
 - applies_to: Multi-hour or broad TAC tasks that include live/credential/network blockers.
 - procedure: Store a permanent continuation rule, split blocked live surfaces into deferred gates, keep executing safe local/offline/docs/tests/scaffold work, write a machine-readable continuation ledger, and validate that safe work continued despite gates.

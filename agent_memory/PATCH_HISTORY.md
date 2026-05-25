@@ -330,3 +330,13 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - Generated `reports/tac_multi_project_onboarding_2026-05-25.md` and `reports/hq_portfolio_registry_2026-05-25.md`.
 - Validation: targeted local tests PASS; EC2 targeted tests PASS; EC2 Docker write probes PASS for TAC, SNS, and Upbit bounded workspaces; Upbit/SNS/flight TAC queue tasks completed PASS; deterministic TAC portfolio registry generated PASS after the Codex portfolio run timed out.
 - Side effects: EC2 bounded SNS workspace was created from a secret-excluding archive. No Upbit exchange action, Instagram publish, production n8n activation, production restart, AWS mutation, credential value read/output, or force push occurred.
+
+## WORLDVAPE_GWANGWOON_DAILY_GROWTH_ROUTINE_20260525
+
+- Created a TAC daily growth operating routine for 월드베이프 광운대점 Instagram/SNS.
+- Added `schemas/worldvape_daily_growth_routine.schema.json`, `runtime/worldvape_growth/sample_daily_routine.json`, `scripts/worldvape_daily_growth_task_builder.py`, and `workflows/inactive_worldvape_daily_growth_ops_2026-05-25.json`.
+- Added operator artifacts: `reports/worldvape_gwangwoon_daily_growth_ops_2026-05-25.md` and `docs/WORLDVAPE_GWANGWOON_GROWTH_SENDOFF_2026-05-25.md`.
+- Added regression tests in `tests/test_worldvape_daily_growth_ops_20260525.py` and expanded `scripts/run_offline_validations.py`.
+- The routine covers daily metrics review, competitor pattern notes, four YUNA candidates, behavioral ranking, Telegram approval packaging, and learning memory.
+- Live gates remain deferred: Instagram publish, credentialed metric fetch, live competitor scraping, n8n activation, and production restart.
+- No live Instagram publish, credential read, n8n activation, production restart, AWS mutation, or external scraping was performed.

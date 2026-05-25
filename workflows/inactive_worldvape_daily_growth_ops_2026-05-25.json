@@ -1,0 +1,150 @@
+{
+  "name": "inactive_worldvape_daily_growth_ops_2026-05-25",
+  "active": false,
+  "meta": {
+    "draftOnly": true,
+    "liveOperationsPerformed": false,
+    "credentialsRequired": false,
+    "purpose": "Draft daily routine for Worldvape Gwangwoon SNS growth: metrics, competitor notes, YUNA candidates, approval summary, learning loop."
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 8,
+              "triggerAtMinute": 20
+            }
+          ]
+        }
+      },
+      "id": "daily-schedule-draft",
+      "name": "Daily Schedule Draft",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const date = new Date().toISOString().slice(0,10); return [{ json: { routine: 'worldvape_daily_growth', status: 'DRAFT_ONLY', date, live_operation: false, workspace_path: '/home/ubuntu/workspace/sns_automation_safe' } }];"
+      },
+      "id": "build-growth-task-draft",
+      "name": "Build Growth Task Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.live_operation}}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "if-draft-safe-scope",
+      "name": "IF Draft Safe Scope",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, queue_status: 'DRAFT_NO_WRITE', target_runner: 'codex', deferred_gates: ['live_instagram_publish','credentialed_metric_fetch','n8n_workflow_activation'] } }];"
+      },
+      "id": "queue-draft-placeholder",
+      "name": "Queue Draft Placeholder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, approval_summary: 'DRAFT_ONLY: send four YUNA candidates to Telegram after live gate approval', publish_without_approval: false } }];"
+      },
+      "id": "approval-summary-draft",
+      "name": "Approval Summary Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, learning_status: 'DRAFT_ONLY', memory_target: 'runtime/worldvape_growth/daily_growth_memory.jsonl' } }];"
+      },
+      "id": "learning-loop-draft",
+      "name": "Learning Loop Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, -120]
+    }
+  ],
+  "connections": {
+    "Daily Schedule Draft": {
+      "main": [
+        [
+          {
+            "node": "Build Growth Task Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Growth Task Draft": {
+      "main": [
+        [
+          {
+            "node": "IF Draft Safe Scope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Draft Safe Scope": {
+      "main": [
+        [
+          {
+            "node": "Queue Draft Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Queue Draft Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Approval Summary Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Summary Draft": {
+      "main": [
+        [
+          {
+            "node": "Learning Loop Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "draft-worldvape-daily-growth-20260525"
+}
