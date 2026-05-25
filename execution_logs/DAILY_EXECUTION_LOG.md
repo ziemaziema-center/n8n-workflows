@@ -390,3 +390,11 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - long_run_status: RUNNING. 360-minute soak started on EC2 with heartbeat file `runtime/soak/tac-unattended-soak-20260524.heartbeat.jsonl`.
 - telemetry: SUCCESS: Docker-only Codex auth volume is no longer just a deferred gate; authenticated container Codex execution has been proven. SOAK_PENDING: final 5-6 hour result is still running.
 - side_effects: EC2 Docker volume created, one device login completed, bounded Docker Codex smoke executed, tmux soak session started. No production deploy, n8n activation, secret output, AWS mutation, Instagram publish, Upbit action, or force push.
+
+## TAC_UNATTENDED_SOAK_FINAL_PASS_20260525
+
+- request: User asked whether the controller is now perfect after the remaining Docker auth and 5-6 hour soak gates.
+- actions: Checked EC2 tmux sessions, final soak JSON, heartbeat tail, stdout log, task reports, company runner artifacts, and failed/completed queue entries.
+- result: PASS. `tac-unattended-soak-20260524.final.json` reports PASS after 360 minutes.
+- evidence: 18 tasks enqueued during soak; all 18 corresponding reports show `status: PASS`; no soak entries appeared in `runtime/queue/failed.jsonl`.
+- interpretation: Docker-only Codex auth volume, containerized Codex execution, and 5-6 hour unattended soak are now proven. Production gates remain intentionally gated.

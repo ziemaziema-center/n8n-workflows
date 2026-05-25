@@ -307,3 +307,15 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - Started 360-minute tmux soak session `tac-unattended-soak-20260524` with host Codex fallback disabled and Docker auth volume enabled.
 - Evidence is written under `/home/ubuntu/workspace/true-autonomous-controller/runtime/soak`.
 - Validation caveat: nested Docker Codex container cannot run Docker/tmux itself and has limited write access to ubuntu-owned workspace paths; host runner records authoritative soak artifacts.
+
+## TAC_UNATTENDED_SOAK_FINAL_PASS_20260525
+
+- Checked EC2 final soak artifacts for `tac-unattended-soak-20260524`.
+- Final status: PASS.
+- Duration: 360 minutes, heartbeat reached 21600.83 seconds.
+- Enqueued soak tasks: 18.
+- Soak task reports PASS: 18/18.
+- Soak task reports FAIL: 0/18.
+- Docker-only Codex auth volume remained active, and host Codex fallback stayed disabled.
+- The prior `failed=3` queue count was cumulative from older preflight failures; no `tac-unattended-soak-20260524` entries appeared in `runtime/queue/failed.jsonl`.
+- Conclusion: Docker-only Codex execution and 5-6 hour unattended soak hardening gates are now closed by runtime evidence.
