@@ -319,3 +319,14 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - Docker-only Codex auth volume remained active, and host Codex fallback stayed disabled.
 - The prior `failed=3` queue count was cumulative from older preflight failures; no `tac-unattended-soak-20260524` entries appeared in `runtime/queue/failed.jsonl`.
 - Conclusion: Docker-only Codex execution and 5-6 hour unattended soak hardening gates are now closed by runtime evidence.
+
+## TAC_MULTI_PROJECT_COMPANY_ONBOARDING_20260525
+
+- Created `scripts/create_bounded_workspace_archive.py` and tests to package project workspaces without secret-like files or heavy generated directories.
+- Synced SNS automation as a bounded EC2 workspace and queued TAC company-mode tasks for Upbit, SNS/Instagram, flight-deal discovery, and TAC portfolio registry.
+- Fixed `scripts/hq_company_task_runner.py` so queued safe local/offline work is treated as already approved and must not stop at approval-only planning.
+- Added Docker `--group-add` workspace group propagation so the non-root container user can write inside ubuntu-owned bounded workspaces.
+- Added tests: `tests/test_company_runner_prompt_20260525.py` and `tests/test_bounded_workspace_archive_20260525.py`.
+- Generated `reports/tac_multi_project_onboarding_2026-05-25.md` and `reports/hq_portfolio_registry_2026-05-25.md`.
+- Validation: targeted local tests PASS; EC2 targeted tests PASS; EC2 Docker write probes PASS for TAC, SNS, and Upbit bounded workspaces; Upbit/SNS/flight TAC queue tasks completed PASS; deterministic TAC portfolio registry generated PASS after the Codex portfolio run timed out.
+- Side effects: EC2 bounded SNS workspace was created from a secret-excluding archive. No Upbit exchange action, Instagram publish, production n8n activation, production restart, AWS mutation, credential value read/output, or force push occurred.

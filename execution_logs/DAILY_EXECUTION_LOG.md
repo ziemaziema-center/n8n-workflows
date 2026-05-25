@@ -398,3 +398,13 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - result: PASS. `tac-unattended-soak-20260524.final.json` reports PASS after 360 minutes.
 - evidence: 18 tasks enqueued during soak; all 18 corresponding reports show `status: PASS`; no soak entries appeared in `runtime/queue/failed.jsonl`.
 - interpretation: Docker-only Codex auth volume, containerized Codex execution, and 5-6 hour unattended soak are now proven. Production gates remain intentionally gated.
+
+## TAC_MULTI_PROJECT_COMPANY_ONBOARDING_20260525
+
+- request: Use TAC to move into company-mode delegation for real projects: Upbit, SNS/Instagram, flight-deal automation, and TAC itself.
+- actions: Created a secret-excluding bounded archive for the local SNS automation workspace; uploaded and extracted it on EC2; queued company-mode TAC tasks for Upbit, SNS/Instagram, flight-deal discovery, and TAC portfolio registry; fixed the company runner prompt to forbid approval-only plans; added Docker `--group-add` workspace write support; generated deterministic portfolio registry report.
+- validation: PASS. Local targeted tests for company runner prompt/archive passed. EC2 targeted tests passed. Docker write probes passed for TAC, SNS, and Upbit bounded workspaces. Upbit, SNS/Instagram, and flight-deal queue tasks completed PASS; TAC portfolio report was generated deterministically after the Codex version timed out.
+- evidence: `reports/tac_multi_project_onboarding_2026-05-25.md`, `reports/hq_portfolio_registry_2026-05-25.md`, EC2 `/home/ubuntu/workspace/true-autonomous-controller/runtime/reports/hq_portfolio_registry_2026-05-25.md`.
+- telemetry: SUCCESS: TAC can now accept real project work through the queue/tmux/Docker-Codex path and create project-level reports/artifacts. FAILURE_PREVENTED: approval-only company prompts and Docker workspace write permission gaps were fixed.
+- side_effects: SNS safe archive was synced to EC2. No Upbit exchange action, Instagram publish, production n8n activation, production restart, AWS mutation, credential value read/output, or force push occurred.
+- next_action: Continue project-specific safe work from the portfolio registry commands, or explicitly approve one deferred live gate at a time.

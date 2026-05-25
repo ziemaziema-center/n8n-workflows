@@ -35,6 +35,16 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def docker_workspace_gid() -> str:
+    configured = os.environ.get("TAC_DOCKER_WORKSPACE_GID", "").strip()
+    if configured:
+        return configured
+    getgid = getattr(os, "getgid", None)
+    if callable(getgid):
+        return str(getgid())
+    return "0"
+
+
 def company_prompt(task: dict[str, Any]) -> str:
     objective = str(task.get("objective") or "").strip()
     workspace = str(task.get("workspace_path") or "")
@@ -46,10 +56,17 @@ def company_prompt(task: dict[str, Any]) -> str:
             "Use these roles internally: HQ, Planner, Builder, Reviewer, Debugger, QA, Documentation Writer, Safety Reviewer, Final Reporter.",
             "",
             "Operating rules:",
+            "- ALL SAFE LOCAL/OFFLINE WORK IS ALREADY APPROVED FOR THIS QUEUE TASK.",
+            "- Do not ask for approval before doing safe local/offline/documentation/test/scaffold/config-template/validation work.",
+            "- Do not return only a plan, meeting note, or WAITING_FOR_APPROVAL status.",
+            "- After a short plan, execute immediately inside the bounded workspace and create concrete artifacts where useful.",
             "- First understand the user's real goal and improve the outcome beyond the literal wording.",
             "- Split the work into safe subtasks and keep moving when one live/credential/network item is blocked.",
             "- Do all safe local/offline/documentation/test/scaffold/config-template/validation work available in this cycle.",
             "- Convert unsafe or unavailable live surfaces into DEFERRED_GATE entries and continue the next executable subtask.",
+            "- Yuna deal inbound communication or SNS content tasks must prevent duplicate city/deal/topic repetition and increase variety.",
+            "- Repeated same-destination outputs are a defect; diversify candidates before reporting success.",
+            "- Do not return four similar Singapore items or four near-duplicate candidates for any destination/topic.",
             "- Run relevant validations before reporting success.",
             "- Do not read or print secrets.",
             "- Do not run sudo, force push, destructive deletion, AWS mutation, live trading, live publishing, or production mutation.",
@@ -144,6 +161,8 @@ def run_codex_docker(prompt: str, workspace: Path, timeout: int) -> dict[str, An
         os.environ.get("TAC_CODEX_MEMORY", "2g"),
         "--cpus",
         os.environ.get("TAC_CODEX_CPUS", "2"),
+        "--group-add",
+        docker_workspace_gid(),
         "-v",
         f"{workspace}:/workspace",
         "-v",

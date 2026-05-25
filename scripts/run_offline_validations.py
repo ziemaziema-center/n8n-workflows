@@ -55,6 +55,7 @@ def main() -> int:
                 "scripts/docker_codex_cli_smoke.py",
                 "scripts/runtime_engine_smoke.py",
                 "scripts/tac_scorecard.py",
+                "scripts/create_bounded_workspace_archive.py",
                 "src/tac/runtime_engine.py",
             ]
         ),

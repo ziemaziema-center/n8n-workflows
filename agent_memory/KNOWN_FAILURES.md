@@ -248,3 +248,15 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - failure_mode: A test can hard-code the previous final report path and fail after the continuation ledger advances to a new buildout report.
 - prevention: When the ledger `final_report_path` is intentionally advanced, update the corresponding contract test in the same patch and rerun the full suite.
 - validation: The test initially expected the company-mode report; after updating it to the autonomous runtime buildout report, 66 tests and offline validation passed.
+
+## 2026-05-25 - Company Runner Can Stop At Approval-Only Plan
+
+- failure_mode: A queued company-mode task can return a plan and `WAITING FOR APPROVAL` even though safe local/offline queue work was already approved.
+- prevention: Company-mode prompts must explicitly say all safe local/offline work is already approved, approval-only plans are forbidden, and execution must start after a short plan.
+- validation: `tests/test_company_runner_prompt_20260525.py` checks these prompt markers; the SNS task was requeued and produced concrete reports/tasks instead of an approval-only response.
+
+## 2026-05-25 - Docker Codex User Can Read But Not Write Bounded Workspaces
+
+- failure_mode: Docker Codex can inspect mounted workspaces but fail to create reports or tests when the container user does not belong to the host workspace group.
+- prevention: Keep the container non-root, but add the host workspace group to Docker Codex runs with `--group-add <host_gid>`.
+- validation: EC2 write probes passed for TAC, SNS, and Upbit bounded workspaces after `scripts/hq_company_task_runner.py` added Docker host group propagation.

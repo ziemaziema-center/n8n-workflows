@@ -157,6 +157,13 @@ Append only unless correcting the latest entry.
 - rollback: Remove the relevant `[mcp_servers.*]` block from `~/.codex/config.toml`, delete the local server scripts, and remove docs/tests if the server is no longer wanted.
 - evidence: Applied on 2026-05-17 KST for `tac-docker` and `tac-state-db`.
 
+## Pattern: Multi-Project Company-Mode Onboarding
+- applies_to: Handing real projects such as Upbit, SNS/Instagram, and flight-deal automation to TAC without immediate production mutation.
+- procedure: Create or confirm a bounded workspace for each project; exclude secret-like files and heavy generated directories for copied workspaces; queue one company-mode task per project; keep live operations as deferred gates; collect runtime reports; generate a portfolio registry that maps status, evidence, and next operator commands.
+- validation: TAC service health passes; `tac-hq-runner` is running; queued tasks move from pending to completed or explicit failed/deferred state; Docker Codex write probes pass for bounded workspaces; local and EC2 targeted tests pass.
+- rollback: Remove generated bounded workspace copies and runtime reports if requested; revert local runner/test changes through Git; do not touch production n8n/Instagram/Upbit state.
+- evidence: Applied on 2026-05-25 KST with Upbit onboarding, SNS/Instagram onboarding, flight-deal discovery, and deterministic TAC portfolio registry generation.
+
 ## Pattern: Continuation-First HQ Cycle
 - applies_to: Multi-hour or broad TAC tasks that include live/credential/network blockers.
 - procedure: Store a permanent continuation rule, split blocked live surfaces into deferred gates, keep executing safe local/offline/docs/tests/scaffold work, write a machine-readable continuation ledger, and validate that safe work continued despite gates.
