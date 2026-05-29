@@ -356,3 +356,63 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - Added notifier redaction regression tests.
 - Deferred 36 unrelated stale pending queue lines into an EC2 backup file before the focused smoke run.
 - No Instagram publish, comment/DM send, credential output, AWS mutation, force push, or destructive deletion was performed.
+
+## TAC_CODEX_AUTH_VOLUME_SMOKE_20260528
+
+- request: Run a TAC Codex-backed report-only smoke test using `TAC_CODEX_AUTH_VOLUME=tac_codex_auth` after device-auth login completed.
+- files_changed: `runtime/queue/tac-codex-auth-volume-smoke-20260528.json`, `runtime/workspaces/tac-codex-auth-volume-smoke-20260528/README.md`, `runtime/company_runner/tac-codex-auth-volume-smoke-20260528.json`, `runtime/reports/tac-codex-auth-volume-smoke-20260528.md`, `telemetry/tac-codex-auth-volume-smoke-20260528.success.md`, `agent_memory/KNOWN_FAILURES.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Not required; additive report-only smoke artifacts.
+- validation: PASS. `scripts/verify_tac_codex_auth_volume.ps1` returned `VERIFY_STATUS PASS`; Docker Codex returned `TAC_CODEX_AUTH_VOLUME_SMOKE_OK`; `python -m unittest discover -s tests` ran 114 tests OK; `python scripts/run_offline_validations.py` PASS.
+- side_effects: Local/report-only Docker Codex smoke only. No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret output.
+- rollback: Remove the generated smoke artifacts and telemetry if the record is no longer wanted; no live system rollback required.
+- next_action: Use the same `tac_codex_auth` Docker volume for the next report-only TAC queue smoke, keeping live actions deferred.
+
+## WORLDVAPE_DAILY_GROWTH_REPEATABLE_QUEUE_20260528
+
+- request: Convert Worldvape daily growth into a repeatable TAC Codex-backed report-only queue workflow.
+- files_changed: `scripts/create_worldvape_daily_growth_queue.py`, `scripts/hq_company_task_runner.py`, `scripts/run_offline_validations.py`, `tests/test_worldvape_repeatable_queue_20260528.py`, `runtime/queue/worldvape-daily-growth-20260528140820.json`, `runtime/workspaces/worldvape-daily-growth-20260528140820/*`, `runtime/company_runner/worldvape-daily-growth-20260528140820.json`, `runtime/reports/worldvape-daily-growth-20260528140820.md`, `runtime/reports/worldvape-daily-growth-repeatable-queue-20260528.md`, telemetry and memory files.
+- backup_path: Not required; additive report-only queue workflow plus scoped runner compatibility patch.
+- validation: PASS. Generated queue task completed through `docker_codex` with `TAC_CODEX_AUTH_VOLUME=tac_codex_auth`; `python -m unittest discover -s tests` ran 121 tests OK; `python scripts/run_offline_validations.py` PASS.
+- side_effects: Local queue JSON and pending JSONL append only; local Docker Codex report-only execution only. No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret output.
+- rollback: Remove generated repeatable queue/report/workspace/telemetry artifacts and revert the scoped runner/script/test patch if desired; no live system rollback required.
+- next_action: Use `python scripts/create_worldvape_daily_growth_queue.py` for each next report-only Worldvape cycle, then run the generated task through the TAC Docker Codex runner when desired.
+
+## WORLDVAPE_DAILY_GROWTH_ONE_COMMAND_RUNNER_20260528
+
+- request: Create a one-command local runner for Worldvape daily growth report-only execution.
+- files_changed: `scripts/run_worldvape_daily_growth_once.py`, `scripts/run_worldvape_daily_growth_once.ps1`, `scripts/run_offline_validations.py`, `tests/test_worldvape_one_command_runner_20260528.py`, `runtime/queue/worldvape-daily-growth-20260528152000.json`, `runtime/company_runner/worldvape-daily-growth-20260528152000.json`, `runtime/reports/worldvape-daily-growth-20260528152000.md`, `runtime/reports/worldvape-daily-growth-one-command-runner-20260528.md`, telemetry and memory files.
+- backup_path: Not required; additive one-command runner and report-only generated artifacts.
+- validation: PASS. One-command PowerShell wrapper smoke passed; `python -m unittest discover -s tests` ran 127 tests OK; `python scripts/run_offline_validations.py` PASS.
+- side_effects: Local queue JSON and pending JSONL append only; local Docker Codex report-only execution only. No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret output.
+- rollback: Remove one-command runner scripts/tests and generated artifacts if desired; no live system rollback required.
+- next_action: Use `powershell -ExecutionPolicy Bypass -File scripts\run_worldvape_daily_growth_once.ps1` for the next local report-only Worldvape daily growth run.
+
+## WORLDVAPE_DAILY_GROWTH_TASK_SCHEDULER_20260528
+
+- request: Create a safe Windows Task Scheduler setup for daily Worldvape report-only execution.
+- files_changed: `scripts/register_worldvape_daily_growth_task.ps1`, `scripts/verify_worldvape_daily_growth_task.ps1`, `scripts/unregister_worldvape_daily_growth_task.ps1`, `tests/test_worldvape_task_scheduler_scripts_20260528.py`, `runtime/reports/worldvape-daily-growth-task-scheduler-20260528.md`, `telemetry/worldvape-daily-growth-task-scheduler-20260528.success.md`, `agent_memory/VALIDATED_PATTERNS.md`, `agent_memory/PATCH_HISTORY.md`, `execution_logs/DAILY_EXECUTION_LOG.md`.
+- backup_path: Not required; additive scheduler setup scripts and documentation.
+- validation: PASS. Targeted scheduler script tests passed; PowerShell parser validation passed; `python -m unittest discover -s tests` ran 134 tests OK after rerun in user context for known sandbox runtime overwrite denial; `python scripts/run_offline_validations.py` PASS after the same known rerun pattern.
+- side_effects: Local files only. The scheduler registration script was not executed during setup, so no OS scheduler state was changed automatically. No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret output.
+- rollback: If registered, run `powershell -ExecutionPolicy Bypass -File scripts\unregister_worldvape_daily_growth_task.ps1`; otherwise remove the scheduler scripts/tests/report/telemetry if no longer wanted.
+- next_action: Operator runs the register script, then verify script, when ready to create the local scheduled task.
+
+## WORLDVAPE_TASK_SCHEDULER_ENCODING_FIX_20260528
+
+- request: Patch only PowerShell output encoding/display handling for Worldvape Task Scheduler scripts because Korean output rendered as mojibake in Windows PowerShell.
+- files_changed: `scripts/register_worldvape_daily_growth_task.ps1`, `scripts/verify_worldvape_daily_growth_task.ps1`, `scripts/unregister_worldvape_daily_growth_task.ps1`, `scripts/run_worldvape_daily_growth_once.ps1`, `tests/test_worldvape_task_scheduler_scripts_20260528.py`, `runtime/reports/worldvape-task-scheduler-encoding-fix-20260528.md`, `telemetry/worldvape-task-scheduler-encoding-fix-20260528.success.md`, memory/log files.
+- backup_path: Not required; display-only local text patch.
+- validation: PASS. Targeted display tests passed; PowerShell parser validation passed; `python -m unittest discover -s tests` ran 136 tests OK after user-context rerun for known sandbox runtime overwrite denial; `python scripts/run_offline_validations.py` PASS after the same known rerun pattern.
+- side_effects: Local script text only. No scheduler registration/unregistration was executed; no Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret output.
+- rollback: Revert the display strings and UTF-8 setup patch if a different console output policy is required.
+- next_action: Run the existing register/verify commands; output should use stable ASCII labels.
+
+## TAC_SAFE_FALLBACK_AUTONOMY_PATCH_20260529
+
+- request: User reported TAC still stops when something is blocked and asked whether the logic needs patching.
+- files_changed: `scripts/hq_company_task_runner.py`, `scripts/hq_tmux_runner_template.sh`, `tests/test_company_runner_safe_fallback_20260529.py`, `tests/test_worldvape_safe_rerun_quality_20260528.py`, `reports/tac_safe_fallback_autonomy_patch_2026-05-29.md`, memory and telemetry files.
+- behavior_change: Primary runner `FAIL`/`DEFERRED_GATE` now creates a safe fallback report and returns `PASS_WITH_SAFE_FALLBACK` unless `disable_safe_fallback` is set.
+- tmux_change: Final task report now includes `company_status` and `generated_report_path` when available.
+- validation: PASS. Targeted fallback tests passed; full unittest suite passed 138 tests; `python scripts/run_offline_validations.py` PASS.
+- side_effects: Local source/test/report changes only. No live n8n, Telegram, Instagram, Docker production, AWS, secret, or external API operation.
+- rollback: Revert this patch or set `disable_safe_fallback: true` on individual tasks that must remain terminal-failure strict.

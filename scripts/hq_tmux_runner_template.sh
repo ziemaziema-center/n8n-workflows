@@ -65,12 +65,18 @@ JSON
 
   if bash "$WRAPPER" "$task_line" > "$log_path" 2>&1; then
     printf '%s\n' "$task_line" >> "$QUEUE_DIR/completed.jsonl"
+    company_status="$(python3 -c 'import json,sys,pathlib; p=pathlib.Path(sys.argv[1]); print(json.loads(p.read_text(encoding="utf-8")).get("status","UNKNOWN") if p.exists() else "UNKNOWN")' "$ROOT/runtime/company_runner/${task_id}.json")"
+    generated_report_path="$(python3 -c 'import json,sys,pathlib; p=pathlib.Path(sys.argv[1]); print((json.loads(p.read_text(encoding="utf-8")).get("generated_report_path") or "") if p.exists() else "")' "$ROOT/runtime/company_runner/${task_id}.json")"
     {
       echo "# TAC Task Report"
       echo
       echo "- task_id: $task_id"
       echo "- status: PASS"
+      echo "- company_status: $company_status"
       echo "- log_path: $log_path"
+      if [[ -n "$generated_report_path" ]]; then
+        echo "- generated_report_path: $generated_report_path"
+      fi
     } > "$report_path"
     result_status="PASS"
   else

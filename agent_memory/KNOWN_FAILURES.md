@@ -269,3 +269,43 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - failure_mode: Docker Codex can inspect mounted workspaces but fail to create reports or tests when the container user does not belong to the host workspace group.
 - prevention: Keep the container non-root, but add the host workspace group to Docker Codex runs with `--group-add <host_gid>`.
 - validation: EC2 write probes passed for TAC, SNS, and Upbit bounded workspaces after `scripts/hq_company_task_runner.py` added Docker host group propagation.
+
+## 2026-05-28 KST - Sandboxed Windows Validation Can Fail On Existing Runtime Artifact Overwrite
+- symptom: `python -m unittest discover -s tests` and `python scripts/run_offline_validations.py` failed with `PermissionError: [Errno 13] Permission denied` when overwriting existing files under `runtime/`.
+- cause: The sandboxed Windows execution context could read files but could not overwrite several existing local runtime artifacts; rerunning the same local-only validation in the user context succeeded.
+- affected_files: `runtime/offline_validation_latest.json`, `runtime/docker_runner_plan_2026-05-18.json`, `runtime/git_checkpoint_latest.json`, `runtime/phase3_orchestrator_result_2026-05-18.json`, `runtime/queue_soak_result_2026-05-18.json`, `runtime/runtime_engine_smoke_2026-05-19.json`, `runtime/prompts/*.md`.
+- detection_method: Initial required validation run failed on `path.write_text(...)`; rerun with user-context local permissions passed.
+- prevention: For report-only validation commands that overwrite existing local runtime artifacts, treat sandbox overwrite denial as an execution-context gate and rerun in the user context without changing production state.
+- rollback_or_fix: No source rollback required; the same commands passed under the current user context.
+
+## 2026-05-28 KST - Windows Docker Codex JSONL Output Can Fail CP949 Decode
+- symptom: A Docker Codex-backed task reached execution but `subprocess.run(..., text=True)` failed with `UnicodeDecodeError: 'cp949' codec can't decode byte ...` when reading Korean/UTF-8 JSONL output.
+- cause: Windows default text decoding used CP949 instead of UTF-8 for Docker/Codex output.
+- affected_files: `scripts/hq_company_task_runner.py`.
+- detection_method: `python scripts/hq_company_task_runner.py runtime/queue/worldvape-daily-growth-20260528140820.json` failed before result parsing with a reader thread UnicodeDecodeError.
+- prevention: Set `encoding="utf-8", errors="replace"` on subprocess calls that capture Git, host Codex, or Docker Codex output.
+- rollback_or_fix: Patched subprocess capture encoding and reran the same report-only Docker Codex queue successfully.
+
+## 2026-05-28 KST - PowerShell Korean Status Can Render Incorrectly Without UTF-8 Output Encoding
+- symptom: Korean status lines from a PowerShell wrapper appeared garbled in command output.
+- cause: The console/output encoding was not explicitly set to UTF-8 before writing Korean status text.
+- affected_files: `scripts/run_worldvape_daily_growth_once.ps1`.
+- detection_method: One-command wrapper smoke passed but status prefix/suffix rendered as mojibake in the captured shell output.
+- prevention: Set `[Console]::OutputEncoding` and `$OutputEncoding` to `[System.Text.Encoding]::UTF8` at wrapper startup.
+- rollback_or_fix: Added UTF-8 output encoding initialization to the PowerShell wrapper.
+
+## 2026-05-28 KST - Windows PowerShell Korean Output Can Still Mojibake After Basic UTF-8 Setup
+- symptom: Worldvape scheduler PowerShell scripts worked, but Korean operator output still displayed as mojibake in Windows PowerShell.
+- cause: Windows PowerShell display can still depend on host code page, capture path, and font support even when `[Console]::OutputEncoding` and `$OutputEncoding` are set.
+- affected_files: `scripts/register_worldvape_daily_growth_task.ps1`, `scripts/verify_worldvape_daily_growth_task.ps1`, `scripts/unregister_worldvape_daily_growth_task.ps1`, `scripts/run_worldvape_daily_growth_once.ps1`.
+- detection_method: User observed mojibake in working Task Scheduler scripts; local `Get-Content` output also showed corrupted Korean status text.
+- prevention: Keep PowerShell operator-facing status output ASCII-only where reliability matters; initialize UTF-8 input/output and best-effort `chcp.com 65001`.
+- rollback_or_fix: Replaced user-facing script output with ASCII fallback labels and added `Initialize-SafeConsoleOutput`.
+
+## 2026-05-29 KST - Company Runner Stopped At Runner Block Instead Of Continuing Safe Work
+- symptom: User repeatedly experienced TAC as stopping when a Docker/Codex/live/credential/network item was blocked, returning a reason or repair suggestion instead of finishing safe work.
+- cause: The company runner returned `FAIL` or `DEFERRED_GATE` directly when the primary Codex runner was blocked; the tmux runner then wrote a terminal failed/deferred report instead of a continuation-ready artifact.
+- affected_files: `scripts/hq_company_task_runner.py`, `scripts/hq_tmux_runner_template.sh`.
+- detection_method: User reported that autonomous controller sessions still stopped on blocked items despite the permanent continuation rule.
+- prevention: Convert blocked primary runner results into `PASS_WITH_SAFE_FALLBACK` unless fallback is explicitly disabled; write `*.safe_fallback.md` with deferred gates and next executable subtasks; expose `company_status` in tmux reports.
+- rollback_or_fix: Added safe fallback reporter, company-status tmux report fields, regression tests, and validation.

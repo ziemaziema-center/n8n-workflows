@@ -171,6 +171,54 @@ Append only unless correcting the latest entry.
 - rollback: Revert the routine files and tests; no live n8n, Instagram, or credential state needs rollback because the routine is draft/offline by default.
 - evidence: Applied on 2026-05-25 KST for 월드베이프 광운대점 daily Instagram/SNS growth operations.
 
+## Pattern: Local TAC Codex Auth Volume Report-Only Smoke
+
+- applies_to: Verifying a local Docker-only Codex auth volume without Instagram, Telegram, n8n, or production mutation.
+- procedure: Load `TAC_CODEX_AUTH_VOLUME` from `runtime/config/tac_codex_auth_volume.local.env`, run `scripts/verify_tac_codex_auth_volume.ps1`, mount `<volume>:/home/tacrunner/.codex` into `tac-codex-runner:codex`, use a minimal read-only local workspace, and require a deterministic Codex `agent_message`.
+- validation: `VERIFY_STATUS PASS`; Docker Codex returned `TAC_CODEX_AUTH_VOLUME_SMOKE_OK`; `python -m unittest discover -s tests` passed 114 tests; `python scripts/run_offline_validations.py` passed.
+- rollback: Remove the generated smoke task, report, workspace, and telemetry files if the smoke record is no longer wanted; no production state was changed.
+- evidence: Applied on 2026-05-28 KST in `runtime/reports/tac-codex-auth-volume-smoke-20260528.md`.
+
+## Pattern: Repeatable Worldvape Report-Only Codex Queue
+
+- applies_to: Generating recurring Worldvape daily growth queue tasks without live publish, Telegram send, n8n API/activation, secrets, or production mutation.
+- procedure: Run `python scripts/create_worldvape_daily_growth_queue.py` to create a timestamped `runtime/queue/worldvape-daily-growth-<timestamp>.json`, append it to `runtime/queue/pending.jsonl`, create a local workspace under `runtime/workspaces/<task_id>`, then execute with `scripts/hq_company_task_runner.py` using `TAC_CODEX_AUTH_VOLUME=tac_codex_auth` for report-only Docker Codex output.
+- validation: Generated task `worldvape-daily-growth-20260528140820` completed PASS through `docker_codex`; full unittest suite passed 121 tests; offline validations passed.
+- rollback: Remove generated queue/report/workspace artifacts if the record is no longer wanted; no live system rollback is required because no live surface was touched.
+- evidence: Applied on 2026-05-28 KST in `runtime/reports/worldvape-daily-growth-repeatable-queue-20260528.md`.
+
+## Pattern: One-Command Worldvape Report-Only Local Runner
+
+- applies_to: Running one local Worldvape daily growth report-only cycle from an operator shell without touching live Instagram, Telegram, n8n, secrets, or production.
+- procedure: Run `powershell -ExecutionPolicy Bypass -File scripts\run_worldvape_daily_growth_once.ps1`; the wrapper confirms project root, ensures `TAC_CODEX_AUTH_VOLUME=tac_codex_auth`, calls the Python runner, creates a timestamped queue, validates report-only scope/deferred gates, and runs `scripts/hq_company_task_runner.py`.
+- validation: One-command smoke with timestamp `20260528152000` passed; full unittest suite passed 127 tests; offline validations passed.
+- rollback: Remove the generated queue/report/workspace artifacts and one-command scripts/tests if no longer wanted; no live system rollback is required.
+- evidence: Applied on 2026-05-28 KST in `runtime/reports/worldvape-daily-growth-one-command-runner-20260528.md`.
+
+## Pattern: Windows Task Scheduler Wrapper For Report-Only Runner
+
+- applies_to: Scheduling a local TAC report-only runner on Windows without live Instagram, Telegram, n8n, production, or secret surfaces.
+- procedure: Use a scoped task name, fixed project root, limited run level, explicit working directory, and a PowerShell action that calls the already validated report-only runner. Keep registration, verification, and unregistration as separate scripts.
+- validation: `tests/test_worldvape_task_scheduler_scripts_20260528.py` checks task name, project root, runner path, secret-like strings, limited privilege, verification non-execution, and scoped unregistration; full unittest suite passed 134 tests; offline validations passed.
+- rollback: Run `powershell -ExecutionPolicy Bypass -File scripts\unregister_worldvape_daily_growth_task.ps1` to remove only `Kindred_Worldvape_Daily_Growth_ReportOnly`.
+- evidence: Applied on 2026-05-28 KST in `runtime/reports/worldvape-daily-growth-task-scheduler-20260528.md`.
+
+## Pattern: ASCII-Fallback PowerShell Operator Output
+
+- applies_to: Windows PowerShell scripts where non-ASCII status text can render as mojibake under mixed code pages or capture hosts.
+- procedure: Initialize `[Console]::InputEncoding`, `[Console]::OutputEncoding`, `$script:OutputEncoding`, and best-effort `chcp.com 65001`, then keep operator-facing status labels ASCII-only.
+- validation: Scheduler and one-command PowerShell scripts parse successfully; tests assert the display scripts include UTF-8 setup, `chcp.com 65001`, and ASCII-only output text; full unittest suite passed 136 tests; offline validations passed.
+- rollback: Restore prior Korean display strings if a Unicode-safe host is proven and tests are updated accordingly.
+- evidence: Applied on 2026-05-28 KST in `runtime/reports/worldvape-task-scheduler-encoding-fix-20260528.md`.
+
+## Pattern: Safe Fallback Instead Of Terminal Runner Block
+
+- applies_to: Company-mode TAC tasks where the primary Codex/Docker runner returns `FAIL` or `DEFERRED_GATE` before exhausting safe local/offline work.
+- procedure: Keep live/credential/network surfaces blocked, write a `runtime/reports/<task_id>.safe_fallback.md` continuation report, preserve original runner status/reason, return `PASS_WITH_SAFE_FALLBACK`, and expose `company_status` in the tmux task report.
+- validation: `tests/test_company_runner_safe_fallback_20260529.py`; full unittest suite passed 138 tests; offline validation passed.
+- rollback: Set `disable_safe_fallback: true` on a specific queue task or revert the safe fallback patch if strict terminal failure behavior is required.
+- evidence: Applied on 2026-05-29 KST after the user reported TAC still stopping instead of finishing safe work.
+
 ## Pattern: Continuation-First HQ Cycle
 - applies_to: Multi-hour or broad TAC tasks that include live/credential/network blockers.
 - procedure: Store a permanent continuation rule, split blocked live surfaces into deferred gates, keep executing safe local/offline/docs/tests/scaffold work, write a machine-readable continuation ledger, and validate that safe work continued despite gates.

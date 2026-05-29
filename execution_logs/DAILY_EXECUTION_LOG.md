@@ -429,3 +429,64 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - privacy_hardening: `scripts/hq_notify_completion.py` now redacts chat ids in stored response tails; existing smoke artifact was redacted.
 - queue_handling: 36 unrelated stale pending lines were moved to a deferred backup before focused smoke verification.
 - safety: No Instagram publish, no comment/DM send, no credential output, no AWS mutation, no unrelated workflow mutation, no force push, and no destructive deletion.
+
+## TAC_SAFE_FALLBACK_AUTONOMY_PATCH_20260529
+
+- request: User reported that TAC still stops on blocked items and asked to patch the logic.
+- actions: Added safe fallback completion to the company runner, added tmux `company_status` reporting, updated Worldvape safe-rerun expectations, created an operator report, and recorded memory.
+- result: PASS.
+- validation: `python -m unittest tests.test_company_runner_safe_fallback_20260529` PASS; `python -m unittest discover -s tests` PASS with 138 tests; `python scripts/run_offline_validations.py` PASS.
+- telemetry: SUCCESS: blocked primary runner results no longer end the whole company-mode task by default. FAILURE_PREVENTED: user-facing "blocked and stopped" behavior now produces continuation-ready fallback artifacts.
+- side_effects: Local files only. No live n8n, Telegram, Instagram, Docker production, AWS, secret, or external API operation.
+- next_action: Add a one-retry bounded repair loop that attempts local fixable repair before fallback.
+
+## TAC_CODEX_AUTH_VOLUME_SMOKE_20260528
+
+- request: Run a TAC Codex-backed report-only smoke using `TAC_CODEX_AUTH_VOLUME=tac_codex_auth` after device-auth login completed.
+- result: PASS.
+- project_root: `C:\Users\minho\Documents\02_work\03_AI\05_true atonomous_controller`.
+- auth_volume: `runtime/config/tac_codex_auth_volume.local.env` loads `TAC_CODEX_AUTH_VOLUME=tac_codex_auth`; verify script returned `VERIFY_STATUS PASS`.
+- smoke: Docker Codex mounted `tac_codex_auth:/home/tacrunner/.codex` and returned `TAC_CODEX_AUTH_VOLUME_SMOKE_OK`.
+- validation: `python -m unittest discover -s tests` PASS, 114 tests; `python scripts/run_offline_validations.py` PASS.
+- safety: No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret inspection/output/modification.
+
+## WORLDVAPE_DAILY_GROWTH_REPEATABLE_QUEUE_20260528
+
+- request: Convert Worldvape daily growth into a repeatable TAC Codex-backed report-only queue workflow.
+- result: PASS.
+- created: `scripts/create_worldvape_daily_growth_queue.py`, `tests/test_worldvape_repeatable_queue_20260528.py`, `runtime/reports/worldvape-daily-growth-repeatable-queue-20260528.md`.
+- generated_queue: `runtime/queue/worldvape-daily-growth-20260528140820.json`.
+- generated_report: `runtime/reports/worldvape-daily-growth-20260528140820.md`.
+- codex_backed_execution: PASS via Docker Codex with `TAC_CODEX_AUTH_VOLUME=tac_codex_auth`.
+- validation: `python -m unittest discover -s tests` PASS, 121 tests; `python scripts/run_offline_validations.py` PASS.
+- safety: No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret inspection/output/modification.
+
+## WORLDVAPE_DAILY_GROWTH_ONE_COMMAND_RUNNER_20260528
+
+- request: Create a one-command local runner for Worldvape daily growth report-only execution.
+- result: PASS.
+- created: `scripts/run_worldvape_daily_growth_once.py`, `scripts/run_worldvape_daily_growth_once.ps1`, `tests/test_worldvape_one_command_runner_20260528.py`.
+- one_command_smoke: `powershell -ExecutionPolicy Bypass -File scripts\run_worldvape_daily_growth_once.ps1 -Timestamp 20260528152000` PASS.
+- generated_queue: `runtime/queue/worldvape-daily-growth-20260528152000.json`.
+- generated_report: `runtime/reports/worldvape-daily-growth-20260528152000.md`.
+- validation: `python -m unittest discover -s tests` PASS, 127 tests; `python scripts/run_offline_validations.py` PASS.
+- safety: No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret inspection/output/modification.
+
+## WORLDVAPE_DAILY_GROWTH_TASK_SCHEDULER_20260528
+
+- request: Create a safe Windows Task Scheduler setup for daily Worldvape report-only execution.
+- result: PASS.
+- created: `scripts/register_worldvape_daily_growth_task.ps1`, `scripts/verify_worldvape_daily_growth_task.ps1`, `scripts/unregister_worldvape_daily_growth_task.ps1`, `tests/test_worldvape_task_scheduler_scripts_20260528.py`.
+- scheduler_contract: task `Kindred_Worldvape_Daily_Growth_ReportOnly`, default daily time `09:30`, working directory `C:\Users\minho\Documents\02_work\03_AI\05_true atonomous_controller`, command `powershell -ExecutionPolicy Bypass -File scripts\run_worldvape_daily_growth_once.ps1`.
+- validation: targeted task scheduler tests PASS, PowerShell parser PASS, `python -m unittest discover -s tests` PASS with 134 tests, `python scripts/run_offline_validations.py` PASS.
+- scheduler_state: Not registered during this setup pass; operator can run the register script explicitly.
+- safety: No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret inspection/output/modification.
+
+## WORLDVAPE_TASK_SCHEDULER_ENCODING_FIX_20260528
+
+- request: Fix mojibake in Windows PowerShell output for Worldvape scheduler scripts while preserving scheduler behavior.
+- result: PASS.
+- changed: Added `Initialize-SafeConsoleOutput` to the three scheduler scripts and one-command wrapper; switched visible status lines to ASCII fallback labels.
+- preserved: task name, schedule `09:30`, working directory, runner command, limited run level, verification/unregistration scope.
+- validation: targeted display tests PASS, PowerShell parser PASS, `python -m unittest discover -s tests` PASS with 136 tests, `python scripts/run_offline_validations.py` PASS.
+- safety: Local script text only. No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret inspection/output/modification.
