@@ -66,6 +66,10 @@ After:
 - `python -m unittest tests.test_company_runner_prompt_20260525`: PASS
 - `python -m unittest discover -s tests`: PASS, 138 tests
 - `python scripts/run_offline_validations.py`: PASS
+- EC2 sync: `scripts/hq_company_task_runner.py` and `scripts/hq_tmux_runner_template.sh` deployed to `/home/ubuntu/workspace/true-autonomous-controller/scripts/`.
+- EC2 validation: `python3 -m py_compile scripts/hq_company_task_runner.py`: PASS
+- EC2 scoped runner restart: `tac-hq-runner`: PASS
+- EC2 safe fallback smoke: `safe-fallback-remote-smoke-20260529`: `PASS_WITH_SAFE_FALLBACK`
 
 ## Next Hardening
 

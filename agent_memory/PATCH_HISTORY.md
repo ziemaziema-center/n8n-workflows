@@ -413,6 +413,6 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - files_changed: `scripts/hq_company_task_runner.py`, `scripts/hq_tmux_runner_template.sh`, `tests/test_company_runner_safe_fallback_20260529.py`, `tests/test_worldvape_safe_rerun_quality_20260528.py`, `reports/tac_safe_fallback_autonomy_patch_2026-05-29.md`, memory and telemetry files.
 - behavior_change: Primary runner `FAIL`/`DEFERRED_GATE` now creates a safe fallback report and returns `PASS_WITH_SAFE_FALLBACK` unless `disable_safe_fallback` is set.
 - tmux_change: Final task report now includes `company_status` and `generated_report_path` when available.
-- validation: PASS. Targeted fallback tests passed; full unittest suite passed 138 tests; `python scripts/run_offline_validations.py` PASS.
-- side_effects: Local source/test/report changes only. No live n8n, Telegram, Instagram, Docker production, AWS, secret, or external API operation.
+- validation: PASS. Targeted fallback tests passed; full unittest suite passed 138 tests; `python scripts/run_offline_validations.py` PASS; EC2 `py_compile` PASS; EC2 safe fallback smoke `safe-fallback-remote-smoke-20260529` returned `PASS_WITH_SAFE_FALLBACK`.
+- side_effects: Local source/test/report changes plus scoped EC2 sync of two TAC runner scripts and scoped `tac-hq-runner` restart. No live n8n, Telegram, Instagram, Docker production, AWS, secret, or external API operation.
 - rollback: Revert this patch or set `disable_safe_fallback: true` on individual tasks that must remain terminal-failure strict.

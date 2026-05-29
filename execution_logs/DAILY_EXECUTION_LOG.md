@@ -435,9 +435,9 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - request: User reported that TAC still stops on blocked items and asked to patch the logic.
 - actions: Added safe fallback completion to the company runner, added tmux `company_status` reporting, updated Worldvape safe-rerun expectations, created an operator report, and recorded memory.
 - result: PASS.
-- validation: `python -m unittest tests.test_company_runner_safe_fallback_20260529` PASS; `python -m unittest discover -s tests` PASS with 138 tests; `python scripts/run_offline_validations.py` PASS.
+- validation: `python -m unittest tests.test_company_runner_safe_fallback_20260529` PASS; `python -m unittest discover -s tests` PASS with 138 tests; `python scripts/run_offline_validations.py` PASS; EC2 `py_compile` PASS; EC2 safe fallback smoke returned `PASS_WITH_SAFE_FALLBACK`.
 - telemetry: SUCCESS: blocked primary runner results no longer end the whole company-mode task by default. FAILURE_PREVENTED: user-facing "blocked and stopped" behavior now produces continuation-ready fallback artifacts.
-- side_effects: Local files only. No live n8n, Telegram, Instagram, Docker production, AWS, secret, or external API operation.
+- side_effects: Local files plus scoped EC2 sync of TAC runner scripts and scoped `tac-hq-runner` restart. No live n8n, Telegram, Instagram, Docker production, AWS, secret, or external API operation.
 - next_action: Add a one-retry bounded repair loop that attempts local fixable repair before fallback.
 
 ## TAC_CODEX_AUTH_VOLUME_SMOKE_20260528
