@@ -349,3 +349,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User supplied the autonomous-controller evolution rule and clarified that TAC is now building runtime orchestration, not documentation.
 - prevention: Require HQ to ask what operating-system capability each project task improves, classify the work, and prefer working runtime, automation, persistence, and OS capability over new documentation.
 - rollback_or_fix: Stored the evolution rule, patched runner prompts, added regression tests, and validated.
+
+## 2026-05-29 KST - Runner Can Forget Active Task Across Restart Without File Persistence
+- symptom: A one-shot runner can execute a task and report, but after restart it may not know the active task, queue state, retry count, last log, last validation, or next executable action.
+- cause: State, queue, telemetry, and handoff data were spread across reports and older smoke artifacts rather than a standardized persistent runtime layer.
+- affected_files: `scripts/hq_company_task_runner.py`, runtime files under `runtime/state`, `runtime/queue`, `runtime/telemetry`, and `runtime/handoff`.
+- detection_method: Runtime persistence task required explicit restart recovery simulation and final reports with persistence paths.
+- prevention: Add file-backed state manager, queue manager, telemetry append log, handoff writer, and company runner integration.
+- rollback_or_fix: Added `scripts/hq_runtime_state_manager.py`, `scripts/hq_runtime_queue_manager.py`, `scripts/hq_runtime_telemetry.py`, `scripts/hq_runtime_handoff.py`, `scripts/simulate_runtime_persistence.py`, and persistence tests.

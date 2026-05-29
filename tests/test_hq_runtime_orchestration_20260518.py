@@ -103,6 +103,7 @@ class RuntimeOrchestrationDraftTests(unittest.TestCase):
         self.assertIn(ledger["final_report_path"], {
             "reports/yuna_brain_growth_system_2026-05-19.md",
             "reports/tac_scorecard_2026-05-22.md",
+            "reports/runtime_persistence_layer_2026-05-29.md",
         })
         self.assertIn("TAC agent council scorecard", completed)
         registry = (ROOT / "reports/deferred_gate_registry_2026-05-18.md").read_text(encoding="utf-8")

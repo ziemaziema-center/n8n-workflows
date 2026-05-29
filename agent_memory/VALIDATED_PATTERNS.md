@@ -345,3 +345,13 @@ Append only unless correcting the latest entry.
   - `python -m unittest discover -s tests`
   - `python scripts/run_offline_validations.py`
 - result: PASS. The permanent evolution rule is stored in `AGENTS.md` and `SESSION_BOOT.md`, and company runner prompts now ask what OS capability the task improves before adding more documentation.
+
+## 2026-05-29 - Runtime Persistence Layer
+
+- pattern: Persist runner state, queue state, telemetry, and handoff files so a task can be recovered after interruption instead of being remembered only by a single process.
+- validated_by:
+  - `python -m py_compile scripts\hq_runtime_state_manager.py scripts\hq_runtime_queue_manager.py scripts\hq_runtime_telemetry.py scripts\hq_runtime_handoff.py scripts\simulate_runtime_persistence.py scripts\hq_company_task_runner.py`
+  - `python -m unittest tests.test_runtime_persistence_20260529`
+  - `python -m unittest discover -s tests`
+  - `python scripts\run_offline_validations.py`
+- result: PASS. Company runner reports now expose persistent `runtime_state_path`, `queue_path`, `telemetry_path`, and `handoff_path`, and the recovery simulation proves enqueue -> claim -> reload -> handoff -> completion.

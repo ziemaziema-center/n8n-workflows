@@ -1,7 +1,7 @@
 {
   "task_id": "tac-hq-orchestration-20260518",
   "created_at_kst": "2026-05-18",
-  "current_phase": "phase4_company_mode_runtime_ready_with_tac_scorecard_92",
+  "current_phase": "runtime_persistence_layer_built_score_97",
   "operating_rule": "Do not stop the whole task because one live/credential/network item is blocked. Continue all safe local, offline, documentation, test, scaffold, wrapper, config-template, and validation work. Convert blocked items into explicit deferred gates, then proceed to the next executable subtask.",
   "completed_items": [
     "permanent continuation rule stored in AGENTS.md and SESSION_BOOT.md",
@@ -92,11 +92,18 @@
     "Worldvape daily growth queue task builder created at scripts/worldvape_daily_growth_task_builder.py",
     "Inactive n8n draft created for daily Worldvape growth operations",
     "Worldvape Gwangwoon growth sendoff and operator report created",
-    "Worldvape daily growth offline tests added and validation runner expanded"
+    "Worldvape daily growth offline tests added and validation runner expanded",
+    "Runtime persistence state manager created at scripts/hq_runtime_state_manager.py",
+    "Runtime persistence queue manager created at scripts/hq_runtime_queue_manager.py",
+    "Runtime telemetry append log utility created at scripts/hq_runtime_telemetry.py",
+    "Runtime handoff writer created at scripts/hq_runtime_handoff.py",
+    "Restart recovery simulation created at scripts/simulate_runtime_persistence.py",
+    "Company runner integrated with persistent state, queue, telemetry, and handoff paths",
+    "Runtime persistence offline tests added at tests/test_runtime_persistence_20260529.py"
   ],
   "pending_items": [
     "Create/login a container-specific Codex auth volume so Docker can execute real Codex tasks without host secrets",
-    "Run multi-hour or overnight unattended queue soak with bounded retries, heartbeat, pause/resume, and /killall verification",
+    "Run multi-hour or overnight unattended queue soak with bounded retries, heartbeat, pause/resume, /killall verification, and persistent state recovery checks",
     "Decide whether arbitrary target workspaces should allow automatic pre-run/post-pass Git commits or stay manifest-only",
     "Apply YUNA brain growth metadata to the SNS automation workspace clean_01 candidate generation and approval template without live publishing",
     "Add manual or credentialed metrics capture for follows, comments, saves, shares, DM replies, profile visits, and average watch time after approval",
@@ -162,7 +169,7 @@
     }
   ],
   "next_executable_subtasks": [
-    "Run 5-6 hour overnight queue soak with heartbeat, retry, pause/resume, /killall, final notification, and report checks",
+    "Run 5-6 hour overnight queue soak with heartbeat, retry, pause/resume, /killall, final notification, persistent state recovery, and report checks",
     "Create Docker-only Codex auth volume and run one containerized Codex task",
     "Run 3+ queued tasks with one forced retry, one deferred gate, and one successful company-mode task",
     "Promote Git checkpoint policy from manifest-only to commit-enabled only for approved clean workspaces",
@@ -172,7 +179,9 @@
   ],
   "validation_commands": [
     "python -m unittest discover -s tests",
+    "python -m unittest tests.test_runtime_persistence_20260529",
     "python scripts/run_offline_validations.py",
+    "python scripts/simulate_runtime_persistence.py",
     "docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .",
     "python scripts/docker_codex_cli_smoke.py",
     "EC2: docker build -f docker/tac-runner.Dockerfile -t tac-codex-runner:codex .",
@@ -190,7 +199,7 @@
     "python scripts/tac_scorecard.py",
     "python -m json.tool schemas/tac_scorecard.schema.json"
   ],
-  "final_report_path": "reports/tac_scorecard_2026-05-22.md",
-  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, this ledger, README.md, reports/tac_scorecard_2026-05-22.md, and reports/tac_agent_council_review_2026-05-22.md. Next hardening task: run the 5-6 hour overnight queue soak, then create a Docker-only Codex auth volume for real containerized Codex execution.",
+  "final_report_path": "reports/runtime_persistence_layer_2026-05-29.md",
+  "resume_instruction": "Read AGENTS.md, SESSION_BOOT.md, agent_memory files, this ledger, reports/runtime_persistence_layer_2026-05-29.md, runtime/state/current_state.json, and runtime/handoff/current_handoff.json. Next hardening task: run the 5-6 hour overnight queue soak with persistent state recovery checks, then refresh Docker-only Codex auth volume login for real containerized Codex execution.",
   "live_operations_performed": true
 }

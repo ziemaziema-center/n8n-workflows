@@ -445,3 +445,13 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - validation: PASS. `python -m py_compile scripts\hq_company_task_runner.py`; targeted self-repair/evolution tests passed 9 tests; full unittest suite passed 145 tests; `python scripts\run_offline_validations.py` PASS.
 - side_effects: Local source/test/report/memory changes only so far. No live n8n, Telegram, Instagram, Upbit, production Docker, AWS, secret, force push, or destructive operation.
 - rollback: Revert this patch if future project-scale tasks should not prioritize runtime orchestration maturity.
+
+## TAC_RUNTIME_PERSISTENCE_LAYER_20260529
+
+- request: Build the Runtime Persistence Layer so the runner remembers active task, queue, state, retry history, logs, handoff, and next executable action across cycles/restarts.
+- files_changed: `scripts/hq_runtime_state_manager.py`, `scripts/hq_runtime_queue_manager.py`, `scripts/hq_runtime_telemetry.py`, `scripts/hq_runtime_handoff.py`, `scripts/simulate_runtime_persistence.py`, `scripts/hq_company_task_runner.py`, `scripts/run_offline_validations.py`, `tests/test_runtime_persistence_20260529.py`, `reports/runtime_persistence_layer_2026-05-29.md`, ledger/deferred-gate/memory/telemetry files.
+- behavior_change: Company runner now updates persistent state and telemetry at task start/finish, writes per-task handoff files, and exposes `runtime_state_path`, `queue_path`, `telemetry_path`, and `handoff_path` in final reports.
+- validation: PASS. Targeted persistence tests passed 6 tests; full unittest suite passed 151 tests; `python scripts/run_offline_validations.py` PASS.
+- scorecard: 970/1000 average 97/100 across runtime persistence, queue reliability, state recovery, telemetry, handoff, integration, tests, safety, maintainability, and n8n/tmux readiness.
+- side_effects: Local source/test/report/runtime artifacts only. No live n8n, Telegram, Instagram, Upbit, production Docker, AWS, secret, force push, or destructive operation.
+- rollback: Revert the persistence manager patch and remove generated runtime persistence artifacts if the layer needs redesign.

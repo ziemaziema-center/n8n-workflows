@@ -10,6 +10,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts.hq_runtime_handoff import build_handoff, write_handoff
+    from scripts.hq_runtime_queue_manager import QUEUE_ROOT, mark_task
+    from scripts.hq_runtime_state_manager import DEFAULT_STATE_PATH, ensure_runtime_dirs, heartbeat, mark_task_status
+    from scripts.hq_runtime_telemetry import DEFAULT_TELEMETRY_PATH, append_event
+except ModuleNotFoundError:  # pragma: no cover - used when this file is executed directly on EC2
+    from hq_runtime_handoff import build_handoff, write_handoff
+    from hq_runtime_queue_manager import QUEUE_ROOT, mark_task
+    from hq_runtime_state_manager import DEFAULT_STATE_PATH, ensure_runtime_dirs, heartbeat, mark_task_status
+    from hq_runtime_telemetry import DEFAULT_TELEMETRY_PATH, append_event
+
 
 ROOT = Path(os.environ.get("TAC_ROOT", Path(__file__).resolve().parents[1]))
 SECRET_PATTERN = re.compile(r"(sk-proj-[A-Za-z0-9_-]{12,}|sk-[A-Za-z0-9_-]{20,}|AA[A-Za-z0-9_-]{20,}:[A-Za-z0-9_-]{20,})")
@@ -728,6 +739,12 @@ def run_task(task: dict[str, Any]) -> dict[str, Any]:
     task_id = str(task["task_id"])
     workspace = Path(str(task["workspace_path"]))
     execution_workspace = resolve_execution_workspace(task, workspace)
+    runtime_paths = ensure_runtime_dirs(ROOT)
+    runtime_state_path = DEFAULT_STATE_PATH
+    runtime_queue_path = QUEUE_ROOT / "pending.json"
+    runtime_telemetry_path = DEFAULT_TELEMETRY_PATH
+    runtime_handoff_json_path = ROOT / "runtime" / "handoff" / f"{task_id}.handoff.json"
+    runtime_handoff_md_path = ROOT / "runtime" / "handoff" / f"{task_id}.handoff.md"
     prompt = company_prompt(task)
     prompt_path = ROOT / "runtime" / "prompts" / f"{task_id}.md"
     prompt_path.parent.mkdir(parents=True, exist_ok=True)
@@ -735,6 +752,17 @@ def run_task(task: dict[str, Any]) -> dict[str, Any]:
     checkpoint = git_checkpoint(execution_workspace, task_id)
     target = str(task.get("target_runner") or "dry_run")
     timeout = int(os.environ.get("TAC_COMPANY_TASK_TIMEOUT_SEC", "1800"))
+    log_path = ROOT / "runtime" / "logs" / f"{task_id}.log"
+    heartbeat(task_id=task_id, runner_status="RUNNING", phase="task_started", log_path=str(log_path), state_path=runtime_state_path)
+    append_event(
+        runtime_telemetry_path,
+        event_type="task_started",
+        task_id=task_id,
+        phase="task_started",
+        status="RUNNING",
+        message="company runner started task with persistent state",
+        artifacts={"prompt_path": str(prompt_path), "state_path": str(runtime_state_path)},
+    )
     runner_result = execute_primary_runner(target, prompt, execution_workspace, timeout)
     runner_result, repair_record_path = attempt_auto_repair(
         task,
@@ -751,6 +779,89 @@ def run_task(task: dict[str, Any]) -> dict[str, Any]:
     if fallback_report_path and not generated_report_path:
         generated_report_path = fallback_report_path
     status = str(runner_result.get("status") or "FAIL")
+    if status == "PASS_WITH_AUTO_REPAIR":
+        append_event(
+            runtime_telemetry_path,
+            event_type="task_auto_repair",
+            task_id=task_id,
+            phase="auto_repair",
+            status=status,
+            message="task passed after automatic repair",
+            artifacts={"repair_record_path": repair_record_path},
+        )
+    if status == "PASS_WITH_SAFE_FALLBACK":
+        append_event(
+            runtime_telemetry_path,
+            event_type="task_safe_fallback",
+            task_id=task_id,
+            phase="safe_fallback",
+            status=status,
+            message="task wrote safe fallback instead of stopping",
+            artifacts={"fallback_report_path": fallback_report_path},
+        )
+    if status == "DEFERRED_GATE":
+        append_event(
+            runtime_telemetry_path,
+            event_type="task_deferred_gate",
+            task_id=task_id,
+            phase="deferred_gate",
+            status=status,
+            message=runner_block_reason(runner_result),
+            artifacts={"repair_record_path": repair_record_path},
+        )
+    final_event = "task_completed" if status in SUCCESS_STATUSES else "task_validation_fail"
+    append_event(
+        runtime_telemetry_path,
+        event_type=final_event,
+        task_id=task_id,
+        phase="task_finished",
+        status=status,
+        message=str(runner_result.get("reason") or runner_result.get("agent_message") or "task finished"),
+        artifacts={"generated_report_path": generated_report_path, "repair_record_path": repair_record_path},
+    )
+    blocked_gates = task.get("deferred_gates", []) if isinstance(task.get("deferred_gates"), list) else []
+    if status == "DEFERRED_GATE":
+        blocked_gates = blocked_gates or [{"name": "runner_deferred_gate", "status": "DEFERRED_GATE", "reason": runner_block_reason(runner_result)}]
+    validation_result = {
+        "status": "PASS" if status in SUCCESS_STATUSES else "DEFERRED_GATE" if status == "DEFERRED_GATE" else "FAIL",
+        "command": "scripts/hq_company_task_runner.py",
+        "checked_at": utc_now(),
+    }
+    safe_next_actions = ["claim next queued task"] if status in SUCCESS_STATUSES else ["review repair record", "fix safe local cause", "requeue task"]
+    mark_task_status(
+        task_id=task_id,
+        status=status if status in {"PASS", "FAIL", "DEFERRED_GATE", "PASS_WITH_SAFE_FALLBACK", "PASS_WITH_AUTO_REPAIR"} else "FAIL",
+        validation_result=validation_result,
+        blocked_gates=blocked_gates,
+        safe_next_actions=safe_next_actions,
+        retry_count=int(runner_result.get("repair_cycles_used", task.get("retry_count", 0) or 0)),
+        state_path=runtime_state_path,
+    )
+    try:
+        mark_task(task_id, status if status in {"PASS", "FAIL", "DEFERRED_GATE", "PASS_WITH_SAFE_FALLBACK", "PASS_WITH_AUTO_REPAIR"} else "FAIL", QUEUE_ROOT, reason=str(runner_result.get("reason") or "company runner finished"))
+    except Exception as exc:  # noqa: BLE001 - queue may not contain ad-hoc task
+        append_event(
+            runtime_telemetry_path,
+            event_type="runner_recovered",
+            task_id=task_id,
+            phase="queue_mark",
+            status="RECOVERED",
+            message=f"queue mark skipped for ad-hoc task: {redact(str(exc))}",
+            artifacts={},
+        )
+    handoff = build_handoff(
+        active_task=None if status in SUCCESS_STATUSES else task,
+        completed_items=[f"company runner finished with {status}"],
+        pending_items=[] if status in SUCCESS_STATUSES else ["resolve deferred gate or repair local cause"],
+        deferred_gates=blocked_gates,
+        last_validation_result=validation_result,
+        next_executable_actions=safe_next_actions,
+        exact_resume_prompt=(
+            "Read AGENTS.md, SESSION_BOOT.md, runtime/state/current_state.json, "
+            f"and runtime/handoff/{task_id}.handoff.json. Continue the next executable runtime task."
+        ),
+    )
+    handoff_paths = write_handoff(handoff, json_path=runtime_handoff_json_path, md_path=runtime_handoff_md_path)
     report = {
         "task_id": task_id,
         "status": status,
@@ -763,6 +874,12 @@ def run_task(task: dict[str, Any]) -> dict[str, Any]:
         "runner_result": runner_result,
         "repair_record_path": repair_record_path,
         "generated_report_path": generated_report_path,
+        "runtime_paths": runtime_paths,
+        "runtime_state_path": str(runtime_state_path),
+        "queue_path": str(runtime_queue_path),
+        "telemetry_path": str(runtime_telemetry_path),
+        "handoff_path": handoff_paths["handoff_json_path"],
+        "handoff_markdown_path": handoff_paths["handoff_md_path"],
         "live_production_mutation": False,
         "secret_values_printed": False,
     }

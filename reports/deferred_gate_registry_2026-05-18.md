@@ -113,3 +113,10 @@ Rule:
 - required approval/input: allowlist confirmation and a read-only-only command path that does not print secrets.
 - safe work continued: schema, local docs, offline validation, no exchange call.
 - next action after approval: perform one current-state read-only check; no order, cancel, retry, or reorder.
+
+### 16. Docker-only Codex device auth login
+- status: `DEFERRED_GATE`
+- why blocked: OpenAI device-auth requires a human to enter a one-time code, and the controller must not invent or bypass credentials.
+- required approval/input: run the approved Docker-only Codex login/device-auth flow and complete the code entry.
+- safe work continued: runtime persistence state, queue, telemetry, handoff, and auth-gate classification.
+- next action after approval: verify Docker Codex auth volume, then run one report-only Codex-backed queue task.

@@ -521,3 +521,16 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - categories: Runtime, Queue, Orchestration, Validation, Telemetry, Review, Retry, Continuation, Growth, Infrastructure.
 - validation: `python -m py_compile scripts\hq_company_task_runner.py` PASS; `python -m unittest tests.test_company_runner_safe_fallback_20260529` PASS, 9 tests; `python -m unittest discover -s tests` PASS, 145 tests; `python scripts\run_offline_validations.py` PASS.
 - safety: Local source/test/report/memory update only. No live n8n, Telegram send, Instagram publish, Upbit action, production Docker restart, AWS mutation, secret read/output, force push, or destructive operation.
+
+## TAC_RUNTIME_PERSISTENCE_LAYER_20260529
+
+- request: Build Runtime Persistence Layer for active task, queue, state, retry history, telemetry, handoff, and next executable action across cycles/restarts.
+- result: PASS.
+- os_improvement_category: Runtime + Queue + Continuation + Telemetry + Infrastructure.
+- created: `scripts/hq_runtime_state_manager.py`, `scripts/hq_runtime_queue_manager.py`, `scripts/hq_runtime_telemetry.py`, `scripts/hq_runtime_handoff.py`, `scripts/simulate_runtime_persistence.py`, `tests/test_runtime_persistence_20260529.py`, `reports/runtime_persistence_layer_2026-05-29.md`.
+- modified: `scripts/hq_company_task_runner.py`, `scripts/run_offline_validations.py`, continuation ledger, deferred gate registry, memory files.
+- validation: py_compile PASS; targeted persistence tests PASS, 6 tests; full unittest suite PASS, 151 tests; offline validations PASS.
+- ec2_deployment: Synced persistence scripts and company runner to bounded EC2 workspace, remote py_compile PASS, remote recovery simulation PASS, scoped tac-hq-runner restarted.
+- self_improvement_cycles: 1. Fixed direct-execution import failure in recovery simulation, then revalidated.
+- scorecard: 970/1000, average 97/100.
+- safety: Local source/test/report/runtime artifacts only. No live n8n, Telegram send, Instagram publish, Upbit action, production Docker restart, AWS mutation, secret read/output, force push, or destructive operation.
