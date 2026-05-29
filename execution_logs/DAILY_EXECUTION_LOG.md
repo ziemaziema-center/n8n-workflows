@@ -501,3 +501,14 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - ec2_deployment: Synced `scripts/hq_company_task_runner.py`, remote `py_compile` PASS, scoped `tac-hq-runner` restarted.
 - ec2_smoke: `self-repair-remote-smoke-20260529` executed repair option A and option B; ownership repair returned PASS; final status `PASS_WITH_SAFE_FALLBACK` because Docker Codex auth reached `401 Unauthorized / Missing bearer`.
 - safety: Local source/test/report/memory update only. No live n8n, Telegram send, Instagram publish, Upbit credential action, production Docker restart, AWS mutation, secret read/output, force push, or destructive operation.
+
+## TAC_PROJECT_PROTOCOL_AND_AUTH_GATE_20260529
+
+- request: Store permanent project-scale TAC protocol and continue the next hardening item after self-repair.
+- result: PASS.
+- changed: Added permanent project-command protocol to `AGENTS.md` and `SESSION_BOOT.md`; updated company runner prompt with phase-by-phase execution, original objective reread, 10-sector scoring, 97/100 self-improvement loop, and final project report requirements.
+- auth_gate: Docker Codex 401/missing-bearer/not-logged-in failures now return a clear `DEFERRED_GATE` and device-auth/login required action.
+- validation: `python -m py_compile scripts\hq_company_task_runner.py` PASS; `python -m unittest tests.test_company_runner_safe_fallback_20260529` PASS, 8 tests; `python -m unittest discover -s tests` PASS, 144 tests; `python scripts\run_offline_validations.py` PASS.
+- ec2_deployment: Synced `scripts/hq_company_task_runner.py`, remote `py_compile` PASS, scoped `tac-hq-runner` restarted.
+- ec2_smoke: `self-repair-remote-smoke-20260529` returned `PASS_WITH_SAFE_FALLBACK`; original runner status is now `DEFERRED_GATE`; repair meeting cause is `Docker Codex auth volume exists but is not logged in`.
+- safety: Local source/test/report/memory update only. No live n8n, Telegram send, Instagram publish, Upbit action, production Docker restart, AWS mutation, secret read/output, force push, or destructive operation.

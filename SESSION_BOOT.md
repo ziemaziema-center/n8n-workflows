@@ -92,6 +92,22 @@ Default repair budget:
 
 Use `PASS_WITH_SAFE_FALLBACK` only after the repair budget is exhausted or no safe repair exists.
 
+## Permanent Project-Command Protocol
+
+For every project-scale user command, automatically apply the True Autonomous Controller operating model.
+
+Required behavior:
+- First produce a complete PROJECT plan with objective, assumptions, phases, expected outputs, relevant tools/apps/skills, risks, validation plan, rollback plan, and realistic runtime estimate.
+- After user approval, generate or execute the controller prompt that drives HQ and agents through each phase.
+- At the end of every phase, reread the original user command so the work does not drift.
+- Score every phase across at least 10 sectors.
+- Target score: 97/100.
+- If the score is below 97, run self-improvement, debugging, validation, and rescoring loops within the approved safe budget before advancing.
+- If the actual result differs from the expected result, HQ must run self-repair with Builder, Reviewer, Debugger, QA, and relevant domain agents before choosing the next option.
+- Do not force all work through one overloaded run. Work phase by phase, preserve continuation state, and automatically continue to the next executable safe phase.
+- Final project report must include phase-by-phase summary, bugs found/fixed, validations, scores, remaining gates, usage instructions, and ask what the user wants to revise.
+- Always use relevant installed plugins, apps, skills, local tools, and project memory before making assumptions.
+
 ## Permanent README Language Policy
 
 Every README created or edited in this project must include English, French, Spanish, Korean, and Chinese sections in the same file. Apply this automatically even when the user does not repeat the instruction. Third-party vendored README files are the only exception.

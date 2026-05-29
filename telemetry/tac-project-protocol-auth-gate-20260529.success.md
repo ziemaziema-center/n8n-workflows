@@ -1,0 +1,32 @@
+# TAC Project Protocol And Auth Gate Success - 2026-05-29
+
+- status: PASS
+- request: Permanently apply TAC/HQ project protocol to project-scale commands and continue Docker Codex auth-gate hardening.
+- changed:
+  - project-command protocol stored in `AGENTS.md`
+  - project-command protocol stored in `SESSION_BOOT.md`
+  - company runner prompt updated with phase-by-phase project execution
+  - 10-sector phase scoring and 97/100 target loop added to prompt rules
+  - original objective reread added to phase-boundary rules
+  - Docker Codex 401/missing-bearer/not-logged-in output classified as `DEFERRED_GATE`
+- validation:
+  - `python -m py_compile scripts\hq_company_task_runner.py`: PASS
+  - `python -m unittest tests.test_company_runner_safe_fallback_20260529`: PASS, 8 tests
+  - `python -m unittest discover -s tests`: PASS, 144 tests
+  - `python scripts\run_offline_validations.py`: PASS
+- ec2_deployment:
+  - runner sync: PASS
+  - remote py_compile: PASS
+  - scoped tac-hq-runner restart: PASS
+  - report-only smoke: `PASS_WITH_SAFE_FALLBACK`
+  - auth gate classification: PASS, repair meeting cause says Docker Codex auth volume exists but is not logged in
+- safety:
+  - no live n8n action
+  - no Telegram send
+  - no Instagram publish
+  - no Upbit action
+  - no production Docker restart
+  - no AWS mutation
+  - no secret read or output
+  - no force push
+  - no destructive operation

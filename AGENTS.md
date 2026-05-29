@@ -34,6 +34,17 @@ Permanent self-repair rule:
 - Only use `PASS_WITH_SAFE_FALLBACK` after the repair budget is exhausted or no safe repair exists.
 - Significant blockers must record Builder, Reviewer, Debugger, and HQ decision notes.
 
+Permanent project-command protocol:
+- For every project-scale user command, automatically apply the True Autonomous Controller operating model.
+- First produce a complete PROJECT plan: objective, assumptions, phases, expected outputs, tools/apps/skills to use, risks, validation plan, rollback plan, and estimated runtime.
+- After user approval, generate or execute the controller prompt that drives HQ and agents through each phase.
+- At the end of every phase, reread the original user command and score the phase across at least 10 sectors.
+- Target score is 97/100. If the score is below 97, run self-improvement, debugging, validation, and rescoring loops within the approved safe budget before advancing.
+- If the actual result differs from the expected phase result, HQ must run self-repair with Builder, Reviewer, Debugger, QA, and relevant domain agents before choosing the next option.
+- Do not force all work through one overloaded run. Progress phase by phase, preserve continuation state, and continue automatically to the next executable phase when safe.
+- Final project report must include phase-by-phase summary, bugs found/fixed, validations, scores, remaining gates, usage instructions, and ask what the user wants to revise.
+- Always use relevant installed plugins, apps, skills, local tools, and project memory before making assumptions.
+
 After work:
 - Append `execution_logs/DAILY_EXECUTION_LOG.md`.
 - Append FAILURE/SUCCESS telemetry where relevant.

@@ -243,6 +243,16 @@ def runner_result_is_permission_denied(runner_result: dict[str, Any]) -> bool:
     return "permission denied" in reason or "os error 13" in reason
 
 
+def runner_result_is_codex_auth_unauthorized(runner_result: dict[str, Any]) -> bool:
+    reason = runner_block_reason(runner_result).lower()
+    return (
+        "401 unauthorized" in reason
+        or "missing bearer" in reason
+        or "not logged in" in reason
+        or "codex cli is not logged in" in reason
+    )
+
+
 def docker_auth_volume_ownership_repair_allowed() -> bool:
     return os.environ.get("TAC_ALLOW_AUTH_VOLUME_CHOWN_REPAIR", "1") == "1"
 
@@ -291,6 +301,7 @@ def repair_meeting(task: dict[str, Any], runner_result: dict[str, Any]) -> dict[
     observed = runner_block_reason(runner_result)
     missing_auth = runner_result_is_missing_auth_volume(runner_result)
     permission_denied = runner_result_is_permission_denied(runner_result)
+    auth_unauthorized = runner_result_is_codex_auth_unauthorized(runner_result)
     auth_volume_available = bool(os.environ.get("TAC_CODEX_AUTH_VOLUME", "").strip() or load_auth_volume_from_config())
     options = [
         {
@@ -329,9 +340,11 @@ def repair_meeting(task: dict[str, Any], runner_result: dict[str, Any]) -> dict[
             if missing_auth
             else "Docker Codex auth volume or home path is not writable by the container user"
             if permission_denied
+            else "Docker Codex auth volume exists but is not logged in"
+            if auth_unauthorized
             else "Primary runner blocked before producing a PASS result",
         ],
-        "confidence_score": 0.85 if missing_auth else 0.55,
+        "confidence_score": 0.85 if missing_auth or auth_unauthorized else 0.55,
         "builder_opinion": "Try the lowest-risk local configuration repair before fallback.",
         "reviewer_opinion": "Do not bypass live gates; only repair bounded Docker runner configuration or volume ownership.",
         "debugger_opinion": "The failure signature is repairable when a matching safe repair candidate exists.",
@@ -395,6 +408,10 @@ def company_prompt(task: dict[str, Any]) -> str:
             "- Keep writes inside the bounded workspace.",
             "- Write or update clear artifacts so the user can leave the computer and read the final outcome later.",
             "- Final answer must be Korean, plain language first, with completed work, validation, blocked work, remaining work, and how to use it.",
+            "- For project-scale tasks, execute phase by phase: plan, implement, validate, score at least 10 sectors, improve until 97/100 when safely possible, then continue.",
+            "- At the end of each phase, reread the original objective and verify the project has not drifted.",
+            "- If the phase score is below 97/100, run self-improvement and debugging before advancing unless the remaining gap is a deferred live gate.",
+            "- Final project reports must include phase summaries, score history, bugs found/fixed, validation results, remaining gates, usage instructions, and revision questions.",
             "",
             f"Bounded workspace: {workspace}",
             "",
@@ -556,6 +573,20 @@ def run_codex_docker(prompt: str, workspace: Path, timeout: int) -> dict[str, An
     )
     stdout = redact(completed.stdout)
     stderr = redact(completed.stderr)
+    combined = f"{stdout}\n{stderr}"
+    if completed.returncode != 0 and runner_result_is_codex_auth_unauthorized(
+        {"reason": combined, "stdout_tail": stdout, "stderr_tail": stderr}
+    ):
+        return {
+            "status": "DEFERRED_GATE",
+            "runner": "docker_codex",
+            "returncode": completed.returncode,
+            "reason": "Docker Codex auth volume is present but not logged in or has expired credentials.",
+            "required_action": "Run the Docker-only Codex device-auth/login flow for the configured TAC_CODEX_AUTH_VOLUME, then retry the queued task.",
+            "agent_message": extract_agent_message(stdout),
+            "stdout_tail": stdout[-8000:],
+            "stderr_tail": stderr[-4000:],
+        }
     return {
         "status": "PASS" if completed.returncode == 0 else "FAIL",
         "runner": "docker_codex",

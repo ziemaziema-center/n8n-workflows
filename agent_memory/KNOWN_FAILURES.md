@@ -333,3 +333,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: Remote report-only smoke showed repair options A and B executed; B returned PASS; the next Docker Codex attempt failed with 401 Unauthorized.
 - prevention: Add a Codex auth preflight that detects 401/missing bearer and reports a device-auth gate before attempting long Codex-backed work.
 - rollback_or_fix: Not auto-repaired because interactive device auth requires the user to complete login. Treat as deferred gate, not a code failure.
+
+## 2026-05-29 KST - Project Commands Can Drift Without Phase Boundary Rereads
+- symptom: Broad project requests can drift into partial implementation, early report generation, or one-phase completion without checking whether the work still matches the original user intent.
+- cause: The company runner prompt did not enforce original-objective rereads, 10-sector scoring, or target-score loops at every phase boundary.
+- affected_files: `AGENTS.md`, `SESSION_BOOT.md`, `scripts/hq_company_task_runner.py`.
+- detection_method: User requested a permanent rule that every project-scale command should operate as TAC/HQ with phases, self-repair, scoring, and final project report.
+- prevention: Store a permanent project-command protocol and add runner prompt markers for phase-by-phase execution, original objective reread, 10-sector scoring, and 97/100 improvement target.
+- rollback_or_fix: Added permanent protocol, runner prompt markers, regression tests, and validation.

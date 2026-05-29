@@ -426,3 +426,13 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - validation: PASS. `python -m py_compile scripts\hq_company_task_runner.py`; targeted fallback/self-repair tests passed 5 tests; full unittest suite passed 141 tests; `python scripts\run_offline_validations.py` PASS.
 - side_effects: Local source/test/report/memory changes only so far. No live n8n, Telegram, Instagram, Upbit, production Docker, AWS, secret, force push, or destructive operation.
 - rollback: Revert this patch or set `disable_auto_repair: true` on tasks that must bypass the repair loop.
+
+## TAC_PROJECT_PROTOCOL_AND_AUTH_GATE_20260529
+
+- request: Store a permanent project-scale command protocol and continue the next hardening item after self-repair.
+- files_changed: `AGENTS.md`, `SESSION_BOOT.md`, `scripts/hq_company_task_runner.py`, `tests/test_company_runner_safe_fallback_20260529.py`, `reports/tac_project_protocol_and_auth_gate_2026-05-29.md`, memory and telemetry files.
+- behavior_change: Project-scale tasks now require PROJECT plan, approval-driven controller prompt/execution, phase-by-phase work, original-objective reread, 10-sector scoring, 97/100 self-improvement loop, and final project report requirements.
+- auth_gate_change: Docker Codex `401 Unauthorized`, `Missing bearer`, and not-logged-in output now returns a clear `DEFERRED_GATE` with device-auth/login required action instead of generic `FAIL`.
+- validation: PASS. `python -m py_compile scripts\hq_company_task_runner.py`; targeted self-repair/project-protocol tests passed 8 tests; full unittest suite passed 144 tests; `python scripts\run_offline_validations.py` PASS.
+- side_effects: Local source/test/report/memory changes only so far. No live n8n, Telegram, Instagram, Upbit, production Docker, AWS, secret, force push, or destructive operation.
+- rollback: Revert this patch if project-scale commands should not enforce phase scoring and 97/100 self-improvement loops.

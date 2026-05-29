@@ -317,3 +317,21 @@ Append only unless correcting the latest entry.
   - `python -m unittest discover -s tests`
   - `python scripts\run_offline_validations.py`
 - result: PASS. A missing Docker Codex auth-volume failure now loads `TAC_CODEX_AUTH_VOLUME` from local config, retries Docker Codex, can repair auth-volume ownership on permission denial, records `runtime/repair/<task_id>.repair.json`, and returns `PASS_WITH_AUTO_REPAIR` when the repaired runner passes instead of immediately falling back.
+
+## 2026-05-29 - Project-Scale Commands Use TAC Phase Protocol
+
+- pattern: Project-scale commands must start with a complete PROJECT plan, then proceed phase by phase after approval with self-repair, 10-sector scoring, target 97/100, original-objective reread, and final project report.
+- validated_by:
+  - `python -m unittest tests.test_company_runner_safe_fallback_20260529`
+  - `python -m unittest discover -s tests`
+  - `python scripts/run_offline_validations.py`
+- result: PASS. The permanent protocol is stored in `AGENTS.md` and `SESSION_BOOT.md`, and company runner prompts now include phase scoring, 97/100 self-improvement target, original objective reread, and final report requirements.
+
+## 2026-05-29 - Docker Codex 401 Is A Login Gate, Not A Generic Failure
+
+- pattern: Classify `401 Unauthorized`, `Missing bearer`, and not-logged-in Codex output as an explicit Docker Codex auth `DEFERRED_GATE`.
+- validated_by:
+  - `python -m unittest tests.test_company_runner_safe_fallback_20260529`
+  - `python -m unittest discover -s tests`
+  - `python scripts/run_offline_validations.py`
+- result: PASS. Docker Codex auth failures now return a clear required device-auth/login action instead of a vague `FAIL`.

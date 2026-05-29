@@ -133,6 +133,43 @@ class CompanyRunnerSafeFallbackTests(unittest.TestCase):
         self.assertIn("--user", command)
         self.assertIn("0:0", command)
 
+    def test_docker_codex_401_is_deferred_auth_gate(self) -> None:
+        completed = mock.Mock(
+            returncode=1,
+            stdout='{"type":"error","message":"401 Unauthorized: Missing bearer"}\n',
+            stderr="failed to connect to websocket: HTTP error: 401 Unauthorized",
+        )
+        with mock.patch.object(runner.shutil, "which", return_value="docker"), mock.patch.object(
+            runner.subprocess, "run", return_value=completed
+        ), mock.patch.dict(os.environ, {"TAC_CODEX_AUTH_VOLUME": "tac_codex_auth"}, clear=False):
+            result = runner.run_codex_docker("report only", Path("/home/ubuntu/workspace/example"), 60)
+
+        self.assertEqual(result["status"], "DEFERRED_GATE")
+        self.assertEqual(result["runner"], "docker_codex")
+        self.assertIn("not logged in", result["reason"])
+        self.assertIn("device-auth", result["required_action"])
+
+    def test_project_scale_prompt_includes_phase_scoring_and_97_target(self) -> None:
+        prompt = runner.company_prompt(
+            {
+                "objective": "Build a complete project outcome.",
+                "workspace_path": "/home/ubuntu/workspace/example",
+            }
+        )
+        self.assertIn("phase by phase", prompt)
+        self.assertIn("10 sectors", prompt)
+        self.assertIn("97/100", prompt)
+        self.assertIn("original objective", prompt)
+
+    def test_permanent_project_protocol_is_stored(self) -> None:
+        agents = Path("AGENTS.md").read_text(encoding="utf-8")
+        session = Path("SESSION_BOOT.md").read_text(encoding="utf-8")
+        for text in (agents, session):
+            self.assertIn("Permanent", text)
+            self.assertIn("project-command", text.lower())
+            self.assertIn("97/100", text)
+            self.assertIn("at least 10 sectors", text)
+
 
 if __name__ == "__main__":
     unittest.main()
