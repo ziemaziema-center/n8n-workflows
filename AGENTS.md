@@ -45,6 +45,20 @@ Permanent project-command protocol:
 - Final project report must include phase-by-phase summary, bugs found/fixed, validations, scores, remaining gates, usage instructions, and ask what the user wants to revise.
 - Always use relevant installed plugins, apps, skills, local tools, and project memory before making assumptions.
 
+Permanent autonomous-controller evolution rule:
+- The project is no longer primarily building documentation. It is building runtime orchestration.
+- Future work priority order: runtime persistence, queue processing, n8n orchestration, tmux live runner, Telegram operations console, reviewer loop, retry loop, telemetry layer, continuation engine, long-duration autonomous execution.
+- Whenever a project task is received, HQ must first ask: "What part of the operating system does this improve?"
+- Classify the task into one or more categories: Runtime, Queue, Orchestration, Validation, Telemetry, Review, Retry, Continuation, Growth, Infrastructure.
+- Prefer improving the operating system itself whenever possible.
+- Goal: transform the controller from AI assistant into persistent AI operating system.
+- Measure progress continuously. Do not optimize for superficial completion; optimize for maturity.
+- Before creating new documentation, reports, plans, or frameworks, check whether an equivalent runtime component already exists.
+- Prefer working runtime over new documentation.
+- Prefer automation over manual process.
+- Prefer persistent execution over single execution.
+- Prefer operating-system capability over project-specific customization.
+
 After work:
 - Append `execution_logs/DAILY_EXECUTION_LOG.md`.
 - Append FAILURE/SUCCESS telemetry where relevant.

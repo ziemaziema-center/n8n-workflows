@@ -108,6 +108,51 @@ Required behavior:
 - Final project report must include phase-by-phase summary, bugs found/fixed, validations, scores, remaining gates, usage instructions, and ask what the user wants to revise.
 - Always use relevant installed plugins, apps, skills, local tools, and project memory before making assumptions.
 
+## Permanent Autonomous-Controller Evolution Rule
+
+The project is no longer primarily building documentation. The project is building runtime orchestration.
+
+Future work priority order:
+1. Runtime persistence
+2. Queue processing
+3. n8n orchestration
+4. tmux live runner
+5. Telegram operations console
+6. Reviewer loop
+7. Retry loop
+8. Telemetry layer
+9. Continuation engine
+10. Long-duration autonomous execution
+
+For every project task, HQ must first ask:
+
+```text
+What part of the operating system does this improve?
+```
+
+Allowed categories:
+- Runtime
+- Queue
+- Orchestration
+- Validation
+- Telemetry
+- Review
+- Retry
+- Continuation
+- Growth
+- Infrastructure
+
+Operating preference:
+- Improve the operating system itself whenever possible.
+- Transform the controller from AI assistant into persistent AI operating system.
+- Measure progress continuously.
+- Do not optimize for superficial completion. Optimize for maturity.
+- Before creating new documentation, reports, plans, or frameworks, check whether an equivalent runtime component already exists.
+- Prefer working runtime over new documentation.
+- Prefer automation over manual process.
+- Prefer persistent execution over single execution.
+- Prefer operating-system capability over project-specific customization.
+
 ## Permanent README Language Policy
 
 Every README created or edited in this project must include English, French, Spanish, Korean, and Chinese sections in the same file. Apply this automatically even when the user does not repeat the instruction. Third-party vendored README files are the only exception.

@@ -161,6 +161,20 @@ class CompanyRunnerSafeFallbackTests(unittest.TestCase):
         self.assertIn("97/100", prompt)
         self.assertIn("original objective", prompt)
 
+    def test_project_prompt_prioritizes_runtime_operating_system_maturity(self) -> None:
+        prompt = runner.company_prompt(
+            {
+                "objective": "Improve the autonomous controller.",
+                "workspace_path": "/home/ubuntu/workspace/example",
+            }
+        )
+        self.assertIn("What part of the operating system does this improve?", prompt)
+        self.assertIn("Runtime, Queue, Orchestration", prompt)
+        self.assertIn("working runtime over new documentation", prompt)
+        self.assertIn("persistent execution over single execution", prompt)
+        self.assertIn("operating-system capability", prompt)
+        self.assertIn("Optimize for maturity", prompt)
+
     def test_permanent_project_protocol_is_stored(self) -> None:
         agents = Path("AGENTS.md").read_text(encoding="utf-8")
         session = Path("SESSION_BOOT.md").read_text(encoding="utf-8")
@@ -169,6 +183,10 @@ class CompanyRunnerSafeFallbackTests(unittest.TestCase):
             self.assertIn("project-command", text.lower())
             self.assertIn("97/100", text)
             self.assertIn("at least 10 sectors", text)
+            self.assertIn("autonomous-controller evolution rule", text.lower())
+            self.assertIn("runtime orchestration", text)
+            self.assertIn("What part of the operating system does this improve?", text)
+            self.assertIn("Prefer working runtime over new documentation", text)
 
 
 if __name__ == "__main__":

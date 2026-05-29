@@ -341,3 +341,11 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User requested a permanent rule that every project-scale command should operate as TAC/HQ with phases, self-repair, scoring, and final project report.
 - prevention: Store a permanent project-command protocol and add runner prompt markers for phase-by-phase execution, original objective reread, 10-sector scoring, and 97/100 improvement target.
 - rollback_or_fix: Added permanent protocol, runner prompt markers, regression tests, and validation.
+
+## 2026-05-29 KST - TAC Can Regress Into Documentation Instead Of Runtime Orchestration
+- symptom: Broad controller work can create more reports, plans, or frameworks while not improving persistent runtime capability.
+- cause: The project instructions did not explicitly rank runtime persistence, queue processing, n8n orchestration, tmux runner, Telegram ops, reviewer/retry, telemetry, continuation, and long-duration execution above documentation.
+- affected_files: `AGENTS.md`, `SESSION_BOOT.md`, `scripts/hq_company_task_runner.py`.
+- detection_method: User supplied the autonomous-controller evolution rule and clarified that TAC is now building runtime orchestration, not documentation.
+- prevention: Require HQ to ask what operating-system capability each project task improves, classify the work, and prefer working runtime, automation, persistence, and OS capability over new documentation.
+- rollback_or_fix: Stored the evolution rule, patched runner prompts, added regression tests, and validated.

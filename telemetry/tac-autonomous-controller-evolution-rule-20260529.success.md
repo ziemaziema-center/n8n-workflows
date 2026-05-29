@@ -1,0 +1,35 @@
+# TAC Autonomous Controller Evolution Rule Success - 2026-05-29
+
+- status: PASS
+- request: Store the runtime-first autonomous-controller evolution rule permanently.
+- changed:
+  - rule stored in `AGENTS.md`
+  - rule stored in `SESSION_BOOT.md`
+  - company runner prompt updated to classify operating-system capability improvements
+  - regression tests added to enforce runtime-first maturity preference
+- priority_order:
+  - runtime persistence
+  - queue processing
+  - n8n orchestration
+  - tmux live runner
+  - Telegram operations console
+  - reviewer loop
+  - retry loop
+  - telemetry layer
+  - continuation engine
+  - long-duration autonomous execution
+- validation:
+  - `python -m py_compile scripts\hq_company_task_runner.py`: PASS
+  - `python -m unittest tests.test_company_runner_safe_fallback_20260529`: PASS, 9 tests
+  - `python -m unittest discover -s tests`: PASS, 145 tests
+  - `python scripts\run_offline_validations.py`: PASS
+- safety:
+  - no live n8n action
+  - no Telegram send
+  - no Instagram publish
+  - no Upbit action
+  - no production Docker restart
+  - no AWS mutation
+  - no secret read or output
+  - no force push
+  - no destructive operation

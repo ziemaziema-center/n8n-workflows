@@ -436,3 +436,12 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - validation: PASS. `python -m py_compile scripts\hq_company_task_runner.py`; targeted self-repair/project-protocol tests passed 8 tests; full unittest suite passed 144 tests; `python scripts\run_offline_validations.py` PASS.
 - side_effects: Local source/test/report/memory changes only so far. No live n8n, Telegram, Instagram, Upbit, production Docker, AWS, secret, force push, or destructive operation.
 - rollback: Revert this patch if project-scale commands should not enforce phase scoring and 97/100 self-improvement loops.
+
+## TAC_AUTONOMOUS_CONTROLLER_EVOLUTION_RULE_20260529
+
+- request: Store the rule that TAC is now building runtime orchestration, not documentation, and should optimize for persistent AI operating-system maturity.
+- files_changed: `AGENTS.md`, `SESSION_BOOT.md`, `scripts/hq_company_task_runner.py`, `tests/test_company_runner_safe_fallback_20260529.py`, `reports/tac_autonomous_controller_evolution_rule_2026-05-29.md`, memory and telemetry files.
+- behavior_change: Project-scale prompts now ask what operating-system capability is improved, classify work into Runtime/Queue/Orchestration/Validation/Telemetry/Review/Retry/Continuation/Growth/Infrastructure, and prefer working runtime, automation, persistent execution, and OS capability over new documentation or project-specific customization.
+- validation: PASS. `python -m py_compile scripts\hq_company_task_runner.py`; targeted self-repair/evolution tests passed 9 tests; full unittest suite passed 145 tests; `python scripts\run_offline_validations.py` PASS.
+- side_effects: Local source/test/report/memory changes only so far. No live n8n, Telegram, Instagram, Upbit, production Docker, AWS, secret, force push, or destructive operation.
+- rollback: Revert this patch if future project-scale tasks should not prioritize runtime orchestration maturity.

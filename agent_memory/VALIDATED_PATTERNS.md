@@ -335,3 +335,13 @@ Append only unless correcting the latest entry.
   - `python -m unittest discover -s tests`
   - `python scripts/run_offline_validations.py`
 - result: PASS. Docker Codex auth failures now return a clear required device-auth/login action instead of a vague `FAIL`.
+
+## 2026-05-29 - Runtime-First Operating System Maturity Rule
+
+- pattern: For project-scale work, classify the task by operating-system improvement category before producing new plans or documentation, and prefer runtime/automation/persistence improvements where possible.
+- validated_by:
+  - `python -m py_compile scripts\hq_company_task_runner.py`
+  - `python -m unittest tests.test_company_runner_safe_fallback_20260529`
+  - `python -m unittest discover -s tests`
+  - `python scripts/run_offline_validations.py`
+- result: PASS. The permanent evolution rule is stored in `AGENTS.md` and `SESSION_BOOT.md`, and company runner prompts now ask what OS capability the task improves before adding more documentation.

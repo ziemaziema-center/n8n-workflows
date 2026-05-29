@@ -512,3 +512,12 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - ec2_deployment: Synced `scripts/hq_company_task_runner.py`, remote `py_compile` PASS, scoped `tac-hq-runner` restarted.
 - ec2_smoke: `self-repair-remote-smoke-20260529` returned `PASS_WITH_SAFE_FALLBACK`; original runner status is now `DEFERRED_GATE`; repair meeting cause is `Docker Codex auth volume exists but is not logged in`.
 - safety: Local source/test/report/memory update only. No live n8n, Telegram send, Instagram publish, Upbit action, production Docker restart, AWS mutation, secret read/output, force push, or destructive operation.
+
+## TAC_AUTONOMOUS_CONTROLLER_EVOLUTION_RULE_20260529
+
+- request: Store a permanent runtime-first evolution rule so TAC optimizes for persistent AI operating-system maturity rather than more documentation.
+- result: PASS.
+- changed: Added the evolution rule to `AGENTS.md` and `SESSION_BOOT.md`; updated company runner prompt to ask what OS capability is improved and to prefer runtime, automation, persistence, and OS capability.
+- categories: Runtime, Queue, Orchestration, Validation, Telemetry, Review, Retry, Continuation, Growth, Infrastructure.
+- validation: `python -m py_compile scripts\hq_company_task_runner.py` PASS; `python -m unittest tests.test_company_runner_safe_fallback_20260529` PASS, 9 tests; `python -m unittest discover -s tests` PASS, 145 tests; `python scripts\run_offline_validations.py` PASS.
+- safety: Local source/test/report/memory update only. No live n8n, Telegram send, Instagram publish, Upbit action, production Docker restart, AWS mutation, secret read/output, force push, or destructive operation.
