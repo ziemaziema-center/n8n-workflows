@@ -13,7 +13,7 @@ from typing import Any
 
 ROOT = Path(os.environ.get("TAC_ROOT", Path(__file__).resolve().parents[1]))
 SECRET_PATTERN = re.compile(r"(sk-proj-[A-Za-z0-9_-]{12,}|sk-[A-Za-z0-9_-]{20,}|AA[A-Za-z0-9_-]{20,}:[A-Za-z0-9_-]{20,})")
-SUCCESS_STATUSES = {"PASS", "PASS_WITH_SAFE_FALLBACK"}
+SUCCESS_STATUSES = {"PASS", "PASS_WITH_AUTO_REPAIR", "PASS_WITH_SAFE_FALLBACK"}
 
 
 def utc_now() -> str:
@@ -189,7 +189,7 @@ def write_safe_fallback_report(task: dict[str, Any], runner_result: dict[str, An
 
 def apply_safe_fallback(task: dict[str, Any], runner_result: dict[str, Any]) -> tuple[dict[str, Any], str | None]:
     status = str(runner_result.get("status") or "FAIL")
-    if status == "PASS" or bool(task.get("disable_safe_fallback", False)):
+    if status in SUCCESS_STATUSES or bool(task.get("disable_safe_fallback", False)):
         return runner_result, None
     fallback_path = write_safe_fallback_report(task, runner_result)
     return (
@@ -204,6 +204,148 @@ def apply_safe_fallback(task: dict[str, Any], runner_result: dict[str, Any]) -> 
         },
         str(fallback_path),
     )
+
+
+def max_repair_attempts(task: dict[str, Any]) -> int:
+    raw = task.get("max_repair_attempts", os.environ.get("TAC_MAX_REPAIR_ATTEMPTS", "5"))
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        value = 5
+    return max(0, min(value, 5))
+
+
+def auth_volume_config_path() -> Path:
+    return ROOT / "runtime" / "config" / "tac_codex_auth_volume.local.env"
+
+
+def load_auth_volume_from_config() -> str:
+    path = auth_volume_config_path()
+    if not path.exists():
+        return ""
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        if key.strip() == "TAC_CODEX_AUTH_VOLUME" and value.strip():
+            return value.strip().strip('"').strip("'")
+    return ""
+
+
+def runner_result_is_missing_auth_volume(runner_result: dict[str, Any]) -> bool:
+    reason = runner_block_reason(runner_result).lower()
+    return "auth volume" in reason and ("not configured" in reason or "missing" in reason or "tac_codex_auth_volume" in reason)
+
+
+def runner_result_is_permission_denied(runner_result: dict[str, Any]) -> bool:
+    reason = runner_block_reason(runner_result).lower()
+    return "permission denied" in reason or "os error 13" in reason
+
+
+def docker_auth_volume_ownership_repair_allowed() -> bool:
+    return os.environ.get("TAC_ALLOW_AUTH_VOLUME_CHOWN_REPAIR", "1") == "1"
+
+
+def repair_docker_auth_volume_ownership(auth_volume: str, image: str) -> dict[str, Any]:
+    if not auth_volume:
+        return {"status": "SKIPPED", "reason": "auth volume name missing"}
+    if shutil.which("docker") is None:
+        return {"status": "DEFERRED_GATE", "reason": "docker unavailable on host"}
+    if not docker_auth_volume_ownership_repair_allowed():
+        return {"status": "DEFERRED_GATE", "reason": "auth volume ownership repair disabled"}
+    command = [
+        "docker",
+        "run",
+        "--rm",
+        "--user",
+        "0:0",
+        "--entrypoint",
+        "sh",
+        "-v",
+        f"{auth_volume}:/codex",
+        image,
+        "-lc",
+        "chown -R 10001:10001 /codex",
+    ]
+    completed = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdin=subprocess.DEVNULL,
+        timeout=60,
+        check=False,
+    )
+    return {
+        "status": "PASS" if completed.returncode == 0 else "FAIL",
+        "runner": "docker_auth_volume_ownership_repair",
+        "returncode": completed.returncode,
+        "stdout_tail": redact(completed.stdout)[-2000:],
+        "stderr_tail": redact(completed.stderr)[-2000:],
+    }
+
+
+def repair_meeting(task: dict[str, Any], runner_result: dict[str, Any]) -> dict[str, Any]:
+    observed = runner_block_reason(runner_result)
+    missing_auth = runner_result_is_missing_auth_volume(runner_result)
+    permission_denied = runner_result_is_permission_denied(runner_result)
+    auth_volume_available = bool(os.environ.get("TAC_CODEX_AUTH_VOLUME", "").strip() or load_auth_volume_from_config())
+    options = [
+        {
+            "option": "A",
+            "repair": "Load TAC_CODEX_AUTH_VOLUME from runtime/config/tac_codex_auth_volume.local.env and retry Docker Codex.",
+            "risk": "low",
+            "complexity": "low",
+            "probability": "high" if missing_auth else "low",
+        },
+        {
+            "option": "B",
+            "repair": "Repair Docker Codex auth-volume ownership with a bounded helper container, then retry Docker Codex.",
+            "risk": "medium",
+            "complexity": "medium",
+            "probability": "high" if permission_denied and auth_volume_available else "low",
+        },
+        {
+            "option": "C",
+            "repair": "Write safe fallback report after repair budget is exhausted.",
+            "risk": "low",
+            "complexity": "low",
+            "probability": "certain",
+        },
+    ]
+    if missing_auth and load_auth_volume_from_config():
+        chosen = "A"
+    elif permission_denied and auth_volume_available and docker_auth_volume_ownership_repair_allowed():
+        chosen = "B"
+    else:
+        chosen = "C"
+    return {
+        "task_id": task.get("task_id"),
+        "observed_failure": observed,
+        "likely_causes": [
+            "Docker Codex auth volume missing or not loaded"
+            if missing_auth
+            else "Docker Codex auth volume or home path is not writable by the container user"
+            if permission_denied
+            else "Primary runner blocked before producing a PASS result",
+        ],
+        "confidence_score": 0.85 if missing_auth else 0.55,
+        "builder_opinion": "Try the lowest-risk local configuration repair before fallback.",
+        "reviewer_opinion": "Do not bypass live gates; only repair bounded Docker runner configuration or volume ownership.",
+        "debugger_opinion": "The failure signature is repairable when a matching safe repair candidate exists.",
+        "hq_decision": f"Choose repair option {chosen}.",
+        "repair_options": options,
+        "chosen_option": chosen,
+    }
+
+
+def write_repair_record(task: dict[str, Any], payload: dict[str, Any]) -> Path:
+    task_id = str(task.get("task_id", "unknown"))
+    path = ROOT / "runtime" / "repair" / f"{task_id}.repair.json"
+    write_json(path, payload)
+    return path
 
 
 def write_local_strategy_report(task: dict[str, Any], runner_result: dict[str, Any]) -> Path:
@@ -424,6 +566,129 @@ def run_codex_docker(prompt: str, workspace: Path, timeout: int) -> dict[str, An
     }
 
 
+def execute_primary_runner(target: str, prompt: str, execution_workspace: Path, timeout: int) -> dict[str, Any]:
+    if target == "codex":
+        docker_first = os.environ.get("TAC_USE_DOCKER_CODEX", "1") == "1"
+        docker_result = run_codex_docker(prompt, execution_workspace, timeout) if docker_first else {"status": "SKIPPED"}
+        if docker_result.get("status") == "PASS":
+            return docker_result
+        if os.environ.get("TAC_ALLOW_HOST_CODEX_FALLBACK", "0") == "1":
+            host_result = run_codex_host(prompt, execution_workspace, timeout)
+            return {**host_result, "docker_attempt": docker_result}
+        return docker_result
+    return {
+        "status": "PASS",
+        "runner": "dry_run_company_hq",
+        "agent_message": "Company HQ dry-run: objective parsed and decomposed into safe executable steps.",
+    }
+
+
+def attempt_auto_repair(
+    task: dict[str, Any],
+    runner_result: dict[str, Any],
+    *,
+    target: str,
+    prompt: str,
+    execution_workspace: Path,
+    timeout: int,
+) -> tuple[dict[str, Any], str | None]:
+    if str(runner_result.get("status") or "") == "PASS" or bool(task.get("disable_auto_repair", False)):
+        return runner_result, None
+
+    budget = max_repair_attempts(task)
+    meetings: list[dict[str, Any]] = []
+    attempts: list[dict[str, Any]] = []
+    repaired_result = runner_result
+
+    for attempt in range(1, budget + 1):
+        meeting = repair_meeting(task, repaired_result)
+        meetings.append(meeting)
+        chosen_option = str(meeting["chosen_option"])
+        if chosen_option == "C":
+            attempts.append(
+                {
+                    "attempt": attempt,
+                    "repair": "no safe automatic repair candidate available",
+                    "status": "SKIPPED",
+                }
+            )
+            break
+        if chosen_option == "A":
+            auth_volume = load_auth_volume_from_config()
+            if not auth_volume:
+                attempts.append(
+                    {
+                        "attempt": attempt,
+                        "repair": "load TAC_CODEX_AUTH_VOLUME from local config",
+                        "status": "SKIPPED",
+                        "reason": "auth volume config missing",
+                    }
+                )
+                break
+            os.environ["TAC_CODEX_AUTH_VOLUME"] = auth_volume
+            repaired_result = execute_primary_runner(target, prompt, execution_workspace, timeout)
+            attempts.append(
+                {
+                    "attempt": attempt,
+                    "repair": "load TAC_CODEX_AUTH_VOLUME from local config",
+                    "status": repaired_result.get("status", "UNKNOWN"),
+                    "runner": repaired_result.get("runner", "unknown"),
+                }
+            )
+        elif chosen_option == "B":
+            auth_volume = os.environ.get("TAC_CODEX_AUTH_VOLUME", "").strip() or load_auth_volume_from_config()
+            if auth_volume:
+                os.environ["TAC_CODEX_AUTH_VOLUME"] = auth_volume
+            ownership_result = repair_docker_auth_volume_ownership(
+                auth_volume,
+                os.environ.get("TAC_CODEX_IMAGE", "tac-codex-runner:codex"),
+            )
+            if ownership_result.get("status") == "PASS":
+                repaired_result = execute_primary_runner(target, prompt, execution_workspace, timeout)
+            else:
+                repaired_result = ownership_result
+            attempts.append(
+                {
+                    "attempt": attempt,
+                    "repair": "repair Docker Codex auth-volume ownership and retry primary runner",
+                    "ownership_repair_status": ownership_result.get("status", "UNKNOWN"),
+                    "status": repaired_result.get("status", "UNKNOWN"),
+                    "runner": repaired_result.get("runner", "unknown"),
+                }
+            )
+        if repaired_result.get("status") == "PASS":
+            break
+
+    record = {
+        "task_id": task.get("task_id"),
+        "created_at": utc_now(),
+        "repair_budget": budget,
+        "meeting": meetings[0] if meetings else repair_meeting(task, runner_result),
+        "meetings": meetings,
+        "attempts": attempts,
+        "final_repair_status": repaired_result.get("status", "UNKNOWN"),
+    }
+    repair_record_path = write_repair_record(task, record)
+
+    if repaired_result.get("status") == "PASS":
+        return (
+            {
+                "status": "PASS_WITH_AUTO_REPAIR",
+                "runner": repaired_result.get("runner", "unknown"),
+                "repair_cycles_used": len(attempts),
+                "repair_record_path": str(repair_record_path),
+                "original_runner_status": runner_result.get("status", "UNKNOWN"),
+                "original_runner": runner_result.get("runner", "unknown"),
+                "reason": "primary runner passed after automatic safe repair",
+                "repaired_runner_result": repaired_result,
+            },
+            str(repair_record_path),
+        )
+    repaired_result["repair_record_path"] = str(repair_record_path)
+    repaired_result["repair_cycles_used"] = len(attempts)
+    return repaired_result, str(repair_record_path)
+
+
 def run_task(task: dict[str, Any]) -> dict[str, Any]:
     task_id = str(task["task_id"])
     workspace = Path(str(task["workspace_path"]))
@@ -435,22 +700,15 @@ def run_task(task: dict[str, Any]) -> dict[str, Any]:
     checkpoint = git_checkpoint(execution_workspace, task_id)
     target = str(task.get("target_runner") or "dry_run")
     timeout = int(os.environ.get("TAC_COMPANY_TASK_TIMEOUT_SEC", "1800"))
-    if target == "codex":
-        docker_first = os.environ.get("TAC_USE_DOCKER_CODEX", "1") == "1"
-        docker_result = run_codex_docker(prompt, execution_workspace, timeout) if docker_first else {"status": "SKIPPED"}
-        if docker_result.get("status") == "PASS":
-            runner_result = docker_result
-        elif os.environ.get("TAC_ALLOW_HOST_CODEX_FALLBACK", "0") == "1":
-            host_result = run_codex_host(prompt, execution_workspace, timeout)
-            runner_result = {**host_result, "docker_attempt": docker_result}
-        else:
-            runner_result = docker_result
-    else:
-        runner_result = {
-            "status": "PASS",
-            "runner": "dry_run_company_hq",
-            "agent_message": "회사형 HQ dry-run: 요청을 작업장부에 넣고 안전 범위에서 실행 가능한 단계로 분해했습니다.",
-        }
+    runner_result = execute_primary_runner(target, prompt, execution_workspace, timeout)
+    runner_result, repair_record_path = attempt_auto_repair(
+        task,
+        runner_result,
+        target=target,
+        prompt=prompt,
+        execution_workspace=execution_workspace,
+        timeout=timeout,
+    )
     generated_report_path: str | None = None
     if bool(task.get("report_only", False)) and task_id.startswith("worldvape-daily-growth"):
         generated_report_path = str(write_local_strategy_report(task, runner_result))
@@ -468,6 +726,7 @@ def run_task(task: dict[str, Any]) -> dict[str, Any]:
         "prompt_path": str(prompt_path),
         "git_checkpoint": checkpoint,
         "runner_result": runner_result,
+        "repair_record_path": repair_record_path,
         "generated_report_path": generated_report_path,
         "live_production_mutation": False,
         "secret_values_printed": False,
@@ -476,7 +735,7 @@ def run_task(task: dict[str, Any]) -> dict[str, Any]:
     write_json(out, report)
     print(json.dumps({"task_id": task_id, "status": status, "report": str(out)}, ensure_ascii=False))
     if status in SUCCESS_STATUSES or status == "DEFERRED_GATE":
-        message = str(runner_result.get("agent_message") or runner_result.get("reason") or "작업 결과가 저장되었습니다.")
+        message = str(runner_result.get("agent_message") or runner_result.get("reason") or "Task result saved.")
         print(message)
     return report
 

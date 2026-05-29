@@ -74,6 +74,24 @@ For every new major task:
 - Before session end, update continuation ledger, deferred gates, next executable subtasks, final report, and exact resume prompt.
 - Preserve additive-only modifications, rollback safety, and deterministic auditability.
 
+## Permanent Self-Repair Rule
+
+Failure is not a terminal state.
+
+When a task fails:
+- Run root-cause analysis.
+- Generate safe repair options.
+- Choose the safest repair candidate.
+- Apply the repair.
+- Validate and retry.
+- Repeat within budget before fallback.
+
+Default repair budget:
+- maximum repair attempts per failure: 5
+- maximum review cycles per task: 10
+
+Use `PASS_WITH_SAFE_FALLBACK` only after the repair budget is exhausted or no safe repair exists.
+
 ## Permanent README Language Policy
 
 Every README created or edited in this project must include English, French, Spanish, Korean, and Chinese sections in the same file. Apply this automatically even when the user does not repeat the instruction. Third-party vendored README files are the only exception.

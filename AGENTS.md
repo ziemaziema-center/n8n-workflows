@@ -26,6 +26,14 @@ Before work:
 - Read `agent_memory/PATCH_HISTORY.md`.
 - Read `SESSION_BOOT.md`.
 
+Permanent self-repair rule:
+- Failure is not a terminal state.
+- On failure, run root-cause analysis, choose a safe repair candidate, apply repair, validate, and retry before fallback.
+- Default maximum repair attempts per failure: 5.
+- Default maximum review cycles per task: 10.
+- Only use `PASS_WITH_SAFE_FALLBACK` after the repair budget is exhausted or no safe repair exists.
+- Significant blockers must record Builder, Reviewer, Debugger, and HQ decision notes.
+
 After work:
 - Append `execution_logs/DAILY_EXECUTION_LOG.md`.
 - Append FAILURE/SUCCESS telemetry where relevant.

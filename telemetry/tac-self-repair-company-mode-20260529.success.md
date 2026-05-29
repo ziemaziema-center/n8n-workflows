@@ -1,0 +1,34 @@
+# TAC Self-Repair Company Mode Success - 2026-05-29
+
+- status: PASS
+- request: Patch the company runner so failure triggers repair and retry before safe fallback.
+- changed:
+  - permanent self-repair rule stored in `AGENTS.md`
+  - permanent self-repair rule stored in `SESSION_BOOT.md`
+  - `PASS_WITH_AUTO_REPAIR` added as a success status
+  - repair meeting and bounded retry path added to `scripts/hq_company_task_runner.py`
+  - Docker Codex auth-volume config repair added
+  - Docker Codex auth-volume ownership repair via root helper container added
+  - regression test added to `tests/test_company_runner_safe_fallback_20260529.py`
+- validation:
+  - `python -m py_compile scripts\hq_company_task_runner.py`: PASS
+  - `python -m unittest tests.test_company_runner_safe_fallback_20260529`: PASS, 5 tests
+  - `python -m unittest discover -s tests`: PASS, 141 tests
+  - `python scripts\run_offline_validations.py`: PASS
+- ec2_deployment:
+  - runner sync: PASS
+  - remote py_compile: PASS
+  - scoped tac-hq-runner restart: PASS
+  - report-only smoke: `PASS_WITH_SAFE_FALLBACK`
+  - repair options executed: auth-volume config load, auth-volume ownership repair
+  - remaining gate: Docker Codex auth volume needs valid login because remote Codex returned `401 Unauthorized / Missing bearer`
+- safety:
+  - no live n8n action
+  - no Telegram send
+  - no Instagram publish
+  - no Upbit credential action
+  - no production Docker restart
+  - no AWS mutation
+  - no secret read or output
+  - no force push
+  - no destructive operation

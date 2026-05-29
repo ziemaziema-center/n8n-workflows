@@ -490,3 +490,14 @@ Append-only task execution log for TRUE AUTONOMOUS CONTROLLER.
 - preserved: task name, schedule `09:30`, working directory, runner command, limited run level, verification/unregistration scope.
 - validation: targeted display tests PASS, PowerShell parser PASS, `python -m unittest discover -s tests` PASS with 136 tests, `python scripts/run_offline_validations.py` PASS.
 - safety: Local script text only. No Instagram publish, Telegram send, n8n activation/deactivation/API call, Instagram/Telegram API call, production mutation, or secret inspection/output/modification.
+
+## TAC_SELF_REPAIR_COMPANY_MODE_20260529
+
+- request: Patch TAC so a failure triggers company-style root-cause analysis, repair, validation, and retry instead of stopping or immediately falling back.
+- result: PASS.
+- changed: Added permanent self-repair rule to `AGENTS.md` and `SESSION_BOOT.md`; added `PASS_WITH_AUTO_REPAIR`, repair meeting records, bounded repair attempts, Docker Codex auth-volume config repair, and Docker auth-volume ownership repair via root helper container to `scripts/hq_company_task_runner.py`.
+- tests: Added regression coverage proving missing auth-volume config and auth-volume permission failures are repaired and retried before fallback.
+- validation: `python -m py_compile scripts\hq_company_task_runner.py` PASS; `python -m unittest tests.test_company_runner_safe_fallback_20260529` PASS, 5 tests; `python -m unittest discover -s tests` PASS, 141 tests; `python scripts\run_offline_validations.py` PASS.
+- ec2_deployment: Synced `scripts/hq_company_task_runner.py`, remote `py_compile` PASS, scoped `tac-hq-runner` restarted.
+- ec2_smoke: `self-repair-remote-smoke-20260529` executed repair option A and option B; ownership repair returned PASS; final status `PASS_WITH_SAFE_FALLBACK` because Docker Codex auth reached `401 Unauthorized / Missing bearer`.
+- safety: Local source/test/report/memory update only. No live n8n, Telegram send, Instagram publish, Upbit credential action, production Docker restart, AWS mutation, secret read/output, force push, or destructive operation.

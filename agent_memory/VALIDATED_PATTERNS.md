@@ -307,3 +307,13 @@ Append only unless correcting the latest entry.
   - `python -m json.tool schemas/yuna_growth_experiment.schema.json`
   - `python -m json.tool runtime/yuna_growth_experiments/sample_experiment.json`
 - result: PASS. The account brain now optimizes for follows, comments, saves, shares, DM replies, profile visits, and average watch time rather than views alone.
+
+## 2026-05-29 - Self-Repair Before Safe Fallback
+
+- pattern: When the primary company runner returns `FAIL` or `DEFERRED_GATE`, run a bounded repair meeting and retry before writing a safe fallback report.
+- validated_by:
+  - `python -m py_compile scripts\hq_company_task_runner.py`
+  - `python -m unittest tests.test_company_runner_safe_fallback_20260529`
+  - `python -m unittest discover -s tests`
+  - `python scripts\run_offline_validations.py`
+- result: PASS. A missing Docker Codex auth-volume failure now loads `TAC_CODEX_AUTH_VOLUME` from local config, retries Docker Codex, can repair auth-volume ownership on permission denial, records `runtime/repair/<task_id>.repair.json`, and returns `PASS_WITH_AUTO_REPAIR` when the repaired runner passes instead of immediately falling back.

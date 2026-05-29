@@ -309,3 +309,27 @@ Append only. Do not store secrets, tokens, private keys, or credential values.
 - detection_method: User reported that autonomous controller sessions still stopped on blocked items despite the permanent continuation rule.
 - prevention: Convert blocked primary runner results into `PASS_WITH_SAFE_FALLBACK` unless fallback is explicitly disabled; write `*.safe_fallback.md` with deferred gates and next executable subtasks; expose `company_status` in tmux reports.
 - rollback_or_fix: Added safe fallback reporter, company-status tmux report fields, regression tests, and validation.
+
+## 2026-05-29 KST - Safe Fallback Can Hide A Repairable Runner Failure
+- symptom: TAC could continue after a blocked runner, but it still behaved too much like a report generator because it wrote `PASS_WITH_SAFE_FALLBACK` before trying to repair the failure.
+- cause: The first continuation patch converted blocked runner results directly to safe fallback. It did not insert the required root-cause meeting, repair proposal review, implementation, validation, and retry sequence before fallback.
+- affected_files: `scripts/hq_company_task_runner.py`, `tests/test_company_runner_safe_fallback_20260529.py`, `AGENTS.md`, `SESSION_BOOT.md`.
+- detection_method: User reported that other sessions still stopped or only described fixes instead of repairing and completing the task.
+- prevention: Treat failure as input to a bounded repair cycle. Add `PASS_WITH_AUTO_REPAIR`, write repair records, retry the primary runner after safe repair, and allow fallback only after repair is exhausted or no safe repair exists.
+- rollback_or_fix: Added self-repair company mode, deterministic Docker Codex auth-volume config repair, Docker auth-volume ownership repair, repair meeting records, and regression tests.
+
+## 2026-05-29 KST - Docker Codex Auth Volume Can Exist But Still Be Unwritable
+- symptom: After loading `TAC_CODEX_AUTH_VOLUME`, Docker Codex still failed with `Permission denied (os error 13)` while trying to update its runtime path/auth state.
+- cause: A Docker named volume can be created or mounted with ownership that is not writable by the non-root `tacrunner` container user.
+- affected_files: `scripts/hq_company_task_runner.py`, `tests/test_company_runner_safe_fallback_20260529.py`.
+- detection_method: EC2 self-repair smoke wrote a repair record showing option A ran but each retry failed with permission denied.
+- prevention: Add a second repair candidate that fixes ownership of the bounded Codex auth volume via a root helper container, then retries Docker Codex.
+- rollback_or_fix: Added `repair_docker_auth_volume_ownership` with `--user 0:0`, iterative repair meeting re-evaluation, and regression coverage.
+
+## 2026-05-29 KST - Docker Codex Auth Volume Can Be Writable But Not Logged In
+- symptom: After auth-volume config load and ownership repair both ran, Docker Codex connected to OpenAI but returned `401 Unauthorized / Missing bearer`.
+- cause: The bounded Docker-only Codex auth volume exists and is writable, but it does not contain a valid current Codex login session.
+- affected_files: EC2 runtime state under `/home/ubuntu/workspace/true-autonomous-controller/runtime/repair/self-repair-remote-smoke-20260529.repair.json`.
+- detection_method: Remote report-only smoke showed repair options A and B executed; B returned PASS; the next Docker Codex attempt failed with 401 Unauthorized.
+- prevention: Add a Codex auth preflight that detects 401/missing bearer and reports a device-auth gate before attempting long Codex-backed work.
+- rollback_or_fix: Not auto-repaired because interactive device auth requires the user to complete login. Treat as deferred gate, not a code failure.

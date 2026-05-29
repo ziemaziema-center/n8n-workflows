@@ -416,3 +416,13 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - validation: PASS. Targeted fallback tests passed; full unittest suite passed 138 tests; `python scripts/run_offline_validations.py` PASS; EC2 `py_compile` PASS; EC2 safe fallback smoke `safe-fallback-remote-smoke-20260529` returned `PASS_WITH_SAFE_FALLBACK`.
 - side_effects: Local source/test/report changes plus scoped EC2 sync of two TAC runner scripts and scoped `tac-hq-runner` restart. No live n8n, Telegram, Instagram, Docker production, AWS, secret, or external API operation.
 - rollback: Revert this patch or set `disable_safe_fallback: true` on individual tasks that must remain terminal-failure strict.
+
+## TAC_SELF_REPAIR_COMPANY_MODE_20260529
+
+- request: User reported TAC still does not work like a real company because failures stop or become advice instead of repair loops.
+- files_changed: `AGENTS.md`, `SESSION_BOOT.md`, `scripts/hq_company_task_runner.py`, `tests/test_company_runner_safe_fallback_20260529.py`, `reports/tac_self_repair_company_mode_2026-05-29.md`, memory and telemetry files.
+- behavior_change: Primary runner failure now enters a bounded self-repair cycle before safe fallback. The runner writes a repair meeting record with Builder, Reviewer, Debugger, and HQ notes, attempts safe repair, retries validation, and returns `PASS_WITH_AUTO_REPAIR` when repair succeeds.
+- repair_surfaces: Missing Docker Codex auth-volume config can be repaired by loading `TAC_CODEX_AUTH_VOLUME` from `runtime/config/tac_codex_auth_volume.local.env`; Docker Codex auth-volume permission denial can be repaired by bounded root helper-container ownership repair; both retry Docker Codex before fallback.
+- validation: PASS. `python -m py_compile scripts\hq_company_task_runner.py`; targeted fallback/self-repair tests passed 5 tests; full unittest suite passed 141 tests; `python scripts\run_offline_validations.py` PASS.
+- side_effects: Local source/test/report/memory changes only so far. No live n8n, Telegram, Instagram, Upbit, production Docker, AWS, secret, force push, or destructive operation.
+- rollback: Revert this patch or set `disable_auto_repair: true` on tasks that must bypass the repair loop.
