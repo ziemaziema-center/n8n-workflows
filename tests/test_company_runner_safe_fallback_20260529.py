@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import tempfile
@@ -64,6 +64,23 @@ class CompanyRunnerSafeFallbackTests(unittest.TestCase):
 
             with mock.patch.object(runner, "ROOT", root), mock.patch.object(
                 runner, "run_codex_docker", side_effect=[first, second]
+            ), mock.patch.object(
+                runner, "heartbeat", return_value=None
+            ), mock.patch.object(
+                runner, "append_event", return_value=None
+            ), mock.patch.object(
+                runner, "mark_task_status", return_value=None
+            ), mock.patch.object(
+                runner, "mark_task", return_value=None
+            ), mock.patch.object(
+                runner, "build_handoff", return_value={"status": "PASS"}
+            ), mock.patch.object(
+                runner, "write_handoff", return_value={
+                    "handoff_json_path": str(root / "runtime" / "handoff" / "dummy.json"),
+                    "handoff_md_path": str(root / "runtime" / "handoff" / "dummy.md"),
+                }
+            ), mock.patch.object(
+                runner, "ensure_runtime_dirs", return_value={"status": "PASS"}
             ), mock.patch.dict(os.environ, {"TAC_USE_DOCKER_CODEX": "1"}, clear=False):
                 os.environ.pop("TAC_CODEX_AUTH_VOLUME", None)
                 report = runner.run_task(task)
@@ -110,7 +127,24 @@ class CompanyRunnerSafeFallbackTests(unittest.TestCase):
                 runner, "run_codex_docker", side_effect=[first, second, third]
             ), mock.patch.object(
                 runner, "repair_docker_auth_volume_ownership", return_value={"status": "PASS", "runner": "ownership_repair"}
-            ) as ownership_repair, mock.patch.dict(os.environ, {"TAC_USE_DOCKER_CODEX": "1"}, clear=False):
+            ) as ownership_repair, mock.patch.object(
+                runner, "heartbeat", return_value=None
+            ), mock.patch.object(
+                runner, "append_event", return_value=None
+            ), mock.patch.object(
+                runner, "mark_task_status", return_value=None
+            ), mock.patch.object(
+                runner, "mark_task", return_value=None
+            ), mock.patch.object(
+                runner, "build_handoff", return_value={"status": "PASS"}
+            ), mock.patch.object(
+                runner, "write_handoff", return_value={
+                    "handoff_json_path": str(root / "runtime" / "handoff" / "dummy.json"),
+                    "handoff_md_path": str(root / "runtime" / "handoff" / "dummy.md"),
+                }
+            ), mock.patch.object(
+                runner, "ensure_runtime_dirs", return_value={"status": "PASS"}
+            ), mock.patch.dict(os.environ, {"TAC_USE_DOCKER_CODEX": "1"}, clear=False):
                 os.environ.pop("TAC_CODEX_AUTH_VOLUME", None)
                 report = runner.run_task(task)
 
@@ -191,3 +225,6 @@ class CompanyRunnerSafeFallbackTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+

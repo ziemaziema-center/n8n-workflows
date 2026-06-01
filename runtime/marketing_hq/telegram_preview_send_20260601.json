@@ -1,0 +1,19 @@
+﻿{
+  "send_date_kst": "2026-06-01",
+  "send_status": "BLOCKED",
+  "message_ids": [],
+  "chat_or_channel": "not_identifiable",
+  "candidate_count": 2,
+  "worldvape_message_status": "BLOCKED",
+  "yuna_message_status": "BLOCKED",
+  "render_authorization": false,
+  "publish_authorization": false,
+  "n8n_live_change_authorization": false,
+  "cron_authorization": false,
+  "clean01_clean04_execution": false,
+  "instagram_publish": false,
+  "blocked_reason": "TELEGRAM_DESTINATION_NOT_IDENTIFIABLE",
+  "source_package": "runtime/marketing_hq/telegram_preview_package_20260601.json",
+  "non_authorization_notice": "This document does not authorize Instagram publishing, image/video rendering, paid media execution, n8n live workflow changes, cron activation, clean01/clean04 execution, DM/comment automation, credential disclosure, or production changes.",
+  "telegram_notice": "Telegram preview send is for human review only; it does not authorize rendering, publishing, workflow activation, or external distribution beyond the configured review channel."
+}

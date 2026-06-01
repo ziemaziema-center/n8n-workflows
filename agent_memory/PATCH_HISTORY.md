@@ -455,3 +455,93 @@ Append-only operational changelog for TRUE AUTONOMOUS CONTROLLER.
 - scorecard: 970/1000 average 97/100 across runtime persistence, queue reliability, state recovery, telemetry, handoff, integration, tests, safety, maintainability, and n8n/tmux readiness.
 - side_effects: Local source/test/report/runtime artifacts only. No live n8n, Telegram, Instagram, Upbit, production Docker, AWS, secret, force push, or destructive operation.
 - rollback: Revert the persistence manager patch and remove generated runtime persistence artifacts if the layer needs redesign.
+
+## MARKETING_HQ_VIRAL_ACCELERATION_20260601
+
+- request: User gave full approval to make both Worldvape Gwangwoon and YUNA Instagram more widely known and much stronger.
+- files_changed: `runtime/marketing_hq/viral_acceleration_20260601.json`, `reports/marketing_hq_viral_acceleration_2026-06-01.md`, `runtime/yuna_growth_experiments/yuna-growth-20260601-deal-panel.json`, `runtime/worldvape_growth/daily_growth_memory.jsonl`, `tests/test_marketing_hq_viral_acceleration_20260601.py`, `tests/test_hq_runtime_orchestration_20260518.py`, `telemetry/marketing-hq-viral-acceleration-20260601.success.md`, `reports/hq_continuation_ledger_2026-05-18.json`, `reports/deferred_gate_registry_2026-05-18.md`, memory/log files.
+- behavior_change: Marketing HQ now has a concrete organic viral acceleration package with ranked Worldvape local candidates, ranked YUNA Deal Index candidates, 7-day sprint, manual Telegram trigger wording, YUNA growth experiment data, and next-generation learning constraints.
+- validation: PASS. Targeted viral acceleration tests passed. Related Marketing HQ/YUNA/Worldvape tests passed 17 tests. Ledger contract test was updated for the new final report path. Full unittest suite passed 155 tests. Offline validation runner passed. JSON artifacts parsed.
+- side_effects: Local/report-only artifacts and tests only. No Instagram publish, live comment/DM, credential read, n8n mutation, paid ad execution, production restart, AWS mutation, force push, or destructive operation.
+- rollback: Remove the added 2026-06-01 viral acceleration files and revert the ledger/memory/log appends if the package should be replaced.
+- next_action: Convert the top Worldvape candidate and top YUNA candidate into concrete storyboard/asset cards, then request specific publish approval through the existing approval gate.
+
+## MARKETING_HQ_POST_CANDIDATES_20260601
+
+- request: Based on the Marketing HQ viral acceleration package, generate four actual approval candidates each for Worldvape Gwangwoon and YUNA Deal Index without publishing, messaging, n8n mutation, credential access, production mutation, paid ads, invented prices, or seller exposure.
+- files_changed: `reports/marketing_hq_post_candidates_2026-06-01.md`, `runtime/marketing_hq/post_candidates_20260601.json`, `runtime/yuna_growth_experiments/yuna-growth-20260601-post-candidates.json`, `tests/test_marketing_hq_post_candidates_20260601.py`, `scripts/run_offline_validations.py`, `tests/test_hq_runtime_orchestration_20260518.py`, `reports/hq_continuation_ledger_2026-05-18.json`, memory/log/telemetry files.
+- behavior_change: Marketing HQ now has concrete ranked post candidates with per-candidate comment/save/share/visit-or-follow scoring, legal-safety notes, adult-only notes, fake-price checks, seller-mask checks, and a final approval gate.
+- validation: PASS. Targeted candidate tests passed; JSON parse checks passed; `python -m unittest discover -s tests` passed 162 tests after user-context rerun for known sandbox Docker/permission-test hang; `python scripts\run_offline_validations.py` returned PASS after the same known rerun pattern.
+- side_effects: Local/report-only artifacts and tests only. No Instagram publish, live comment/DM, credential read, n8n mutation, paid ad execution, production mutation, AWS mutation, force push, or destructive operation.
+- rollback: Remove the added post-candidate files and revert ledger/memory/log/test allowlist updates if the candidate pack is superseded.
+- next_action: User selects a candidate ID, then Marketing HQ prepares exact storyboard/asset cards for final explicit publishing approval.
+
+## MARKETING_HQ_STORYBOARDS_20260601
+
+- request: Expand only the top Worldvape and YUNA post approval candidates into production-ready storyboard/image/reel instructions and final approval wording.
+- files_changed: `reports/marketing_hq_storyboards_2026-06-01.md`, `runtime/marketing_hq/storyboards_20260601.json`, `runtime/yuna_growth_experiments/yuna-growth-20260601-storyboard.json`, `tests/test_marketing_hq_storyboards_20260601.py`, `scripts/run_offline_validations.py`, `tests/test_hq_runtime_orchestration_20260518.py`, `reports/hq_continuation_ledger_2026-05-18.json`, memory/log/telemetry files.
+- behavior_change: Marketing HQ now has exact 1080x1920 reel instructions, carousel fallback slides, final captions, pinned comments, approval checklist, production notes, and per-surface risk checks for the two selected top candidates.
+- validation: PASS. Targeted storyboard tests passed; JSON parse checks passed; `python -m unittest discover -s tests` passed 172 tests after user-context rerun for known sandbox Docker/permission-test hang; `python scripts\run_offline_validations.py` returned PASS after the same known rerun pattern.
+- side_effects: Local/report-only artifacts and tests only. No Instagram publish, live comment/DM, n8n mutation, credential read, production mutation, paid ad execution, clean01/clean04 live connection, cron activation, AWS mutation, force push, or destructive operation.
+- rollback: Remove the added storyboard files and revert ledger/memory/log/test allowlist updates if the storyboard pack is superseded.
+- next_action: Render visual drafts or asset cards from the approved storyboard instructions, then request explicit final publishing approval.
+
+## MARKETING_HQ_TELEGRAM_PREVIEW_PACKAGE_20260601
+
+- request: Convert the two Phase 3 storyboards into a Telegram approval UX preview package with text/card structure, button state, and review JSON only.
+- files_changed: `reports/marketing_hq_telegram_preview_package_2026-06-01.md`, `runtime/marketing_hq/telegram_preview_package_20260601.json`, `runtime/yuna_growth_experiments/yuna-growth-20260601-telegram-preview-package.json`, `tests/test_marketing_hq_telegram_preview_package_20260601.py`, `scripts/run_offline_validations.py`, `tests/test_hq_runtime_orchestration_20260518.py`, `reports/hq_continuation_ledger_2026-05-18.json`, memory/log/telemetry files.
+- behavior_change: Marketing HQ now has Telegram manual-review cards for the two storyboard candidates with five buttons and state-transition rules. `approve_for_render_only` moves only to a manual render-request state and does not grant publishing, workflow execution, external send, clean pipeline connection, or cron activation.
+- validation: PASS. Targeted Telegram preview tests passed; JSON parse checks passed; `python -m unittest discover -s tests` passed 184 tests after user-context rerun for known sandbox Docker/permission-test hang; `python scripts\run_offline_validations.py` returned PASS after the same known rerun pattern.
+- side_effects: Local/report-only artifacts and tests only. No Telegram send, image/video render, Instagram publish, live comment/DM, n8n mutation, credential read, production mutation, paid ad execution, clean01/clean04 live connection, cron activation, AWS mutation, force push, or destructive operation.
+- rollback: Remove the added Telegram preview files and revert ledger/memory/log/test allowlist updates if the preview package is superseded.
+- next_action: If explicitly approved, prepare a Telegram-send draft or actual Telegram confirmation using this package; rendering and publishing remain separate gated steps.
+
+## MARKETING_HQ_PROJECTIZATION_20260601
+
+- request: Convert ongoing Worldvape/YUNA Marketing HQ content work into a repeatable formal project named Marketing HQ with docs, runtime state, safety gates, roadmap, metrics, and tests.
+- files_changed: `docs/marketing_hq/PROJECT_BRIEF.md`, `docs/marketing_hq/OPERATING_RULES.md`, `docs/marketing_hq/CONTENT_POSITIONING.md`, `docs/marketing_hq/SAFETY_RULES.md`, `docs/marketing_hq/APPROVAL_GATES.md`, `docs/marketing_hq/ROADMAP.md`, `docs/marketing_hq/METRICS.md`, `docs/marketing_hq/RUNBOOK.md`, `runtime/marketing_hq/project_manifest.json`, `runtime/marketing_hq/approval_state.json`, `runtime/marketing_hq/content_score_schema.json`, `runtime/marketing_hq/safety_policy.json`, `runtime/marketing_hq/roadmap_state.json`, `runtime/marketing_hq/telemetry_log.jsonl`, `tests/test_marketing_hq_projectization_20260601.py`, `scripts/run_offline_validations.py`, `tests/test_hq_runtime_orchestration_20260518.py`, ledger/memory/log/telemetry files.
+- behavior_change: Marketing HQ is now a projectized local/offline system with two subprojects, artifact manifest links, fixed safety defaults, approval gate meanings, scoring schema, and roadmap state. All live surfaces remain separately gated.
+- validation: PASS. Targeted projectization tests passed; JSON parse checks passed; `python -m unittest discover -s tests` passed 194 tests after user-context rerun for known sandbox Docker/permission-test hang; `python scripts\run_offline_validations.py` returned PASS after the same known rerun pattern.
+- side_effects: Local docs/runtime/test/telemetry updates only. No Telegram send, image/video render, Instagram publish, live comment/DM, n8n mutation, credential read, production mutation, paid ad execution, clean01/clean04 live connection, cron activation, external API call, AWS mutation, force push, or destructive operation.
+- rollback: Remove the projectization docs/runtime files and revert ledger/memory/log/test allowlist updates if the formal project structure is superseded.
+- next_action: Operate future Marketing HQ work through `runtime/marketing_hq/project_manifest.json` and `runtime/marketing_hq/approval_state.json`; ask separately before Telegram send, render, publish, or live automation connection.
+
+## MARKETING_HQ_TELEGRAM_PREVIEW_SEND_GATE_20260601
+
+- request: Send the two existing Marketing HQ Telegram preview cards only, with no render, Instagram publish, n8n live change, clean01/clean04 connection, cron activation, credential read/print, production change, paid ads, fake price, or seller URL exposure.
+- files_changed: `runtime/marketing_hq/telegram_preview_sent_20260601.json`, `reports/marketing_hq_telegram_preview_sent_2026-06-01.md`, `tests/test_marketing_hq_telegram_preview_sent_20260601.py`, `runtime/marketing_hq/approval_state.json`, `runtime/marketing_hq/telemetry_log.jsonl`, `reports/deferred_gate_registry_2026-05-18.md`, `reports/hq_continuation_ledger_2026-05-18.json`, validation runner, memory/log/telemetry files.
+- behavior_change: The send attempt now has a machine-readable BLOCKED_NOT_SENT record when no exact confirmed Marketing HQ Telegram target is available.
+- validation: PASS. `python -m unittest tests.test_marketing_hq_telegram_preview_sent_20260601` passed 7 tests, `python -m unittest discover -s tests` passed 212 tests, `python scripts\run_offline_validations.py` passed, and JSON parse checks passed.
+- side_effects: Local artifacts only. No Telegram message was sent because the target gate was not satisfied.
+- rollback: Remove the preview-send blocked artifacts and revert the approval_state/ledger/memory/log additions if a different target-resolution design replaces this gate.
+- next_action: Confirm the exact Marketing HQ Telegram target through the existing Telegram command path, then rerun only the preview-card send step.
+
+## MARKETING_HQ_TELEGRAM_TARGET_DISCOVERY_SAFE_MODE_20260601
+
+- request: Safely discover the Marketing HQ preview Telegram `chat_id` only from an update/log/runtime entry whose message text is exactly `Marketing HQ preview target test`.
+- files_changed: `.gitignore`, `runtime/marketing_hq/approval_state.json`, `runtime/marketing_hq/telemetry_log.jsonl`, `reports/marketing_hq_telegram_target_discovery_2026-06-01.md`, `tests/test_marketing_hq_telegram_target_discovery_20260601.py`, `scripts/run_offline_validations.py`, memory/log files.
+- behavior_change: Target discovery now records `blocked_target_not_found` instead of creating a guessed target config when the exact message cannot be confirmed.
+- validation: PASS. Targeted discovery test passed 6 tests, full unittest passed 218 tests, and offline validation passed.
+- side_effects: Local files only. No Telegram send, Instagram publish, render, n8n mutation, clean01/clean04 connection, cron activation, credential lookup/print, production change, or paid ads.
+- rollback: Remove the discovery report/test and revert approval_state/telemetry/gitignore additions if a different target-discovery path replaces this one.
+- next_action: Restore n8n/EC2 read-only access or provide a safe non-secret target reference, then rerun target discovery before preview send.
+
+## MARKETING_HQ_TELEGRAM_TARGET_MANUAL_REGISTER_20260601
+
+- request: Register the manually confirmed Marketing HQ Telegram target for preview approval.
+- files_changed: `runtime/marketing_hq/telegram_target_config.local.json`, `reports/marketing_hq_telegram_target_manual_register_2026-06-01.md`, `tests/test_marketing_hq_telegram_target_manual_register_20260601.py`, `runtime/marketing_hq/approval_state.json`, `runtime/marketing_hq/telemetry_log.jsonl`, `scripts/run_offline_validations.py`, memory/log files.
+- behavior_change: Marketing HQ now has a local-only preview target config and approval state `configured_pending_send`.
+- validation: PASS. Targeted manual/discovery tests passed 12 tests, full unittest passed 224 tests, and offline validation passed.
+- side_effects: Local files only. No Telegram send, Instagram publish, render, n8n mutation, clean01/clean04 connection, cron activation, credential lookup/print, production change, or paid ads.
+- rollback: Remove the local target config and revert approval_state/telemetry/test/report additions if the target should be replaced.
+- next_action: Send the prepared Telegram preview package in a separate preview-send-only step.
+
+## MARKETING_HQ_POSTING_SCOPE_GOVERNANCE_20260601
+
+- request: Finalize posting-scope confirmation + safe preview-only pipeline completion for Worldvape/YUNA with A-J artifacts, tests, closing QA, telemetry, and git handoff.
+- files_changed: `reports/marketing_hq_posting_scope_work_queue_2026-06-01.md`, `reports/marketing_hq_posting_scope_confirmation_2026-06-01.md`, `reports/marketing_hq_posting_safety_matrix_2026-06-01.md`, `reports/marketing_hq_telegram_preview_send_eligibility_2026-06-01.md`, `reports/marketing_hq_telegram_preview_send_2026-06-01.md`, `runtime/marketing_hq/telegram_preview_send_20260601.json`, `reports/marketing_hq_future_render_gate_packet_2026-06-01.md`, `reports/marketing_hq_future_publish_gate_packet_2026-06-01.md`, `reports/marketing_hq_human_decision_packet_2026-06-01.md`, `reports/marketing_hq_posting_scope_manifest_2026-06-01.md`, `reports/marketing_hq_posting_scope_closing_qa_report_2026-06-01.md`, `reports/marketing_hq_posting_scope_patch_manifest_2026-06-01.md`, `reports/marketing_hq_posting_scope_final_verdict_2026-06-01.md`, `tests/test_marketing_hq_posting_scope_confirmation_20260601.py`, `tests/test_marketing_hq_telegram_preview_send_20260601.py`, `tests/test_company_runner_safe_fallback_20260529.py`, `execution_logs/DAILY_EXECUTION_LOG.md`, `agent_memory/PATCH_HISTORY.md`.
+- behavior_change: Posting scope is explicitly confirmed with account-handle gap; Telegram send is explicitly BLOCKED when target destination is not identifiable; future render/publish gates are prepacked without executing live actions.
+- validation: PASS. Targeted tests passed; full `python -m unittest discover -s tests` passed 224 tests after user-context rerun for sandbox permission gate.
+- side_effects: Local artifacts/tests/telemetry only. No Telegram message was sent, no render, no Instagram publish, no n8n live change, no cron, no clean01/clean04 execution, no credential disclosure, and no production mutation.
+- rollback: Remove this posting-scope artifact set and revert related test/log updates if the governance flow is replaced.
+- next_action: Provide confirmed Telegram target destination and exact account handles for a preview-send-only rerun.
